@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.1-orange.svg)](CHANGELOG.md)
+[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.3-orange.svg)](CHANGELOG.md)
 
 **TSAO-PROCESSING-SKILL** is an open-source, software-neutral operating system for chemical-process research, development, scale-up, qualification and technology transfer.
 
@@ -16,12 +16,13 @@ The master skill orchestrates the full lifecycle:
 
 `need → evidence → chemistry → measurement → properties → kinetics → reactor → separation/recycle → lab → bench → pilot → demonstration → industrial design → control → safety/reliability → TEA/LCA/IP → qualification → technology package → transfer → field learning`
 
-It supports polymerization, catalytic and non-catalytic reaction systems, petrochemicals, fine chemicals, biochemical and electrochemical processes, solids handling, formulation, separations, utilities, retrofit, debottlenecking and third-party package review.
+A complete invocation is required to create project artifacts, research questions, competing routes, experiment/model plans, scale-up claims, process-package records and acceptance criteria. It must not stop at generic advice.
 
 ## Included specialist skills
 
 | Specialist | Location | Role |
 |---|---|---|
+| General chemical process | `skills/process-general/` | Reaction, thermodynamics, reactor, separation, recycle, control, HSE, reliability and scale-up method for biochemical, electrochemical, solids, fine-chemical, petrochemical and generic processes |
 | EPDM | `skills/epdm/` | Full EPM/EPDM catalyst-to-customer lifecycle, inherited from the qualification-oriented v9 release |
 | POE | `skills/poe/` | SJTU-derived solution-polymerization kinetics, flowsheet, dynamics, scale-up and acceptance methodology |
 | General polymer development | `skills/polymer-general/` | Route-neutral polymer R&D and industrialization framework |
@@ -42,6 +43,10 @@ python scripts/run_ci.py
 ```
 
 For an AI agent, open `SKILL.md` and execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
+
+## Source-core and complete-distribution boundary
+
+The GitHub branch is the reviewable, installable source core and specialist contract layer. The separately qualified complete distribution also contains the full EPDM v9, SJTU-POE and universal-polymer source trees and historical release identities. Controlled ingestion into the public tree is tracked in `docs/VERSIONED_ASSET_INGESTION.md`; opaque Base64 payloads are not accepted as a substitute for source.
 
 ## Qualification boundary
 
