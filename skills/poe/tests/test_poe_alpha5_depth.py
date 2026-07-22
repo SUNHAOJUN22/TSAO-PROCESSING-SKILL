@@ -6,7 +6,10 @@ from pathlib import Path
 import pytest
 
 from skills.poe.scripts.audit_evidence import audit as audit_evidence
-from skills.poe.scripts.audit_process_package import REQUIRED_GROUPS, audit as audit_package
+from skills.poe.scripts.audit_process_package import (
+    REQUIRED_GROUPS,
+    audit as audit_package,
+)
 from skills.poe.scripts.build_case_matrix import build
 
 
