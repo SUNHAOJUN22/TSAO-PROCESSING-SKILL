@@ -55,9 +55,7 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
             stderr=subprocess.STDOUT,
             text=True,
             start_new_session=os.name == "posix",
-            creationflags=(
-                subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-            ),
+            creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0),
         )
         try:
             returncode = process.wait(timeout=timeout)
@@ -69,37 +67,16 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
         log.flush()
         log.seek(0)
         output = log.read()[-20000:]
-    return {
-        "command": command,
-        "returncode": returncode,
-        "timed_out": timed_out,
-        "output": output,
-    }
+    return {"command": command, "returncode": returncode, "timed_out": timed_out, "output": output}
 
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
     checks = [
-        run(
-            [sys.executable, "-m", "compileall", "-f", "-q", str(root / "tsao")],
-            cwd=root,
-        ),
-        run(
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                "-q",
-                "-p",
-                "no:cacheprovider",
-                str(root / "tests"),
-            ],
-            cwd=root,
-        ),
-        run(
-            [sys.executable, "-m", "ruff", "check", "tsao", "tests", "scripts"],
-            cwd=root,
-        ),
+        run([sys.executable, "-m", "compileall", "-f", "-q", "tsao", "scripts", "skills"], cwd=root),
+        run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"], cwd=root),
+        run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
+        run([sys.executable, "-m", "ruff", "check", "tsao", "tests", "scripts"], cwd=root),
     ]
     passed = all(check["returncode"] == 0 for check in checks)
     report = {
