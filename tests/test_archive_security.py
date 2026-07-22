@@ -22,10 +22,23 @@ def test_archive_validator_rejects_backslash_drive_secret_and_member_limit(
     assert "forbidden archive member: root/private.key" in issues
 
 
+def test_archive_validator_rejects_case_insensitive_member_collision(tmp_path: Path) -> None:
+    archive_path = tmp_path / "case-collision.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("root/A.txt", "A")
+        archive.writestr("root/a.txt", "a")
+    issues = validate_zip_archive(archive_path)
+    assert "archive contains case-insensitive path collisions" in issues
+
+
 def test_archive_rejects_case_insensitive_source_collision(tmp_path: Path) -> None:
     root = tmp_path / "source"
     root.mkdir()
-    (root / "A.txt").write_text("A")
-    (root / "a.txt").write_text("a")
+    upper = root / "A.txt"
+    lower = root / "a.txt"
+    upper.write_text("A")
+    lower.write_text("a")
+    if len(list(root.iterdir())) < 2:
+        pytest.skip("filesystem is case-insensitive; source collision cannot be materialized")
     with pytest.raises(ValueError, match="case-insensitive"):
         deterministic_zip(root, tmp_path / "archive.zip")
