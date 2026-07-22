@@ -33,6 +33,7 @@ _REQUIRED_PATHS = {
     ".github/workflows/ci.yml",
     ".github/ISSUE_TEMPLATE/feature.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    "skills/process-general/SKILL.md",
     "skills/epdm/SKILL.md",
     "skills/poe/SKILL.md",
     "skills/polymer-general/SKILL.md",
@@ -45,6 +46,15 @@ def source_paths(pattern: str):
         for path in ROOT.rglob(pattern)
         if not any(part in _CACHE_PARTS for part in path.relative_to(ROOT).parts)
     )
+
+
+def _skill_frontmatter(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    assert text.startswith("---\n")
+    _, frontmatter, _ = text.split("---", 2)
+    data = yaml.safe_load(frontmatter)
+    assert isinstance(data, dict)
+    return data
 
 
 def test_required_repository_paths_exist() -> None:
@@ -69,12 +79,35 @@ def test_version_metadata_is_consistent() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     manifest = yaml.safe_load((ROOT / "manifest.yaml").read_text(encoding="utf-8"))
     citation = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
-    assert pyproject["project"]["version"] == "0.1.0a2"
-    assert tsao.__version__ == "0.1.0-alpha.2"
+    root_skill = _skill_frontmatter(ROOT / "SKILL.md")
+    assert pyproject["project"]["version"] == "0.1.0a3"
+    assert tsao.__version__ == "0.1.0-alpha.3"
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
-    assert "## 0.1.0-alpha.2" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert root_skill["version"] == tsao.__version__
+    assert "## 0.1.0-alpha.3" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
+
+
+def test_root_skill_preserves_original_execution_contract() -> None:
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    required = {
+        "Mandatory actions for one complete invocation",
+        "Parallel professional workstreams",
+        "M0 idea",
+        "M9 operationally-validated",
+        "process-general",
+        "planned",
+        "requires_external_execution",
+    }
+    missing = sorted(item for item in required if item.casefold() not in skill.casefold())
+    assert missing == []
+
+
+def test_manifest_registers_all_specialists() -> None:
+    manifest = yaml.safe_load((ROOT / "manifest.yaml").read_text(encoding="utf-8"))
+    ids = [item["id"] for item in manifest["subskills"]]
+    assert ids == ["process-general", "epdm", "poe", "polymer-general"]
 
 
 def test_github_issue_form_uses_issue_form_contract() -> None:
