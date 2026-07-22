@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -8,23 +10,61 @@ from pathlib import Path
 from typing import Any
 
 
-def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
-    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
+def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "posix":
         try:
-            result = subprocess.run(
-                command,
-                cwd=cwd,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=timeout,
-                check=False,
-            )
-            returncode = result.returncode
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        try:
+            process.wait(timeout=5)
+            return
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                return
+    elif os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    else:
+        process.kill()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+
+
+def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
+    if timeout <= 0:
+        raise ValueError("timeout must be positive")
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            text=True,
+            start_new_session=os.name == "posix",
+            creationflags=(
+                subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+            ),
+        )
+        try:
+            returncode = process.wait(timeout=timeout)
             timed_out = False
         except subprocess.TimeoutExpired:
-            returncode = 124
             timed_out = True
+            returncode = 124
+            _terminate_process_tree(process)
+        log.flush()
         log.seek(0)
         output = log.read()[-20000:]
     return {
