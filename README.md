@@ -2,56 +2,66 @@
 
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.3-orange.svg)](CHANGELOG.md)
+[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.4-orange.svg)](CHANGELOG.md)
 
-**TSAO-PROCESSING-SKILL** is an open-source, software-neutral operating system for chemical-process research, development, scale-up, qualification and technology transfer.
+**TSAO turns a chemical-process question into a traceable development programme — from evidence and experiments to models, scale-up, process package, acceptance and field learning.**
 
-TSAO means **Traceable · Scientific · Auditable · Operational**. The project is designed to turn an engineering brief, literature corpus, experimental dataset or existing plant package into a controlled research and industrialization program—not into an unverified answer dump.
+TSAO = **Traceable · Scientific · Auditable · Operational**. It is software-neutral and fail-closed: a plan, simulation or generated report never becomes technical approval by itself.
 
-[中文说明](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Skill entrypoint](SKILL.md) · [Roadmap](ROADMAP.md)
+[中文](README.zh-CN.md) · [Skill contract](SKILL.md) · [Architecture](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md)
 
-## What it does
+## Use it for
 
-The master skill orchestrates the full lifecycle:
+- greenfield process development, replication and localization;
+- catalyst/route/product development and scale-up;
+- retrofit, debottlenecking, troubleshooting and package audit;
+- polymer, petrochemical, fine-chemical, biochemical, electrochemical, solids and formulation processes.
 
-`need → evidence → chemistry → measurement → properties → kinetics → reactor → separation/recycle → lab → bench → pilot → demonstration → industrial design → control → safety/reliability → TEA/LCA/IP → qualification → technology package → transfer → field learning`
+## One operating system, four specialist routes
 
-A complete invocation is required to create project artifacts, research questions, competing routes, experiment/model plans, scale-up claims, process-package records and acceptance criteria. It must not stop at generic advice.
-
-## Included specialist skills
-
-| Specialist | Location | Role |
+| Route | Use for | Depth |
 |---|---|---|
-| General chemical process | `skills/process-general/` | Reaction, thermodynamics, reactor, separation, recycle, control, HSE, reliability and scale-up method for biochemical, electrochemical, solids, fine-chemical, petrochemical and generic processes |
-| EPDM | `skills/epdm/` | Full EPM/EPDM catalyst-to-customer lifecycle, inherited from the qualification-oriented v9 release |
-| POE | `skills/poe/` | SJTU-derived solution-polymerization kinetics, flowsheet, dynamics, scale-up and acceptance methodology |
-| General polymer development | `skills/polymer-general/` | Route-neutral polymer R&D and industrialization framework |
+| `process-general` | reaction, property, reactor, separation, control, HSE and scale-up outside a polymer-specific pack | 14 structured domain modules |
+| `epdm` | catalyst-to-customer EPM/EPDM development | full qualified v9 inheritance |
+| `poe` | SJTU-derived POE solution-polymerization process packages | full kinetics/flowsheet/dynamics/acceptance source tree |
+| `polymer-general` | other polymerization, modification and formulation routes | mechanism-neutral lifecycle pack |
 
-Historical case parameters are reference-only and can never become a new project design basis without project-specific validation.
+## What one invocation produces
 
-## Open engineering ecosystem
+`brief → route → 19 Gates × 14 workstreams → evidence/hypotheses → experiments/models → lab/bench/pilot/demo → industrial package → acceptance/transfer`
 
-TSAO uses adapters and contracts rather than a single simulator. It can route work to DWSIM/CAPE-OPEN, IDAES, Cantera, Pyomo, CoolProp, commercial simulators, CFD/FEM/PBM/DEM tools, Python, MATLAB, spreadsheets and laboratory systems. Tool output remains provisional until conservation, known-solution, limit-behaviour, uncertainty and applicability-domain checks pass.
+`tsao init` immediately creates **266 fail-closed work packages**, the G0–G18 Gate set, an M0–M9 maturity record and explicit external-execution states.
 
 ## Quick start
 
 ```bash
 python -m pip install -e .[dev]
+python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
 python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
 python -m tsao.cli audit --root work/demo
 python scripts/run_ci.py
 ```
 
-For an AI agent, open `SKILL.md` and execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
+AI agents should read `SKILL.md`, then execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
 
-## Source-core and complete-distribution boundary
+## Quality model
 
-The GitHub branch is the reviewable, installable source core and specialist contract layer. The separately qualified complete distribution also contains the full EPDM v9, SJTU-POE and universal-polymer source trees and historical release identities. Controlled ingestion into the public tree is tracked in `docs/VERSIONED_ASSET_INGESTION.md`; opaque Base64 payloads are not accepted as a substitute for source.
+TSAO blocks a Gate when evidence is stale or contradictory, a model is unidentifiable or outside its domain, balances fail, scale-up similarity is unstated, external reviews are unexecuted, or an approval lacks evidence and a named approver.
 
-## Qualification boundary
+The repository includes positive and adversarial tests for Gate transitions, evidence, model risk, balances, scientific kernels, project generation, specialist lineage, malicious ZIPs, deterministic builds and cleanroom revalidation.
 
-A green repository CI means the **software artifact** is internally consistent. It does not approve chemistry, equipment, controls, process safety, FTO, customer performance or a plant guarantee. Those states default to `NOT_EVALUATED` and require named qualified humans and real evidence.
+## Truthful boundary
 
-## License and attribution
+Repository CI qualifies **software artifacts only**. Chemistry, equipment, controls, relief design, HAZOP/LOPA/SIL, FTO, customer qualification, pilot operation and industrial performance remain `NOT_EVALUATED` until real evidence and qualified human approval exist.
 
-Original TSAO code and documentation are Apache-2.0. Upstream projects are referenced or adapted only through license-compatible interfaces. See `NOTICE.md`.
+## Project map
+
+- `SKILL.md` — non-negotiable execution contract
+- `tsao/` — machine-executable core
+- `skills/` — four specialist packs
+- `schemas/` — project, evidence, model, scale-up and acceptance contracts
+- `templates/` — reusable project artifacts
+- `scripts/` — audits, CI and deterministic release
+- `vendor/releases/` — controlled inherited release identities
+
+Apache-2.0 for original TSAO code and documentation. See `NOTICE.md` for attribution and license isolation.
