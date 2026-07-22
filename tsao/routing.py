@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 
-
 ROUTES: dict[str, set[str]] = {
     "epdm": {
         "epdm",
