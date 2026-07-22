@@ -101,7 +101,7 @@ def bootstrap_project(
     manifest: dict[str, Any] = {
         "project_id": project_id,
         "title": title,
-        "version": "0.1.0-alpha.4",
+        "version": "0.1.0-alpha.5",
         "domain": [item[0] for item in routed],
         "subskills": _select_subskills(routed),
         "technical_approval_status": "NOT_EVALUATED",
