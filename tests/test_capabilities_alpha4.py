@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from tsao.capabilities import GATES, MATURITY_LEVELS, WORKSTREAMS, build_work_packages, capability_contract_issues
+from tsao.capabilities import (
+    GATES,
+    MATURITY_LEVELS,
+    WORKSTREAMS,
+    build_work_packages,
+    capability_contract_issues,
+)
 from tsao.project import audit_project, bootstrap_project
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +28,11 @@ def test_work_package_matrix_is_19_by_14_and_fail_closed():
 
 def test_project_bootstrap_writes_executable_artifacts(tmp_path: Path):
     brief = tmp_path / "brief.yaml"
-    brief.write_text("project_id: P-1\ntitle: Catalytic reactor retrofit\nsummary: catalytic reactor separation control\n", encoding="utf-8")
+    brief.write_text(
+        "project_id: P-1\ntitle: Catalytic reactor retrofit\n"
+        "summary: catalytic reactor separation control\n",
+        encoding="utf-8",
+    )
     project = tmp_path / "project"
     manifest = bootstrap_project(brief, project)
     assert manifest["version"] == "0.1.0-alpha.4"
