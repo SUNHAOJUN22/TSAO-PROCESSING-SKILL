@@ -19,13 +19,24 @@ TSAO is a contract-driven skill system, not a monolithic prompt.
 
 A high-consequence claim must have a continuous support path. Orphaned nodes, expired evidence, unresolved contradictions or unreviewed MR4/MR5 models block the relevant Gate.
 
-## Plugin model
+## Specialist model
 
-A specialist skill provides domain ontology, decision logic, models, templates and tests. It may narrow the master rules but may not weaken traceability, fail-closed Gates or approval boundaries.
+Every project activates at least one specialist contract while retaining the master G0–G18 rules:
+
+- `process-general` — non-polymer reaction, property, reactor, separation, control, HSE and scale-up method;
+- `epdm` — EPM/EPDM catalyst-to-customer lifecycle;
+- `poe` — SJTU-derived POE solution-polymerization and package-acceptance method;
+- `polymer-general` — other polymerization, modification and formulation routes.
+
+A specialist skill supplies domain ontology, decision logic, models, templates and tests. It may narrow the master rules but may not weaken traceability, fail-closed Gates or approval boundaries. Generic domain labels such as bioprocess, electrochemical, solids, fine-chemical-batch and petrochemical route through `process-general` until a deeper domain pack is activated.
 
 ## Simulator neutrality
 
 The canonical project model is stored in TSAO schemas. DWSIM, IDAES, Cantera, Pyomo, CoolProp, Aspen and other tools are adapters. This prevents a project from becoming inseparable from one vendor file and makes cross-tool verification possible.
+
+## Source-core and complete-distribution boundary
+
+The GitHub source core contains the installable master kernel and reviewable specialist contracts. The independently qualified complete distribution also contains the full EPDM v9, SJTU-POE and universal-polymer source trees. Public ingestion of those assets must retain per-file provenance, license isolation and inherited tests; an opaque archive is not a substitute for reviewable source.
 
 ## Qualification boundary
 
