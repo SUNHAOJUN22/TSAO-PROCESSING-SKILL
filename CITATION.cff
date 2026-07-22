@@ -7,8 +7,8 @@ authors:
     given-names: Haojun
 repository-code: https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL
 license: Apache-2.0
-version: 0.1.0-alpha.2
-date-released: 2026-07-21
+version: 0.1.0-alpha.3
+date-released: 2026-07-22
 keywords:
   - chemical process development
   - process systems engineering
