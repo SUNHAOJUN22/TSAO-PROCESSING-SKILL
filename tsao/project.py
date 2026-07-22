@@ -38,7 +38,16 @@ PROJECT_DIRS = (
     "reports",
     "logs",
 )
-_VALID_SUBSKILLS = {"epdm", "poe", "polymer-general"}
+_VALID_SUBSKILLS = {"process-general", "epdm", "poe", "polymer-general"}
+_POLYMER_SUBSKILLS = {"epdm", "poe", "polymer-general"}
+
+
+def _select_subskills(routed: list[tuple[str, float]]) -> list[str]:
+    domains = [item[0] for item in routed]
+    selected = [domain for domain in domains if domain in _POLYMER_SUBSKILLS]
+    if not selected or any(domain not in _POLYMER_SUBSKILLS for domain in domains):
+        selected.insert(0, "process-general")
+    return list(dict.fromkeys(selected))
 
 
 def bootstrap_project(
@@ -91,9 +100,9 @@ def bootstrap_project(
     manifest: dict[str, Any] = {
         "project_id": project_id,
         "title": title,
-        "version": "0.1.0-alpha.2",
+        "version": "0.1.0-alpha.3",
         "domain": [item[0] for item in routed],
-        "subskills": [item[0] for item in routed if item[0] in _VALID_SUBSKILLS],
+        "subskills": _select_subskills(routed),
         "technical_approval_status": "NOT_EVALUATED",
         "gates": [
             {
