@@ -2,66 +2,56 @@
 
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.4-orange.svg)](CHANGELOG.md)
+[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.5-orange.svg)](CHANGELOG.md)
 
-**TSAO turns a chemical-process question into a traceable development programme — from evidence and experiments to models, scale-up, process package, acceptance and field learning.**
+**TSAO turns a chemical-process question into a traceable development programme: evidence → experiments → models → scale-up → process package → acceptance → field learning.**
 
-TSAO = **Traceable · Scientific · Auditable · Operational**. It is software-neutral and fail-closed: a plan, simulation or generated report never becomes technical approval by itself.
+TSAO is software-neutral and fail-closed. A paper, patent, simulation, generated file or successful test never becomes a plant setpoint or technical approval by itself.
 
-[中文](README.zh-CN.md) · [Skill contract](SKILL.md) · [Architecture](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md)
+[中文](README.zh-CN.md) · [Execution contract](SKILL.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md)
 
-## Use it for
+## Four routes
 
-- greenfield process development, replication and localization;
-- catalyst/route/product development and scale-up;
-- retrofit, debottlenecking, troubleshooting and package audit;
-- polymer, petrochemical, fine-chemical, biochemical, electrochemical, solids and formulation processes.
+| Route | Scope |
+|---|---|
+| `process-general` | reaction, properties, reactors, separation/recycle, control, HSE, reliability and scale-up |
+| `epdm` | EPM/EPDM catalyst-to-customer lifecycle |
+| `poe` | POE solution-polymerization kinetics, flowsheet, dynamics, scale-up and acceptance |
+| `polymer-general` | other polymerization, modification, formulation and recycling routes |
 
-## One operating system, four specialist routes
-
-| Route | Use for | Depth |
-|---|---|---|
-| `process-general` | reaction, property, reactor, separation, control, HSE and scale-up outside a polymer-specific pack | 14 structured domain modules |
-| `epdm` | catalyst-to-customer EPM/EPDM development | full qualified v9 inheritance |
-| `poe` | SJTU-derived POE solution-polymerization process packages | full kinetics/flowsheet/dynamics/acceptance source tree |
-| `polymer-general` | other polymerization, modification and formulation routes | mechanism-neutral lifecycle pack |
-
-## What one invocation produces
-
-`brief → route → 19 Gates × 14 workstreams → evidence/hypotheses → experiments/models → lab/bench/pilot/demo → industrial package → acceptance/transfer`
-
-`tsao init` immediately creates **266 fail-closed work packages**, the G0–G18 Gate set, an M0–M9 maturity record and explicit external-execution states.
-
-## Quick start
+## One path to use it
 
 ```bash
 python -m pip install -e .[dev]
+python -m tsao.cli doctor --root .
 python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
 python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
 python -m tsao.cli audit --root work/demo
-python scripts/run_ci.py
 ```
 
-AI agents should read `SKILL.md`, then execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
+`tsao init` creates G0–G18, 14 workstreams, **266 fail-closed work packages**, M0–M9 maturity records and explicit external-execution states.
 
-## Quality model
+AI agents read `SKILL.md`, then execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
 
-TSAO blocks a Gate when evidence is stale or contradictory, a model is unidentifiable or outside its domain, balances fail, scale-up similarity is unstated, external reviews are unexecuted, or an approval lacks evidence and a named approver.
+## What is verified
 
-The repository includes positive and adversarial tests for Gate transitions, evidence, model risk, balances, scientific kernels, project generation, specialist lineage, malicious ZIPs, deterministic builds and cleanroom revalidation.
+- version, Schema, source/provenance and specialist integrity through `tsao doctor`;
+- normal and adversarial tests for Gates, evidence, models, balances, scientific kernels, archives and project generation;
+- deterministic release and cleanroom revalidation;
+- Ubuntu/Python 3.11–3.12 plus Windows/macOS portability.
 
 ## Truthful boundary
 
-Repository CI qualifies **software artifacts only**. Chemistry, equipment, controls, relief design, HAZOP/LOPA/SIL, FTO, customer qualification, pilot operation and industrial performance remain `NOT_EVALUATED` until real evidence and qualified human approval exist.
+Software qualification is not scientific, engineering, safety, legal, customer or industrial approval. Physical experiments, commercial simulation, relief design, HAZOP/LOPA/SIL, FTO, pilot/demonstration and plant guarantees remain `NOT_EVALUATED` until real evidence and named qualified approval exist.
 
-## Project map
+## Map
 
-- `SKILL.md` — non-negotiable execution contract
-- `tsao/` — machine-executable core
+- `SKILL.md` — non-negotiable operating contract
+- `tsao/` — executable core and `doctor`
 - `skills/` — four specialist packs
-- `schemas/` — project, evidence, model, scale-up and acceptance contracts
-- `templates/` — reusable project artifacts
-- `scripts/` — audits, CI and deterministic release
-- `vendor/releases/` — controlled inherited release identities
+- `schemas/` — typed data and approval contracts
+- `reports/SOURCE_CORE_MANIFEST.tsv` — public-source identity
+- `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv` — complete qualified distribution identity
+- `scripts/` — audits, CI and release tools
 
-Apache-2.0 for original TSAO code and documentation. See `NOTICE.md` for attribution and license isolation.
+Apache-2.0 for original TSAO code and documentation. See `NOTICE.md` for inherited-asset attribution and license isolation.
