@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when kinetic and transport effects are confounded, heat removal is unqualified or dynamics leave the safe envelope.
 
 **Outputs:** reactor-selection matrix, model dossier, scale-down tests, safe operating envelope, dynamic scenarios and scale-up claims.
+
+**External accountable work:** pressure-reactor trials, calorimetry, CFD validation, mechanical design and relief/safeguard approval require named qualified experimenters and professional engineers.
