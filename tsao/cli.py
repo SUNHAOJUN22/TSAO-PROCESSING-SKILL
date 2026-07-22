@@ -12,6 +12,7 @@ from .core import (
     route,
     validate_zip_archive,
 )
+from .doctor import diagnose
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -29,6 +30,10 @@ def _parser() -> argparse.ArgumentParser:
     audit_parser = commands.add_parser("audit", help="audit a TSAO project workspace")
     audit_parser.add_argument("--root", required=True)
 
+    doctor_parser = commands.add_parser("doctor", help="audit repository and provenance integrity")
+    doctor_parser.add_argument("--root", default=".")
+    doctor_parser.add_argument("--profile", choices=("auto", "core", "full"), default="auto")
+
     build_parser = commands.add_parser("build", help="create a deterministic project archive")
     build_parser.add_argument("--root", required=True)
     build_parser.add_argument("--out", required=True)
@@ -41,6 +46,10 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "doctor":
+            result = diagnose(Path(args.root), profile=args.profile)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result["pass"] else 2
         if args.command == "route":
             print(json.dumps(route(args.text), ensure_ascii=False))
             return 0
