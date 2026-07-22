@@ -1,4 +1,4 @@
-name: TSAO alpha4 qualification
+name: TSAO alpha5 qualification
 
 on:
   push:
@@ -40,11 +40,22 @@ jobs:
       - name: Compile
         run: python -m compileall -f -q tsao scripts skills
       - name: Tests
-        run: python -m pytest -q -p no:cacheprovider tests
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          tests
+          skills/process-general/tests
+          skills/poe/tests
+          skills/polymer-general/tests
       - name: Capability audit
         run: python scripts/audit_capabilities.py
+      - name: Repository doctor
+        run: python -m tsao.cli doctor --root . --profile core
       - name: Ruff
-        run: python -m ruff check tsao tests scripts
+        run: >-
+          python -m ruff check
+          tsao tests scripts
+          skills/poe/scripts skills/poe/tests
+          skills/polymer-general/scripts skills/polymer-general/tests
       - name: Build wheel
         run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
       - name: Integrated CI
@@ -52,5 +63,6 @@ jobs:
         run: python scripts/run_ci.py
       - name: CLI smoke
         run: |
+          python -m tsao.cli doctor --root . --profile core
           python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
