@@ -53,17 +53,21 @@ def test_gate_schema_accepts_initial_and_rejects_false_pass() -> None:
         validate("gate.schema.json", invalid)
 
 
-def test_project_schema_enforces_exact_gate_order_and_no_unknown_fields() -> None:
+def test_project_schema_enforces_specialist_and_exact_gate_order() -> None:
     project = {
         "project_id": "DEMO",
         "title": "Demo",
-        "version": "0.1.0-alpha.2",
+        "version": "0.1.0-alpha.3",
         "domain": ["generic-process"],
-        "subskills": [],
+        "subskills": ["process-general"],
         "technical_approval_status": "NOT_EVALUATED",
         "gates": [gate(f"G{i}") for i in range(19)],
     }
     validate("project.schema.json", project)
+    empty_subskills = dict(project)
+    empty_subskills["subskills"] = []
+    with pytest.raises(ValidationError):
+        validate("project.schema.json", empty_subskills)
     project["gates"][0]["gate_id"] = "G1"
     with pytest.raises(ValidationError):
         validate("project.schema.json", project)
