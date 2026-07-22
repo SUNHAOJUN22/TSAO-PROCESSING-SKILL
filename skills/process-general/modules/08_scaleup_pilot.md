@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when scale-up is based only on geometric or throughput ratios or when the pilot cannot observe the claimed limiting physics.
 
 **Outputs:** scale-up claim register, similarity matrix, pilot basis, instrumentation/data plan, uncertainty budget, stop criteria and model-update protocol.
+
+**External accountable work:** pilot construction, operating authorization, pressure testing, hazardous-material execution, demonstration acceptance and performance guarantees require named qualified engineering and operations organizations.
