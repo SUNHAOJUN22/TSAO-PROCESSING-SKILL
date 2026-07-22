@@ -13,6 +13,7 @@ from jsonschema import Draft202012Validator
 import tsao
 
 ROOT = Path(__file__).resolve().parents[1]
+_CACHE_PARTS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
 
 _REQUIRED_PATHS = {
     "README.md",
@@ -38,16 +39,24 @@ _REQUIRED_PATHS = {
 }
 
 
+def source_paths(pattern: str):
+    return (
+        path
+        for path in ROOT.rglob(pattern)
+        if not any(part in _CACHE_PARTS for part in path.relative_to(ROOT).parts)
+    )
+
+
 def test_required_repository_paths_exist() -> None:
     missing = sorted(path for path in _REQUIRED_PATHS if not (ROOT / path).exists())
     assert missing == []
 
 
 def test_all_json_and_yaml_files_parse() -> None:
-    for path in sorted(ROOT.rglob("*.json")):
+    for path in sorted(source_paths("*.json")):
         json.loads(path.read_text(encoding="utf-8"))
     for pattern in ("*.yml", "*.yaml"):
-        for path in sorted(ROOT.rglob(pattern)):
+        for path in sorted(source_paths(pattern)):
             yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
@@ -89,7 +98,7 @@ def test_github_actions_are_pinned_to_commit_shas() -> None:
 def test_relative_markdown_links_resolve() -> None:
     failures: list[str] = []
     link_re = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-    for path in sorted(ROOT.rglob("*.md")):
+    for path in sorted(source_paths("*.md")):
         text = path.read_text(encoding="utf-8")
         for raw_target in link_re.findall(text):
             target = raw_target.strip().strip("<>")
@@ -111,4 +120,4 @@ def test_relative_markdown_links_resolve() -> None:
 
 @pytest.mark.parametrize("suffix", [".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"])
 def test_repository_has_no_forbidden_generated_or_secret_files(suffix: str) -> None:
-    assert list(ROOT.rglob(f"*{suffix}")) == []
+    assert list(source_paths(f"*{suffix}")) == []
