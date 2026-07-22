@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+from collections.abc import Callable
 from pathlib import Path
 from runpy import run_path
-from typing import Any, Callable
+from typing import Any
 
 _COMMON = run_path(str(Path(__file__).resolve().parent / "common.py"))
 load_structured: Callable[[str | Path], Any] = _COMMON["load_structured"]
