@@ -1,33 +1,52 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.3
-status: draft-pr-candidate
+version: 0.1.0-alpha.4
+status: qualified-release-candidate
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
 license: Apache-2.0
 repository: SUNHAOJUN22/TSAO-PROCESSING-SKILL
 principles:
-  - traceable
-  - scientific
-  - auditable
-  - operational
-  - fail-closed
-  - software-neutral
-  - human-accountable
-lifecycle_gates: [G0,G1,G2,G3,G4,G5,G6,G7,G8,G9,G10,G11,G12,G13,G14,G15,G16,G17,G18]
+- traceable
+- scientific
+- auditable
+- operational
+- fail-closed
+- software-neutral
+- human-accountable
+lifecycle_gates:
+- G0
+- G1
+- G2
+- G3
+- G4
+- G5
+- G6
+- G7
+- G8
+- G9
+- G10
+- G11
+- G12
+- G13
+- G14
+- G15
+- G16
+- G17
+- G18
 subskills:
-  - id: process-general
-    path: skills/process-general
-    inherited_release: 0.1.0
-  - id: epdm
-    path: skills/epdm
-    inherited_release: 9.0.0
-  - id: poe
-    path: skills/poe
-    inherited_release: 1.0.0
-  - id: polymer-general
-    path: skills/polymer-general
-    inherited_release: 2.0.0
+- id: process-general
+  path: skills/process-general
+  inherited_release: 0.2.0
+- id: epdm
+  path: skills/epdm
+  inherited_release: 9.0.0
+- id: poe
+  path: skills/poe
+  inherited_release: 1.0.0
+- id: polymer-general
+  path: skills/polymer-general
+  inherited_release: 2.0.0
 artifact_software_qualification: NOT_EVALUATED
 scientific_technical_approval: NOT_EVALUATED
 engineering_design_approval: NOT_EVALUATED
