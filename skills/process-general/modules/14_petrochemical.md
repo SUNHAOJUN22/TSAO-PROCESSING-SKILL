@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when feed envelope, catalyst state, integrity, fractionation bottleneck or flare/utility capacity is unqualified.
 
 **Outputs:** feed/catalyst basis, process and fractionation model, utility/flare balance, integrity/corrosion plan, debottleneck cases and performance-test protocol.
+
+**External accountable work:** feed certification, catalyst/vendor guarantees, pressure-equipment integrity, corrosion management, flare studies and refinery performance testing require qualified suppliers, engineers and operating authorities.
