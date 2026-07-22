@@ -1,6 +1,6 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.1
+version: 0.1.0-alpha.2
 status: draft-pr-candidate
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
@@ -25,7 +25,7 @@ subskills:
   - id: polymer-general
     path: skills/polymer-general
     inherited_release: 2.0.0
-artifact_software_qualification: PASS
+artifact_software_qualification: NOT_EVALUATED
 scientific_technical_approval: NOT_EVALUATED
 engineering_design_approval: NOT_EVALUATED
 customer_qualification: NOT_EVALUATED
