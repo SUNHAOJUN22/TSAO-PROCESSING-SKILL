@@ -1,5 +1,6 @@
 name: Scientific or engineering capability
-about: Propose a new module, model, schema, workflow or specialist skill
+description: Propose a new module, model, schema, workflow or specialist skill
+title: "[Capability]: "
 labels: [enhancement]
 body:
   - type: textarea
@@ -27,7 +28,7 @@ body:
     id: contract
     attributes:
       label: Proposed executable contract
-      description: Inputs, equations/algorithm, outputs, uncertainty, failure modes, exit criteria and tests.
+      description: Inputs, equations or algorithm, outputs, uncertainty, failure modes, exit criteria and tests.
     validations:
       required: true
   - type: checkboxes
