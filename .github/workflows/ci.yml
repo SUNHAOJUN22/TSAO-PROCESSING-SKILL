@@ -23,12 +23,16 @@ jobs:
           cache: pip
       - name: Install
         run: python -m pip install --quiet -e .[dev]
+      - name: Dependency integrity
+        run: python -m pip check
       - name: Compile
         run: python -m compileall -f -q tsao scripts
       - name: Test
         run: python -m pytest -q -p no:cacheprovider tests
       - name: Ruff
         run: python -m ruff check tsao tests scripts
+      - name: Build wheel
+        run: python -m pip wheel --no-deps --no-build-isolation . -w /tmp/tsao-wheel
       - name: CLI smoke
         run: |
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
