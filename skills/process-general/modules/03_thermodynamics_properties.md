@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when a simulator default is used without validation or the requested state lies outside the property model domain.
 
 **Outputs:** property-method dossier, parameter/data lineage, validation plots, applicability map and uncertainty-sensitive design variables.
+
+**External accountable work:** qualified property specialists and laboratories must approve experimental property data, commercial simulator methods and high-consequence extrapolation before design use.
