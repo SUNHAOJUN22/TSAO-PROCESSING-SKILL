@@ -16,12 +16,22 @@ _SELF_MANIFESTS = {
 }
 
 
+def canonical_bytes(path: Path) -> bytes:
+    """Return a platform-stable identity for text and exact bytes for binaries."""
+    data = Path(path).read_bytes()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
 def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    return hashlib.sha256(canonical_bytes(path)).hexdigest()
+
+
+def canonical_size(path: Path) -> int:
+    return len(canonical_bytes(path))
 
 
 def classify_path(relative: str) -> tuple[str, str, str]:
@@ -67,7 +77,7 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
             {
                 "path": relative,
                 "sha256": sha256_file(path),
-                "bytes": path.stat().st_size,
+                "bytes": canonical_size(path),
                 "specialist": specialist,
                 "artifact_class": artifact_class,
                 "license_scope": license_scope,
@@ -126,7 +136,7 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
             except ValueError:
                 issues.append(f"manifest row {row_number}: invalid byte count")
                 continue
-            if path.stat().st_size != expected_size:
+            if canonical_size(path) != expected_size:
                 issues.append(f"manifest row {row_number}: size mismatch {relative}")
             if sha256_file(path) != (row.get("sha256") or "").strip():
                 issues.append(f"manifest row {row_number}: hash mismatch {relative}")
