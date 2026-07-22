@@ -24,6 +24,16 @@
           "approver": {"type": "string", "minLength": 1}
         }
       }
+    },
+    {
+      "if": {"properties": {"status": {"const": "RETIRED"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "owner": {"type": "string", "minLength": 1},
+          "approval_status": {"const": "APPROVED"},
+          "approver": {"type": "string", "minLength": 1}
+        }
+      }
     }
   ]
 }
