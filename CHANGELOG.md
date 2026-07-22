@@ -2,6 +2,20 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## 0.1.0-alpha.3 — 2026-07-22
+
+### Restored and added
+
+- Restored the original one-call execution contract, fourteen professional workstreams, evidence/claim states, accountable roles and M0–M9 maturity model in the root Skill.
+- Added `skills/process-general/` so biochemical, electrochemical, solids, fine-chemical, petrochemical and generic process routes have an explicit specialist method instead of routing to an unimplemented domain label.
+- Integrated `process-general` into project initialization, manifests and the project JSON Schema.
+- Added lineage-completeness and subskill-content regression tests, including direct tests for POE, universal-polymer and non-polymer routing.
+- Corrected the root `SKILL.md` and README version drift that remained after the alpha.2 code audit.
+
+### Boundary
+
+The GitHub source tree remains a reviewable core plus specialist contracts. The separately qualified complete distribution contains the full EPDM v9, SJTU-POE and universal-polymer source trees. Their historical data remain reference-only and all real technical approvals remain `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.2 — 2026-07-21
 
 ### Fixed
