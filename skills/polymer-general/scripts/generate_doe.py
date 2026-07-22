@@ -7,14 +7,12 @@ import itertools
 import json
 import math
 import random
-import sys
 from pathlib import Path
+from runpy import run_path
+from typing import Any, Callable
 
-SCRIPTS = Path(__file__).resolve().parent
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
-
-from common import load_structured
+_COMMON = run_path(str(Path(__file__).resolve().parent / "common.py"))
+load_structured: Callable[[str | Path], Any] = _COMMON["load_structured"]
 
 
 def main(argv: list[str] | None = None) -> int:
