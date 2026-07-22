@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when economics uses unqualified yields, LCA omits major inventories, or supply/IP risks lack accountable actions.
 
 **Outputs:** TEA model, uncertainty tornado/scenarios, LCA inventory, supply-risk register, sourcing qualification and FTO counsel package.
+
+**External accountable work:** capital estimates, supplier qualification, audited environmental claims, procurement decisions and freedom-to-operate opinions require qualified estimators, auditors, procurement authorities and legal counsel.
