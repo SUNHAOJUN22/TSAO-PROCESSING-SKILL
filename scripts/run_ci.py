@@ -67,16 +67,43 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
         log.flush()
         log.seek(0)
         output = log.read()[-20000:]
-    return {"command": command, "returncode": returncode, "timed_out": timed_out, "output": output}
+    return {
+        "command": command,
+        "returncode": returncode,
+        "timed_out": timed_out,
+        "output": output,
+    }
 
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
+    test_paths = [
+        "tests",
+        "skills/process-general/tests",
+        "skills/poe/tests",
+        "skills/polymer-general/tests",
+    ]
+    ruff_paths = [
+        "tsao",
+        "tests",
+        "scripts",
+        "skills/poe/scripts",
+        "skills/poe/tests",
+        "skills/polymer-general/scripts",
+        "skills/polymer-general/tests",
+    ]
     checks = [
-        run([sys.executable, "-m", "compileall", "-f", "-q", "tsao", "scripts", "skills"], cwd=root),
-        run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"], cwd=root),
+        run(
+            [sys.executable, "-m", "compileall", "-f", "-q", "tsao", "scripts", "skills"],
+            cwd=root,
+        ),
+        run(
+            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *test_paths],
+            cwd=root,
+        ),
         run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
-        run([sys.executable, "-m", "ruff", "check", "tsao", "tests", "scripts"], cwd=root),
+        run([sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"], cwd=root),
+        run([sys.executable, "-m", "ruff", "check", *ruff_paths], cwd=root),
     ]
     passed = all(check["returncode"] == 0 for check in checks)
     report = {
