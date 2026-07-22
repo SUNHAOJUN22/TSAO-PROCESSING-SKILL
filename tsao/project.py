@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from ._utils import atomic_write_text, nonempty, required_or_default_string
+from .capabilities import build_work_packages, initial_maturity_record
 from .gates import ApprovalStatus, GateRecord, GateStatus, validate_gate_sequence
 from .routing import route
 
@@ -100,7 +101,7 @@ def bootstrap_project(
     manifest: dict[str, Any] = {
         "project_id": project_id,
         "title": title,
-        "version": "0.1.0-alpha.3",
+        "version": "0.1.0-alpha.4",
         "domain": [item[0] for item in routed],
         "subskills": _select_subskills(routed),
         "technical_approval_status": "NOT_EVALUATED",
@@ -121,6 +122,30 @@ def bootstrap_project(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
     )
     atomic_write_text(output / "brief.yaml", text)
+    atomic_write_text(
+        output / "00_governance/work_packages.json",
+        json.dumps(build_work_packages(project_id), ensure_ascii=False, indent=2) + "\n",
+    )
+    atomic_write_text(
+        output / "00_governance/maturity.json",
+        json.dumps(initial_maturity_record(), ensure_ascii=False, indent=2) + "\n",
+    )
+    atomic_write_text(
+        output / "00_governance/execution_status.json",
+        json.dumps(
+            {
+                "artifact_status": "INITIALIZED",
+                "technical_approval_status": "NOT_EVALUATED",
+                "real_experiment_status": "NOT_EVALUATED",
+                "commercial_simulation_status": "NOT_EVALUATED",
+                "process_safety_status": "NOT_EVALUATED",
+                "customer_qualification_status": "NOT_EVALUATED",
+                "industrial_performance_status": "NOT_EVALUATED",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ) + "\n",
+    )
     return manifest
 
 
@@ -141,6 +166,23 @@ def audit_project(root: Path) -> list[str]:
         for directory in PROJECT_DIRS
         if not (root / directory).is_dir()
     )
+    for artifact in (
+        "00_governance/work_packages.json",
+        "00_governance/maturity.json",
+        "00_governance/execution_status.json",
+    ):
+        if not (root / artifact).is_file():
+            issues.append(f"missing execution artifact: {artifact}")
+    work_packages_path = root / "00_governance/work_packages.json"
+    if work_packages_path.is_file():
+        try:
+            packages = json.loads(work_packages_path.read_text(encoding="utf-8"))
+            if not isinstance(packages, list) or len(packages) != 19 * 14:
+                issues.append("work package matrix must contain 266 records")
+            elif any(item.get("approval_status") != "NOT_EVALUATED" for item in packages):
+                issues.append("work packages must initialize fail-closed")
+        except (OSError, UnicodeError, json.JSONDecodeError, AttributeError) as exc:
+            issues.append(f"invalid work package matrix: {exc}")
     manifest_path = root / "project_manifest.json"
     if not manifest_path.is_file():
         return sorted(set(issues + ["missing project_manifest.json"]))
@@ -159,6 +201,7 @@ def audit_project(root: Path) -> list[str]:
     subskills = data.get("subskills")
     if (
         not isinstance(subskills, list)
+        or not subskills
         or len(subskills) != len(set(subskills))
         or any(item not in _VALID_SUBSKILLS for item in subskills)
     ):
@@ -175,12 +218,15 @@ def audit_project(root: Path) -> list[str]:
                 issues.append(f"gate at index {index} must be an object")
                 continue
             try:
+                evidence_ids = raw_gate.get("evidence_ids", [])
+                if not isinstance(evidence_ids, list):
+                    raise TypeError("evidence_ids must be an array")
                 gate_records.append(
                     GateRecord(
                         gate_id=raw_gate["gate_id"],
                         status=GateStatus(raw_gate["status"]),
                         owner=raw_gate.get("owner"),
-                        evidence_ids=list(raw_gate.get("evidence_ids", [])),
+                        evidence_ids=list(evidence_ids),
                         approval_status=ApprovalStatus(raw_gate["approval_status"]),
                         approver=raw_gate.get("approver"),
                     )
