@@ -6,7 +6,12 @@ from pathlib import Path
 
 import yaml
 
-from tsao.capabilities import GATES, MATURITY_LEVELS, WORKSTREAMS, capability_contract_issues
+from tsao.capabilities import (
+    GATES,
+    MATURITY_LEVELS,
+    WORKSTREAMS,
+    capability_contract_issues,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 issues = capability_contract_issues(ROOT)
@@ -18,8 +23,11 @@ if actual != expected:
 details = {
     name: {
         "files": sum(path.is_file() for path in (ROOT / "skills" / name).rglob("*")),
-        "tests": sum(1 for path in (ROOT / "skills" / name / "tests").glob("test_*.py"))
-        if (ROOT / "skills" / name / "tests").is_dir() else 0,
+        "tests": (
+            sum(1 for path in (ROOT / "skills" / name / "tests").glob("test_*.py"))
+            if (ROOT / "skills" / name / "tests").is_dir()
+            else 0
+        ),
     }
     for name in sorted(expected)
 }
