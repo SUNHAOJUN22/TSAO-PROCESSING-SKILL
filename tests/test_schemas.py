@@ -27,9 +27,7 @@ def registry() -> Registry:
 def validate(name: str, instance: dict) -> None:
     schema = load_schema(name)
     validator = Draft202012Validator(
-        schema,
-        registry=registry(),
-        format_checker=FormatChecker(),
+        schema, registry=registry(), format_checker=FormatChecker()
     )
     validator.validate(instance)
 
@@ -57,7 +55,7 @@ def test_project_schema_enforces_specialist_and_exact_gate_order() -> None:
     project = {
         "project_id": "DEMO",
         "title": "Demo",
-        "version": "0.1.0-alpha.3",
+        "version": "0.1.0-alpha.4",
         "domain": ["generic-process"],
         "subskills": ["process-general"],
         "technical_approval_status": "NOT_EVALUATED",
