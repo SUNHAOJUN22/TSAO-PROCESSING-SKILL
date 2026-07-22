@@ -2,6 +2,23 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## 0.1.0-alpha.2 — 2026-07-21
+
+### Fixed
+
+- Split the original monolithic core into independently testable Gate, evidence, model, assurance, routing, science, project and archive modules while preserving the `tsao.core` compatibility surface.
+- Made Gate transitions transactional and fail-closed; rejected noncanonical, duplicate and skipped Gate states.
+- Made malformed dates, contradiction states and unknown model-risk/status values fail closed.
+- Prevented route substring false positives and added numeric, finite, rectangular and sign validation to scientific kernels.
+- Hardened project bootstrap/audit against non-mapping YAML, invalid manifests, hidden false approvals and symlinked template trees.
+- Hardened deterministic ZIP creation and validation against source/output self-inclusion, symlinks, secret-like files, case collisions, path traversal, drive paths, compression bombs and member floods.
+- Added structured CLI errors, archive verification, process-group timeout cleanup and strict repository/Schema regression tests.
+- Fixed the GitHub Issue Form contract, pinned CI actions, aligned version metadata and unified compile/test/lint qualification.
+
+### Validation boundary
+
+Repository CI qualifies software artifacts only. Scientific, engineering, process-safety, legal, customer and industrial approvals remain `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.1 — 2026-07-21
 
 ### Added
