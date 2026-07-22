@@ -1,6 +1,6 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 status: draft-pr-candidate
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
@@ -16,6 +16,9 @@ principles:
   - human-accountable
 lifecycle_gates: [G0,G1,G2,G3,G4,G5,G6,G7,G8,G9,G10,G11,G12,G13,G14,G15,G16,G17,G18]
 subskills:
+  - id: process-general
+    path: skills/process-general
+    inherited_release: 0.1.0
   - id: epdm
     path: skills/epdm
     inherited_release: 9.0.0
