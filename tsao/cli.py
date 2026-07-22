@@ -24,7 +24,7 @@ def _parser() -> argparse.ArgumentParser:
     init_parser = commands.add_parser("init", help="initialize a fail-closed project workspace")
     init_parser.add_argument("--brief", required=True)
     init_parser.add_argument("--out", required=True)
-    init_parser.add_argument("--templates", default="templates")
+    init_parser.add_argument("--templates")
 
     audit_parser = commands.add_parser("audit", help="audit a TSAO project workspace")
     audit_parser.add_argument("--root", required=True)
@@ -45,9 +45,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(route(args.text), ensure_ascii=False))
             return 0
         if args.command == "init":
-            manifest = bootstrap_project(
-                Path(args.brief), Path(args.out), Path(args.templates)
-            )
+            templates = Path(args.templates) if args.templates else None
+            manifest = bootstrap_project(Path(args.brief), Path(args.out), templates)
             print(json.dumps(manifest, ensure_ascii=False, indent=2))
             return 0
         if args.command == "audit":
