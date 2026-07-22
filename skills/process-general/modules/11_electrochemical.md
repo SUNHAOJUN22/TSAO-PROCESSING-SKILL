@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when charge balance, product accounting, cell heat or degradation is unresolved.
 
 **Outputs:** cell/process model, current/energy efficiency, material compatibility, gas/thermal basis, lifetime test and scale-up/stack qualification plan.
+
+**External accountable work:** energized testing, electrical protection, hazardous gas handling, electrode qualification, stack certification and regulatory acceptance require qualified electrical, chemical and safety specialists.
