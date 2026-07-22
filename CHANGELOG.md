@@ -2,6 +2,22 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## 0.1.0-alpha.5 — 2026-07-23
+
+### Added and strengthened
+
+- Added `tsao doctor` for one-command version, Schema, capability, repository and provenance validation.
+- Added separate public-source and complete-distribution SHA-256 manifests.
+- Added source-asset Schema and explicit source-parity documentation.
+- Expanded POE and universal-polymer known-solution, invalid-input, evidence, matrix, package, scale-up, balance and DoE tests.
+- Isolated the 334 inherited EPDM tests by file to eliminate aggregate pytest teardown deadlocks without removing tests.
+- Simplified both READMEs to one canonical usage path while retaining the complete engineering contract in `SKILL.md`.
+- Qualified the complete distribution twice at 469/469 tests and revalidated the deterministic archive from a cleanroom extraction.
+
+### Boundary
+
+Source manifests identify public source, generated reports and controlled binaries separately. Software qualification remains distinct from scientific, engineering, safety, legal, customer and industrial approval.
+
 ## 0.1.0-alpha.4 — 2026-07-22
 
 ### Completed
