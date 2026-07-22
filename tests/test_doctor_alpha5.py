@@ -34,6 +34,17 @@ def test_manifest_detects_tampering(tmp_path: Path):
     assert any("mismatch" in issue for issue in verify_manifest(root, manifest))
 
 
+def test_manifest_text_identity_is_line_ending_independent(tmp_path: Path):
+    root = tmp_path / "source"
+    root.mkdir()
+    target = root / "a.txt"
+    target.write_bytes(b"alpha\nbeta\n")
+    manifest = tmp_path / "manifest.tsv"
+    assert build_manifest(root, manifest) == 1
+    target.write_bytes(b"alpha\r\nbeta\r\n")
+    assert verify_manifest(root, manifest) == []
+
+
 def test_doctor_cli_is_structured(capsys):
     assert cli_main(["doctor", "--root", str(ROOT), "--profile", "core"]) == 0
     payload = json.loads(capsys.readouterr().out)
