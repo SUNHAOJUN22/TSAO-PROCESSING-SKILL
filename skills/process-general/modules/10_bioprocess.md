@@ -9,3 +9,5 @@
 **Fail closed:** HOLD when biological state, contamination strategy, oxygen-transfer margin or downstream recovery basis is unqualified.
 
 **Outputs:** bioprocess basis, media/feed strategy, mass-transfer/heat model, contamination controls, harvest/downstream plan and biosafety handoff.
+
+**External accountable work:** strain authorization, biosafety, sterility validation, viable-state testing, GMP/regulatory acceptance and pilot fermentation require qualified biological laboratories and accountable site authorities.
