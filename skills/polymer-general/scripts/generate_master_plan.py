@@ -3,14 +3,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import sys
 from pathlib import Path
+from runpy import run_path
+from typing import Any, Callable
 
-SCRIPTS = Path(__file__).resolve().parent
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
-
-from common import load_structured
+_COMMON = run_path(str(Path(__file__).resolve().parent / "common.py"))
+load_structured: Callable[[str | Path], Any] = _COMMON["load_structured"]
 
 STAGES = [
     ("P0", "G0", "任务、范围与治理"),
