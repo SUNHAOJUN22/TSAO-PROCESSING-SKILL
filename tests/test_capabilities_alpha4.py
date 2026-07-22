@@ -35,7 +35,7 @@ def test_project_bootstrap_writes_executable_artifacts(tmp_path: Path):
     )
     project = tmp_path / "project"
     manifest = bootstrap_project(brief, project)
-    assert manifest["version"] == "0.1.0-alpha.4"
+    assert manifest["version"] == "0.1.0-alpha.5"
     assert (project / "00_governance/work_packages.json").is_file()
     assert (project / "00_governance/maturity.json").is_file()
     assert (project / "00_governance/execution_status.json").is_file()
