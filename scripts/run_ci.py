@@ -1,30 +1,67 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
+from typing import Any
 
 
-def run(command: list[str]) -> dict:
-    result = subprocess.run(command, text=True, capture_output=True, timeout=300)
+def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
+        try:
+            result = subprocess.run(
+                command,
+                cwd=cwd,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            returncode = result.returncode
+            timed_out = False
+        except subprocess.TimeoutExpired:
+            returncode = 124
+            timed_out = True
+        log.seek(0)
+        output = log.read()[-20000:]
     return {
         "command": command,
-        "returncode": result.returncode,
-        "stdout": result.stdout[-12000:],
-        "stderr": result.stderr[-12000:],
+        "returncode": returncode,
+        "timed_out": timed_out,
+        "output": output,
     }
 
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
     checks = [
-        run([sys.executable, "-m", "compileall", "-q", str(root / "tsao")]),
-        run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", str(root / "tests")]),
+        run(
+            [sys.executable, "-m", "compileall", "-f", "-q", str(root / "tsao")],
+            cwd=root,
+        ),
+        run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                str(root / "tests"),
+            ],
+            cwd=root,
+        ),
+        run(
+            [sys.executable, "-m", "ruff", "check", "tsao", "tests", "scripts"],
+            cwd=root,
+        ),
     ]
     passed = all(check["returncode"] == 0 for check in checks)
     report = {
-        "version": "0.1.0-alpha.1",
+        "version": "0.1.0-alpha.2",
         "pass": passed,
         "checks": checks,
         "artifact_software_qualification": "PASS" if passed else "FAIL",
@@ -35,7 +72,10 @@ def main() -> int:
     }
     reports = root / "reports"
     reports.mkdir(exist_ok=True)
-    (reports / "CI_RESULTS.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    target = reports / "CI_RESULTS.json"
+    temporary = target.with_name(target.name + ".tmp")
+    temporary.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(target)
     print(json.dumps(report, indent=2))
     return 0 if passed else 1
 
