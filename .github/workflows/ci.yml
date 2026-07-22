@@ -32,7 +32,7 @@ jobs:
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Report first failure
+      - name: Publish first failure in known comment
         if: ${{ steps.pytest.outputs.status != '0' && github.event_name == 'pull_request' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,7 +44,7 @@ jobs:
             tail -n 120 /tmp/alpha5-test.txt
             echo '```'
           } > /tmp/alpha5-comment.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/alpha5-comment.md
+          gh api --method PATCH repos/${{ github.repository }}/issues/comments/5032252454 -F body=@/tmp/alpha5-comment.md
       - name: Repository doctor
         if: always()
         run: python -m tsao.cli doctor --root . --profile core || true
