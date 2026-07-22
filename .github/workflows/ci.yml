@@ -23,5 +23,13 @@ jobs:
           cache: pip
       - name: Install
         run: python -m pip install -e .[dev]
-      - name: Compile, test and lint
-        run: python scripts/run_ci.py
+      - name: Compile
+        run: python -m compileall -f -q tsao scripts
+      - name: Test
+        run: python -m pytest -q -p no:cacheprovider tests
+      - name: Ruff
+        run: python -m ruff check tsao tests scripts
+      - name: CLI smoke
+        run: |
+          python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
+          python scripts/run_ci.py
