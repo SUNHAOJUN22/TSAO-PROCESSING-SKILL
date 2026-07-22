@@ -1,7 +1,7 @@
 ---
 name: TSAO-PROCESSING-SKILL
 description: Universal chemical-process research, development, scale-up, qualification and technology-transfer operating system with process-general, EPDM, POE and universal-polymer specialist subskills.
-version: 0.1.0-alpha.3
+version: 0.1.0-alpha.4
 license: Apache-2.0
 ---
 
@@ -23,7 +23,7 @@ The objective is not a literature summary or an attractive flowsheet. A complete
 ## 2. Non-negotiable operating rules
 
 1. Start with task boundary, decisions, owners and acceptance criteria—not with a flowsheet.
-2. Separate `observed`, `reported`, `calculated`, `inferred`, `assumed`, `proposed`, `planned`, `rejected` and `approved` states.
+2. Separate `OBSERVED`, `REPORTED`, `CALCULATED`, `INFERRED`, `ASSUMED`, `PROPOSED`, `PLANNED`, `REJECTED` and `APPROVED` states.
 3. Prefer primary evidence and record claim-level locators, dates, applicability, contradictions and review expiry.
 4. No literature, patent, supplier or inherited-case number becomes a design or production setpoint without project validation.
 5. Every model must declare purpose, risk class, equations, parameters, units, data lineage, identifiability, uncertainty, applicability domain and independent validation.
@@ -121,7 +121,7 @@ Default accountable roles are Research Director, Evidence Lead, Chemistry Lead, 
 - **M8 industrial-ready** — design, controls, safety, economics and package acceptable;
 - **M9 operationally-validated** — industrial performance, reliability and transfer closed.
 
-Maturity can advance only with the corresponding Gate evidence; document completeness alone never raises maturity.
+Maturity can advance only with corresponding Gate evidence; document completeness alone never raises maturity.
 
 ## 8. Default deliverables
 
