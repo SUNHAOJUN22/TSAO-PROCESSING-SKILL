@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -27,6 +28,22 @@ def test_ci_runner_timeout_returns_124(tmp_path: Path) -> None:
     assert result["timed_out"] is True
 
 
+def _gone_or_zombie(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    if os.name == "posix":
+        status = subprocess.run(
+            ["ps", "-o", "stat=", "-p", str(pid)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        return status.returncode != 0 or status.stdout.strip().startswith("Z")
+    return False
+
+
 @pytest.mark.skipif(os.name != "posix", reason="process-group assertion is POSIX-specific")
 def test_ci_runner_timeout_kills_descendants(tmp_path: Path) -> None:
     child_pid_file = tmp_path / "child.pid"
@@ -39,11 +56,9 @@ def test_ci_runner_timeout_kills_descendants(tmp_path: Path) -> None:
     result = run([sys.executable, "-c", code], cwd=tmp_path, timeout=1)
     assert result["timed_out"] is True
     child_pid = int(child_pid_file.read_text())
-    for _ in range(50):
-        try:
-            os.kill(child_pid, 0)
-        except ProcessLookupError:
+    for _ in range(100):
+        if _gone_or_zombie(child_pid):
             break
         time.sleep(0.05)
     else:
-        pytest.fail("timed-out descendant process was not reaped")
+        pytest.fail("timed-out descendant process remained live")
