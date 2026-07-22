@@ -5,11 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from skills.poe.scripts import audit_process_package
 from skills.poe.scripts.audit_evidence import audit as audit_evidence
-from skills.poe.scripts.audit_process_package import (
-    REQUIRED_GROUPS,
-    audit as audit_package,
-)
 from skills.poe.scripts.build_case_matrix import build
 
 
@@ -77,9 +74,9 @@ def test_case_matrix_cartesian_and_invalid_inputs():
 def test_process_package_requires_all_groups_and_nonempty_files(tmp_path: Path):
     root = tmp_path / "package"
     root.mkdir()
-    assert audit_package(root)["pass"] is False
-    for group in REQUIRED_GROUPS:
+    assert audit_process_package.audit(root)["pass"] is False
+    for group in audit_process_package.REQUIRED_GROUPS:
         (root / f"{group}.md").write_text("qualified placeholder", encoding="utf-8")
-    assert audit_package(root)["pass"] is True
+    assert audit_process_package.audit(root)["pass"] is True
     (root / "pfd.md").write_text("", encoding="utf-8")
-    assert audit_package(root)["pass"] is False
+    assert audit_process_package.audit(root)["pass"] is False
