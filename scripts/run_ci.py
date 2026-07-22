@@ -9,6 +9,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from tsao import __version__
+
 
 def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
     if process.poll() is not None:
@@ -101,7 +103,7 @@ def main() -> int:
     ]
     passed = all(check["returncode"] == 0 for check in checks)
     report = {
-        "version": "0.1.0-alpha.2",
+        "version": __version__,
         "pass": passed,
         "checks": checks,
         "artifact_software_qualification": "PASS" if passed else "FAIL",
