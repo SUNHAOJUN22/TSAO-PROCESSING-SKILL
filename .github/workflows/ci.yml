@@ -1,4 +1,4 @@
-name: TSAO CI
+name: TSAO complete distribution CI
 
 on:
   push:
@@ -8,13 +8,25 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  qualification:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.11"
+            scope: full
+          - os: ubuntu-latest
+            python-version: "3.12"
+            scope: full
+          - os: windows-latest
+            python-version: "3.12"
+            scope: portability
+          - os: macos-latest
+            python-version: "3.12"
+            scope: portability
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -26,14 +38,18 @@ jobs:
       - name: Dependency integrity
         run: python -m pip check
       - name: Compile
-        run: python -m compileall -f -q tsao scripts
-      - name: Test
+        run: python -m compileall -f -q tsao scripts skills
+      - name: Full qualification
+        if: matrix.scope == 'full'
+        run: python scripts/run_ci.py
+      - name: Cross-platform portability
+        if: matrix.scope == 'portability'
         run: python -m pytest -q -p no:cacheprovider tests
       - name: Ruff
         run: python -m ruff check tsao tests scripts
       - name: Build wheel
-        run: python -m pip wheel --no-deps --no-build-isolation . -w /tmp/tsao-wheel
+        run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
       - name: CLI smoke
         run: |
+          python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
-          python scripts/run_ci.py
