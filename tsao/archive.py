@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 
 _FORBIDDEN_DIRECTORY_NAMES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
 _FORBIDDEN_FILE_NAMES = {".env", "id_rsa", "id_ed25519"}
-_FORBIDDEN_FILE_SUFFIXES = {".pyc", ".pyo", ".pem", ".p12", ".pfx"}
+_FORBIDDEN_FILE_SUFFIXES = {".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"}
 
 
 def deterministic_zip(root: Path, output: Path) -> str:
@@ -74,6 +74,7 @@ def validate_zip_archive(
     *,
     max_uncompressed_bytes: int = 2_000_000_000,
     max_compression_ratio: float = 1_000.0,
+    max_members: int = 100_000,
 ) -> list[str]:
     archive_path = Path(archive_path)
     if not archive_path.is_file():
@@ -83,15 +84,34 @@ def validate_zip_archive(
         with zipfile.ZipFile(archive_path) as archive:
             members = archive.infolist()
             names = [member.filename for member in members]
+            if len(members) > max_members:
+                issues.append("archive member count exceeds limit")
             if len(names) != len(set(names)):
                 issues.append("archive contains duplicate member names")
             if len({name.casefold() for name in names}) != len(names):
                 issues.append("archive contains case-insensitive path collisions")
             total_size = 0
             for member in members:
-                pure = PurePosixPath(member.filename)
-                if pure.is_absolute() or ".." in pure.parts or "" in pure.parts:
-                    issues.append(f"unsafe archive path: {member.filename}")
+                raw_name = member.filename
+                pure = PurePosixPath(raw_name)
+                first_part = pure.parts[0] if pure.parts else ""
+                if (
+                    not raw_name
+                    or "\\" in raw_name
+                    or raw_name.startswith("/")
+                    or pure.is_absolute()
+                    or ".." in pure.parts
+                    or first_part.endswith(":")
+                    or "//" in raw_name
+                ):
+                    issues.append(f"unsafe archive path: {raw_name}")
+                if member.flag_bits & 0x1:
+                    issues.append(f"encrypted archive member: {raw_name}")
+                if not member.is_dir():
+                    try:
+                        _validate_archive_file_name(Path(*pure.parts))
+                    except ValueError:
+                        issues.append(f"forbidden archive member: {raw_name}")
                 mode = member.external_attr >> 16
                 if stat.S_ISLNK(mode):
                     issues.append(f"archive contains symlink: {member.filename}")
