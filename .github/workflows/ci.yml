@@ -4,16 +4,19 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
 
 concurrency:
-  group: tsao-${{ github.workflow }}-${{ github.ref }}
+  group: tsao-${{ github.workflow }}-${{ github.ref }}-${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
   qualification:
+    if: ${{ github.event_name != 'issues' || startsWith(github.event.issue.title, '[CI]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     strategy:
@@ -49,6 +52,7 @@ jobs:
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
 
   source-snapshot:
+    if: ${{ github.event_name != 'issues' || startsWith(github.event.issue.title, '[CI]') }}
     needs: qualification
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -73,8 +77,8 @@ jobs:
           retention-days: 14
 
   refresh-source-manifest:
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'issues' && startsWith(github.event.issue.title, '[CI]')) }}
     needs: qualification
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -82,6 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: main
           fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -101,3 +106,29 @@ jobs:
           git add reports/SOURCE_CORE_MANIFEST.tsv
           git commit -m "chore: refresh alpha6 public-source manifest"
           git push origin HEAD:main
+
+  report-issue-trigger:
+    if: ${{ always() && github.event_name == 'issues' && startsWith(github.event.issue.title, '[CI]') }}
+    needs: [qualification, source-snapshot, refresh-source-manifest]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Report qualification result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.qualification.result }}
+          SNAPSHOT: ${{ needs.source-snapshot.result }}
+          MANIFEST: ${{ needs.refresh-source-manifest.result }}
+        run: |
+          {
+            echo '## TSAO alpha.6 automated qualification'
+            echo
+            echo "- four-platform qualification: **$RESULT**"
+            echo "- deterministic source snapshot: **$SNAPSHOT**"
+            echo "- source-manifest refresh: **$MANIFEST**"
+            echo "- tested commit: \`${{ github.sha }}\`"
+            echo
+            echo 'Scientific, engineering, safety, legal, customer and industrial approvals remain `NOT_EVALUATED`.'
+          } > qualification-comment.md
+          gh issue comment "${{ github.event.issue.number }}" --body-file qualification-comment.md
