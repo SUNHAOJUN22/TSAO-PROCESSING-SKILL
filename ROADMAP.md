@@ -1,24 +1,37 @@
 # Roadmap
 
-## 0.1 — auditable core
-- master G0–G18 lifecycle
-- EPDM, POE and general-polymer routing
-- Gate, evidence, model-risk and assurance contracts
-- project bootstrap, audit and deterministic packaging
+## Delivered in the 0.1 alpha line
 
-## 0.2 — process-science expansion
-- thermodynamic-method guardrails
-- kinetic estimation and identifiability
-- reactor, separation, recycle and dynamic model adapters
-- unit and dimensional-analysis registry
+- G0–G18 fail-closed lifecycle, 14 workstreams and M0–M9 maturity;
+- process-general, EPDM, POE and polymer-general routes;
+- evidence, Gate, model-risk, scale-up, external-execution and acceptance contracts;
+- executable project bootstrap, audit, doctor, deterministic archives and source snapshots;
+- separate public-source and complete-distribution identities;
+- Ubuntu, Windows and macOS packaging/CLI qualification;
+- controlled inheritance of EPDM v9, SJTU-POE and universal-polymer assets.
 
-## 0.3 — industrial package
-- PFD/stream/equipment/control schemas
-- pilot and scale-representativeness engine
-- HSE/reliability/TEA/LCA/IP handoffs
-- customer qualification and performance-test contracts
+## 0.2 — deeper process-science libraries
 
-## 1.0 — stable open standard
-- CAPE-OPEN/FMI interoperability profile
-- validated example projects across polymer, catalytic, biochemical, electrochemical and solids processes
-- independent benchmark and cleanroom release program
+- electrolyte, association, polymer and solids property-method guardrails;
+- kinetic estimation, identifiability and Bayesian design utilities;
+- reactor, separation, recycle, crystallization and dynamic adapters;
+- dimensional-analysis and unit registry;
+- benchmark fixtures for catalytic, biochemical, electrochemical and solids routes.
+
+## 0.3 — industrial package automation
+
+- typed PFD, stream, equipment, utility, control and emission records;
+- scale-down and scale-representativeness engine;
+- HSE, reliability, TEA, LCA, supply-chain and FTO handoffs;
+- commissioning, customer qualification and performance-test contracts;
+- change-impact propagation across the complete digital thread.
+
+## 1.0 — independently benchmarked open standard
+
+- CAPE-OPEN and FMI interoperability profile;
+- independently reproduced example projects across all major route families;
+- stable extension API and migration policy;
+- third-party cleanroom release and security review;
+- no unresolved P0/P1 software, provenance or documentation blockers.
+
+Roadmap completion never implies that a real process has passed scientific, engineering, safety, legal, customer or industrial approval.
