@@ -1,0 +1,16 @@
+{
+  "format": "TSAO-RELEASE-IDENTITY-1",
+  "version": "0.1.0-alpha.6",
+  "source_core": {
+    "manifest": "reports/SOURCE_CORE_MANIFEST.tsv",
+    "qualification": "NOT_EVALUATED"
+  },
+  "complete_distribution": {
+    "manifest": "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv",
+    "qualification": "NOT_EVALUATED"
+  },
+  "artifact_software_qualification": "NOT_EVALUATED",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
