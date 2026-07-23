@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import tsao
-
 from tsao.capabilities import (
     GATES,
     MATURITY_LEVELS,
