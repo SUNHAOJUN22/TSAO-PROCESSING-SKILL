@@ -1,0 +1,53 @@
+name: One-shot main source export
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+jobs:
+  export:
+    if: ${{ startsWith(github.event.issue.title, '[EXPORT-MAIN-SOURCE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Build tracked-source archive
+        run: git archive --format=zip --output="$RUNNER_TEMP/main-source.zip" HEAD
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: main-source-${{ github.sha }}
+          path: ${{ runner.temp }}/main-source.zip
+          if-no-files-found: error
+          retention-days: 3
+      - name: Report artifact identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for attempt in {1..12}; do
+            artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[0].id // empty')
+            [ -n "$artifact_id" ] && break
+            sleep 2
+          done
+          [ -n "${artifact_id:-}" ] || { echo 'artifact id unavailable' >&2; exit 1; }
+          gh issue comment "${{ github.event.issue.number }}" --body "run_id=$GITHUB_RUN_ID artifact_id=$artifact_id sha=${{ github.sha }}"
+      - name: Remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/export-main-source.yml
+          git commit -m "chore: remove one-shot source export"
+          git push origin HEAD:main
+      - name: Close trigger issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close "${{ github.event.issue.number }}" --reason completed
