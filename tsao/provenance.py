@@ -115,6 +115,7 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
                 "license_scope",
             ],
             delimiter="\t",
+            lineterminator="\n",
         )
         writer.writeheader()
         writer.writerows(rows)
