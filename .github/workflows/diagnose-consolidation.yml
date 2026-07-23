@@ -73,10 +73,11 @@ jobs:
 
           run_check "install" python -m pip install --quiet -e '.[dev]'
           run_check "pip check" python -m pip check
+          run_check "refresh manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           run_check "compileall" python -m compileall -f -q tsao scripts skills
           run_check "pytest" python -m pytest -q -p no:cacheprovider tests skills/process-general/tests skills/poe/tests skills/polymer-general/tests
           run_check "run ci" python scripts/run_ci.py
-          run_check "doctor" python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          run_check "doctor" python -m tsao.cli doctor --root . --profile core
           run_check "ruff" python -m ruff check tsao tests scripts skills
           run_check "wheel" python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
 
