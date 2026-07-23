@@ -77,8 +77,8 @@ jobs:
           retention-days: 14
 
   refresh-source-manifest:
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'issues' && startsWith(github.event.issue.title, '[CI]')) }}
     needs: qualification
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'issues' && startsWith(github.event.issue.title, '[CI]')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
