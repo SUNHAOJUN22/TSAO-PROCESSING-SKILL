@@ -1,0 +1,131 @@
+name: Deterministic POE alpha7 drift repair v2
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: tsao-poe-alpha7-drift-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: ${{ startsWith(github.event.issue.title, '[FIX-POE-ALPHA7-DRIFT-V2]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Repair drifted files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/bootstrap-alpha7-main-only.json
+          cat > skills/poe/STATUS.md <<'EOF'
+          # POE alpha.7 status
+
+          | Field | Status |
+          |---|---|
+          | subskill version | `1.2.0-tsao.3` |
+          | software implementation | `EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE` |
+          | historical asset lineage | `REGISTERED_139_OF_139` |
+          | module contracts | `12_OF_12` |
+          | requirement trace | `REGISTERED_18_OF_18` |
+          | conflict/deviation ledger | `REGISTERED_7_OF_7` |
+          | kinetics / estimation / property / reactor / dynamics / scale-up | `P1_REFERENCE_KERNEL_ALPHA` |
+          | model-asset passport | `IMPLEMENTED_REFERENCE_SCHEMA` |
+          | process-package audit | `CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA` |
+          | wheel delivery | `RUNTIME_VERIFIED` |
+          | POE scientific execution | `UNDER_DISTILLATION` |
+          | historical Aspen/MATLAB/Origin assets | `CONTROLLED_HISTORICAL_EVIDENCE` |
+          | scientific/engineering/HSE/customer/industrial approval | `NOT_EVALUATED` |
+
+          `P1_REFERENCE_KERNEL_ALPHA` means transparent, known-solution and adversarially tested software references. It does not mean historical commercial models, experimental data, equipment design or plant performance have been requalified.
+          EOF
+          sed -i 's/^          //' skills/poe/STATUS.md
+          cat > skills/poe/modules/11_dynamics_control_transitions/README.md <<'EOF'
+          # 11_dynamics_control_transitions — Dynamics, control and transitions
+
+          ## Purpose
+
+          Qualify initialization, inventory, controllers, valves, disturbances and grade transitions.
+
+          ## Evidence and lineage
+
+          Inputs must cite POE asset IDs from `../../data/source_asset_registry.json`, requirement IDs from `../../data/requirement_trace.json`, and open deviations from `../../data/conflict_ledger.json`. Historical Aspen, MATLAB and Origin files remain `CONTROLLED_HISTORICAL_EVIDENCE`; they are not redistributed or silently treated as qualified code.
+
+          ## Input contract
+
+          steady case, volumes, controllers, valves, dynamic asset identity and disturbances. Inputs use SI units unless a field explicitly declares and converts another unit. `contract.schema.json` defines the machine-readable input and output envelope.
+
+          ## Equations or algorithm
+
+          Use the minimum model that can answer the decision. State equations, conservation basis, parameters, units, numerical tolerances, applicability domain and uncertainty. Module-specific executable reference logic is implemented in `../../core.py` where available; commercial simulation and physical experiments remain external.
+
+          ## Output contract
+
+          response metrics, constraints, recovery times and operability status. Every output carries `status`, evidence IDs, applicability, uncertainty, blockers and approval state.
+
+          ## Applicability domain
+
+          The module applies only to ethylene/alpha-olefin solution-polymerization cases whose component identities, measurement boundaries, property method, catalyst basis, scale and recycle state are explicitly declared.
+
+          ## Fail-closed conditions
+
+          A dynamic claim without matching asset/report and test criteria remains HOLD. Missing evidence returns `NOT_EVALUATED` or `HOLD`; structural inconsistency returns `FAIL`. No missing item is converted into an assumed PASS.
+
+          ## Tests
+
+          Positive, boundary and malicious-input tests are located in `../../tests/test_poe_alpha6_p0.py` and `../../tests/test_poe_alpha6_package.py`. Required Gate: `G14`.
+
+          ## External execution boundary
+
+          Physical polymerization, commercial Aspen/Origin/MATLAB execution, CFD, equipment design, HAZOP/LOPA/SIL, pilot operation, customer qualification and industrial guarantees remain `NOT_EVALUATED` until performed and approved by named qualified teams.
+
+          ## Alpha.7 executable reference
+
+          `skills.poe.dynamics` provides FOPDT simulation, rise/settling/overshoot/IAE metrics, transition criteria and recycle-memory time. It is not a qualified plant-control model.
+          EOF
+          sed -i 's/^          //' skills/poe/modules/11_dynamics_control_transitions/README.md
+          cat > docs/CAPABILITY_MATRIX.md <<'EOF'
+          # TSAO capability matrix — 0.1.0-alpha.7
+
+          | Capability | Master | Process-general | EPDM | POE | Polymer-general | Verification |
+          |---|---:|---:|---:|---:|---:|---|
+          | G0–G18 lifecycle | native | inherits | inherits | inherits | inherits | Gate Schema and false-PASS tests |
+          | 14 workstreams / 266 packages | native | inherits | inherits | inherits | inherits | bootstrap and work-package Schema |
+          | Evidence and lineage | native | supported | detailed | executable alpha | supported | 139 assets, 18 requirements, 7 conflicts |
+          | Kinetics and estimation | framework | general kernels | EPDM-specific | P1 reference | mechanism-neutral | conservation, bounded fit, Jacobian and identifiability |
+          | Properties and transport | framework | general kernels | EPDM-specific | P1 reference | supported | error metrics, ranges, viscosity and heat-transfer checks |
+          | Reactors and heat removal | framework | detailed | detailed | P1 reference | supported | PFR/CSTR known solutions and margin Gates |
+          | Steady/dynamic process cases | framework | detailed | detailed | executable validator | supported | component balances, convergence and dynamic assets |
+          | Dynamics and transitions | framework | detailed | detailed | P1 reference | supported | FOPDT, response metrics and recycle memory |
+          | Scale-up | native | detailed | detailed | P1 reference | detailed | dimensionless groups and similarity tolerances |
+          | Package and acceptance | native | detailed | detailed | audit v2 alpha | detailed | hashes, evidence, conflicts, requirements and approval |
+          | Model-asset passports | framework | supported | controlled | executable Schema | controlled | software/database/property/dependency identity |
+          | Wheel delivery | native | inherits | controlled | runtime verified | controlled | member and installed-runtime checks |
+          | Cross-platform packaging | native | inherits | inherits | qualified alpha | inherits | Ubuntu 3.11/3.12, Windows 3.12, macOS 3.12 |
+
+          These labels describe open-software depth, not project approval. Historical model execution and every scientific, engineering, HSE, legal, customer and industrial decision remain `NOT_EVALUATED` until supported by project evidence and named approval.
+          EOF
+          sed -i 's/^          //' docs/CAPABILITY_MATRIX.md
+      - name: Commit and remove both repair workflows
+        run: |
+          git rm -f .github/workflows/fix-poe-alpha7-drift-once.yml .github/workflows/fix-poe-alpha7-drift-v2-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(poe): align alpha7 candidate documents [skip ci]"
+          git push origin HEAD:main
+      - name: Report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "Alpha.7 candidate drift repaired. New candidate SHA: \`$(git rev-parse HEAD)\`. Invalid temporary JSON removed; POE status, FOPDT module and capability matrix now match alpha.7."
+          gh issue close "${{ github.event.issue.number }}" --reason completed
