@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from tsao.provenance import build_manifest, iter_source_files, verify_manifest
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_manifest_rejects_source_file_added_after_generation(tmp_path: Path) -> None:
@@ -27,3 +31,8 @@ def test_generated_build_trees_are_not_source_identity(tmp_path: Path) -> None:
 
     paths = {relative for _, relative in iter_source_files(tmp_path)}
     assert paths == {"source.py"}
+
+
+@pytest.mark.parametrize("directory", ["build", "dist", "wheelhouse"])
+def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:
+    assert not (ROOT / directory).exists()
