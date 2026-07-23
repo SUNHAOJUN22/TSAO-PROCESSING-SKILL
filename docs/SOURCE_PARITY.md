@@ -1,10 +1,26 @@
-# Source parity and distribution identity
+# Source parity and release identity
 
-TSAO keeps two machine-readable identities because the public GitHub source core and the qualified complete distribution are not interchangeable artifacts.
+TSAO publishes two software artifacts and never treats them as interchangeable.
 
-- `reports/SOURCE_CORE_MANIFEST.tsv` records files that are browseable and reviewable on the GitHub branch.
-- `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv` records the qualified complete distribution, including inherited specialist assets and controlled historical binaries.
+## Public source snapshot
 
-`tsao doctor --profile core` verifies the public source manifest. `tsao doctor --profile full` additionally requires the complete-distribution markers `FILE_MANIFEST.tsv`, `checksums.sha256` and `SBOM.json` and then verifies the complete manifest.
+- Source of truth: `main`.
+- Manifest: `reports/SOURCE_CORE_MANIFEST.tsv`.
+- Verification: `python -m tsao.cli doctor --root . --profile core`.
+- Build: `python -m tsao.cli snapshot --root . --out TSAO-source.zip`.
+- Purpose: reviewable open-source implementation, specialist contracts, tests and documentation.
 
-A missing path or size/SHA-256 mismatch fails the doctor check. Controlled binary releases support reproducibility but never substitute for reviewable source or project-specific technical validation. Numerical values in inherited cases remain reference-only until the active project validates identity, units, measurement boundary, property method and applicability.
+## Qualified complete distribution
+
+- Manifest: `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv`.
+- Internal integrity: `FILE_MANIFEST.tsv`, `checksums.sha256`, `SBOM.json`.
+- Verification: `python -m tsao.cli doctor --root . --profile full` plus cleanroom extraction CI.
+- Purpose: public source plus controlled inherited EPDM v9, SJTU-POE and universal-polymer assets and historical identities.
+
+The complete manifest can be stored in the public repository as an identity record even when controlled binary archives are distributed separately. A manifest entry does not change the file's ownership or license; `artifact_class` and `license_scope` remain authoritative.
+
+## Technical approval
+
+Neither software artifact approves chemistry, equipment, process safety, legal FTO, customer performance or a plant guarantee. Those states remain `NOT_EVALUATED` until project-specific evidence and named qualified approval exist.
+
+Any missing path, duplicate path, unsafe path, size mismatch, SHA-256 mismatch, SBOM disagreement or false approval blocks qualification.
