@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import tsao
+
 from tsao.capabilities import (
     GATES,
     MATURITY_LEVELS,
@@ -35,11 +37,22 @@ def test_project_bootstrap_writes_executable_artifacts(tmp_path: Path):
     )
     project = tmp_path / "project"
     manifest = bootstrap_project(brief, project)
-    assert manifest["version"] == "0.1.0-alpha.5"
+    assert manifest["version"] == tsao.__version__
     assert (project / "00_governance/work_packages.json").is_file()
     assert (project / "00_governance/maturity.json").is_file()
     assert (project / "00_governance/execution_status.json").is_file()
     assert audit_project(project) == []
+
+
+def test_project_audit_rejects_stale_version(tmp_path: Path):
+    brief = tmp_path / "brief.yaml"
+    brief.write_text("project_id: P-2\ntitle: Demo\n", encoding="utf-8")
+    project = tmp_path / "project"
+    bootstrap_project(brief, project)
+    manifest_path = project / "project_manifest.json"
+    text = manifest_path.read_text(encoding="utf-8").replace(tsao.__version__, "0.0.0")
+    manifest_path.write_text(text, encoding="utf-8")
+    assert "project manifest version does not match TSAO version" in audit_project(project)
 
 
 def test_capability_contract_has_no_missing_artifacts():
