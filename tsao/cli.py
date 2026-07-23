@@ -34,6 +34,11 @@ def _parser() -> argparse.ArgumentParser:
     doctor_parser = commands.add_parser("doctor", help="audit repository and provenance integrity")
     doctor_parser.add_argument("--root", default=".")
     doctor_parser.add_argument("--profile", choices=("auto", "core", "full"), default="auto")
+    doctor_parser.add_argument(
+        "--strict-source-clean",
+        action="store_true",
+        help="fail when cache or virtual-environment paths are present",
+    )
 
     build_parser = commands.add_parser("build", help="create a deterministic project archive")
     build_parser.add_argument("--root", required=True)
@@ -58,7 +63,11 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "doctor":
-            result = diagnose(Path(args.root), profile=args.profile)
+            result = diagnose(
+                Path(args.root),
+                profile=args.profile,
+                strict_source_clean=args.strict_source_clean,
+            )
             _print(result)
             return 0 if result["pass"] else 2
         if args.command == "route":
