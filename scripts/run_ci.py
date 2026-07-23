@@ -6,6 +6,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -30,35 +31,54 @@ RUFF_PATHS = (
 
 
 def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
-    if process.poll() is not None:
-        return
     if os.name == "posix":
         try:
             os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             return
-        try:
-            process.wait(timeout=5)
-            return
-        except subprocess.TimeoutExpired:
+        if process.poll() is None:
             try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
+                process.wait(timeout=5)
                 return
-    elif os.name == "nt":
+            except subprocess.TimeoutExpired:
+                pass
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return
+    elif os.name == "nt" and process.poll() is None:
         subprocess.run(
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
         )
-    else:
+    elif process.poll() is None:
         process.kill()
+    if process.poll() is None:
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+
+
+def _cleanup_successful_process_group(process: subprocess.Popen[object]) -> None:
+    if os.name != "posix":
+        return
     try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=5)
+        os.killpg(process.pid, 0)
+    except ProcessLookupError:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    time.sleep(0.05)
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
@@ -72,7 +92,7 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
             stderr=subprocess.STDOUT,
             text=True,
             start_new_session=os.name == "posix",
-            creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0),
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
         )
         try:
             returncode = process.wait(timeout=timeout)
@@ -81,6 +101,9 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
             timed_out = True
             returncode = 124
             _terminate_process_tree(process)
+        finally:
+            if process.poll() is not None:
+                _cleanup_successful_process_group(process)
         log.flush()
         log.seek(0)
         output = log.read()[-20000:]
@@ -104,7 +127,10 @@ def main() -> int:
             cwd=root,
         ),
         run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
-        run([sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"], cwd=root),
+        run(
+            [sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"],
+            cwd=root,
+        ),
         run([sys.executable, "-m", "ruff", "check", *RUFF_PATHS], cwd=root),
     ]
     passed = all(check["returncode"] == 0 for check in checks)
@@ -118,9 +144,8 @@ def main() -> int:
         "customer_qualification": "NOT_EVALUATED",
         "industrial_performance_guarantee": "NOT_EVALUATED",
     }
-    reports = root / "reports"
-    reports.mkdir(exist_ok=True)
-    target = reports / "CI_RESULTS.json"
+    target = root / "reports/CI_RESULTS.json"
+    target.parent.mkdir(exist_ok=True)
     temporary = target.with_name(target.name + ".tmp")
     temporary.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     temporary.replace(target)
