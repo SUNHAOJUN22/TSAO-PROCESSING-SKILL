@@ -1,11 +1,11 @@
-name: TSAO alpha5 qualification
+name: TSAO alpha6 qualification
 
 on:
   push:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   qualification:
@@ -31,6 +31,8 @@ jobs:
         run: python -m pip install --quiet -e .[dev]
       - name: Dependency integrity
         run: python -m pip check
+      - name: Refresh source manifest in workspace
+        run: python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
       - name: Core qualification
         run: python scripts/run_ci.py
       - name: Build wheel
@@ -41,11 +43,37 @@ jobs:
           python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
 
-  refresh-source-manifest:
+  source-snapshot:
     needs: qualification
-    if: ${{ needs.qualification.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install --quiet -e .
+      - name: Build deterministic public-source snapshot
+        run: |
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.6.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tsao-source-alpha6-${{ github.sha }}
+          path: |
+            TSAO-PROCESSING-SKILL-source-alpha.6.zip
+            TSAO-PROCESSING-SKILL-source-alpha.6.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  refresh-source-manifest:
+    needs: qualification
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -55,7 +83,7 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: python -m pip install --quiet -e .
-      - name: Refresh complete public-source manifest
+      - name: Refresh public-source manifest
         run: python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
       - name: Commit refreshed manifest
         run: |
@@ -66,5 +94,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add reports/SOURCE_CORE_MANIFEST.tsv
-          git commit -m "chore: refresh complete source manifest [skip ci]"
+          git commit -m "chore: refresh alpha6 public-source manifest"
           git push origin HEAD:main
