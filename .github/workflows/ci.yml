@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   qualification:
@@ -64,3 +65,16 @@ jobs:
           path: ${{ runner.temp }}/SOURCE_CORE_MANIFEST.tsv
           if-no-files-found: error
           archive: false
+      - name: Publish manifest to temporary audit issue
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### Generated SOURCE_CORE_MANIFEST.tsv'
+            echo
+            echo '```tsv'
+            cat "${{ runner.temp }}/SOURCE_CORE_MANIFEST.tsv"
+            echo '```'
+          } > "${{ runner.temp }}/manifest-comment.md"
+          gh issue comment 6 --body-file "${{ runner.temp }}/manifest-comment.md"
