@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68,<82", "wheel>=0.41,<1"]
+requires = ["setuptools>=68,<84", "wheel>=0.41,<1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -24,9 +24,9 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0,<9",
+  "pytest>=8.0,<10",
   "ruff>=0.5,<1",
-  "setuptools>=68,<82",
+  "setuptools>=68,<84",
   "wheel>=0.41,<1",
 ]
 
