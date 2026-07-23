@@ -144,8 +144,8 @@ def main() -> int:
         "customer_qualification": "NOT_EVALUATED",
         "industrial_performance_guarantee": "NOT_EVALUATED",
     }
-    target = root / "reports/CI_RESULTS.json"
-    target.parent.mkdir(exist_ok=True)
+    target = root / "reports/runtime/CI_RESULTS.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(target.name + ".tmp")
     temporary.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     temporary.replace(target)
