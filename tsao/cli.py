@@ -13,6 +13,7 @@ from .core import (
     validate_zip_archive,
 )
 from .doctor import diagnose
+from .snapshot import build_source_snapshot
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -38,9 +39,19 @@ def _parser() -> argparse.ArgumentParser:
     build_parser.add_argument("--root", required=True)
     build_parser.add_argument("--out", required=True)
 
+    snapshot_parser = commands.add_parser(
+        "snapshot", help="build a deterministic archive of the public source manifest"
+    )
+    snapshot_parser.add_argument("--root", default=".")
+    snapshot_parser.add_argument("--out", required=True)
+
     verify_parser = commands.add_parser("verify-archive", help="validate ZIP safety and integrity")
     verify_parser.add_argument("--archive", required=True)
     return parser
+
+
+def _print(payload: object) -> None:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -48,38 +59,28 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "doctor":
             result = diagnose(Path(args.root), profile=args.profile)
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            _print(result)
             return 0 if result["pass"] else 2
         if args.command == "route":
-            print(json.dumps(route(args.text), ensure_ascii=False))
+            _print(route(args.text))
             return 0
         if args.command == "init":
             templates = Path(args.templates) if args.templates else None
-            manifest = bootstrap_project(Path(args.brief), Path(args.out), templates)
-            print(json.dumps(manifest, ensure_ascii=False, indent=2))
+            _print(bootstrap_project(Path(args.brief), Path(args.out), templates))
             return 0
         if args.command == "audit":
             issues = audit_project(Path(args.root))
-            print(
-                json.dumps(
-                    {"pass": not issues, "issues": issues},
-                    ensure_ascii=False,
-                    indent=2,
-                )
-            )
+            _print({"pass": not issues, "issues": issues})
             return 0 if not issues else 2
         if args.command == "build":
-            print(deterministic_zip(Path(args.root), Path(args.out)))
+            _print({"sha256": deterministic_zip(Path(args.root), Path(args.out))})
+            return 0
+        if args.command == "snapshot":
+            _print(build_source_snapshot(Path(args.root), Path(args.out)))
             return 0
         if args.command == "verify-archive":
             issues = validate_zip_archive(Path(args.archive))
-            print(
-                json.dumps(
-                    {"pass": not issues, "issues": issues},
-                    ensure_ascii=False,
-                    indent=2,
-                )
-            )
+            _print({"pass": not issues, "issues": issues})
             return 0 if not issues else 2
     except (OSError, TypeError, ValueError) as exc:
         print(
