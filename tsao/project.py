@@ -8,6 +8,7 @@ from typing import Any
 
 import yaml
 
+from . import __version__
 from ._utils import atomic_write_text, nonempty, required_or_default_string
 from .capabilities import build_work_packages, initial_maturity_record
 from .gates import ApprovalStatus, GateRecord, GateStatus, validate_gate_sequence
@@ -101,7 +102,7 @@ def bootstrap_project(
     manifest: dict[str, Any] = {
         "project_id": project_id,
         "title": title,
-        "version": "0.1.0-alpha.5",
+        "version": __version__,
         "domain": [item[0] for item in routed],
         "subskills": _select_subskills(routed),
         "technical_approval_status": "NOT_EVALUATED",
@@ -144,7 +145,8 @@ def bootstrap_project(
             },
             ensure_ascii=False,
             indent=2,
-        ) + "\n",
+        )
+        + "\n",
     )
     return manifest
 
@@ -195,6 +197,8 @@ def audit_project(root: Path) -> list[str]:
     for key in ("project_id", "title", "version"):
         if not nonempty(data.get(key)):
             issues.append(f"manifest field must be a non-empty string: {key}")
+    if data.get("version") != __version__:
+        issues.append("project manifest version does not match TSAO version")
     domain = data.get("domain")
     if not isinstance(domain, list) or not domain or any(not nonempty(item) for item in domain):
         issues.append("domain must be a non-empty string array")
