@@ -2,63 +2,63 @@
 
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.5-orange.svg)](CHANGELOG.md)
+[![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.6-orange.svg)](CHANGELOG.md)
 
-**Turn a chemical-process question into a traceable development programme: evidence → experiments → models → scale-up → process package → acceptance → field learning.**
+**Turn a chemical-process question into an auditable programme: evidence → experiments → models → scale-up → process package → acceptance → field learning.**
 
-TSAO is software-neutral and fail-closed. Literature, patents, simulations, generated files and passing software tests never become plant setpoints or technical approvals by themselves.
+TSAO is software-neutral and fail-closed. A literature value is not a plant setpoint, a converged simulation is not approval, and a generated file is not completed physical work.
 
 [中文](README.zh-CN.md) · [Execution contract](SKILL.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md)
 
-## Choose one route
+## Choose a route
 
 | Route | Scope |
 |---|---|
 | `process-general` | reaction, properties, reactors, separation/recycle, control, HSE, reliability and scale-up |
-| `epdm` | EPM/EPDM catalyst-to-customer lifecycle |
-| `poe` | POE solution-polymerization kinetics, flowsheet, dynamics, scale-up and acceptance |
-| `polymer-general` | other polymerization, modification, formulation and recycling routes |
+| `epdm` | EPM/EPDM catalyst, terpolymerization, recovery, compounding and customer qualification |
+| `poe` | POE solution polymerization, properties, flowsheet, dynamics, scale-up and acceptance |
+| `polymer-general` | other polymerization, modification, formulation, reactive processing and recycling routes |
 
-All routes inherit the same G0–G18 Gates, evidence states, model-risk controls, uncertainty rules and human approval boundary.
+Every route inherits G0–G18 Gates, 14 professional workstreams, M0–M9 maturity, evidence states, model-risk controls and named human approval.
 
-## Start here
+## Start
 
 ```bash
 python -m pip install -e .[dev]
-python -m tsao.cli doctor --root .
+python -m tsao.cli doctor --root . --profile core
 python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
 python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
 python -m tsao.cli audit --root work/demo
 ```
 
-`tsao init` creates G0–G18, 14 professional workstreams, **266 fail-closed work packages**, M0–M9 maturity records and explicit external-execution states.
+`tsao init` creates 19 × 14 = **266 fail-closed work packages**, maturity records and explicit external-execution states.
 
-AI agents read `SKILL.md`, then execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
-
-## Verify the repository
-
-Run the same core qualification locally:
+## Verify
 
 ```bash
 python scripts/run_ci.py
+python -m tsao.cli snapshot --root . --out TSAO-source.zip
+python -m tsao.cli verify-archive --archive TSAO-source.zip
 ```
 
-The gate compiles the source, runs the root and specialist test suites, audits capabilities, verifies repository provenance with `tsao doctor`, and applies Ruff. GitHub Actions repeats the gate on Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12, then builds a wheel and runs CLI smoke tests.
+- `doctor --profile core` verifies the GitHub source tree and `reports/SOURCE_CORE_MANIFEST.tsv`.
+- `doctor --profile full` additionally verifies `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv`, `FILE_MANIFEST.tsv`, `checksums.sha256` and `SBOM.json`.
+- GitHub Actions runs the canonical qualification on Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12, builds a wheel and publishes a deterministic source snapshot.
+- The current machine-readable release record is [reports/RELEASE_IDENTITY.json](reports/RELEASE_IDENTITY.json).
 
-## What the repository contains
+## Repository map
 
-- `SKILL.md` — non-negotiable operating contract
-- `tsao/` — executable core, router, project generator, audits and `doctor`
-- `skills/` — process-general, EPDM, POE and polymer-general specialist packs
+- `SKILL.md` — non-negotiable execution contract
+- `tsao/` — router, project generator, audits, integrity checks and CLI
+- `skills/` — process-general, EPDM, POE and polymer-general packs
 - `schemas/` — typed evidence, Gate, work-package, maturity and approval contracts
-- `reports/SOURCE_CORE_MANIFEST.tsv` — public-source identity
-- `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv` — complete qualified-distribution identity
-- `scripts/` — local CI, capability and provenance tooling
+- `reports/` — source identities, qualification and release records
+- `scripts/` — CI, provenance, snapshot and release tooling
 
-The authoritative development line is `main`; release identity, source lineage and inherited-asset boundaries are documented rather than hidden in extra branches.
+`main` is the sole authoritative development line. The public source snapshot and the qualified complete distribution are separate, explicitly identified artifacts; see [source parity](docs/SOURCE_PARITY.md).
 
 ## Trust boundary
 
-Software qualification is not scientific, engineering, safety, legal, customer or industrial approval. Physical experiments, commercial simulation, equipment and relief design, HAZOP/LOPA/SIL, FTO, pilot/demonstration work, customer qualification and plant guarantees remain `NOT_EVALUATED` until real evidence and named qualified approval exist.
+Software qualification is not scientific, engineering, safety, legal, customer or industrial approval. Physical experiments, commercial simulation, equipment and relief design, HAZOP/LOPA/SIL, FTO, pilot/demonstration work, customer qualification and plant guarantees remain **`NOT_EVALUATED`** until supported by real evidence and named qualified approval.
 
-Original TSAO code and documentation are Apache-2.0. See [NOTICE.md](NOTICE.md) and [source parity](docs/SOURCE_PARITY.md) for inherited-asset attribution and distribution boundaries.
+Original TSAO code and documentation are Apache-2.0. Inherited assets keep their recorded provenance and redistribution boundary; see [NOTICE.md](NOTICE.md).
