@@ -1,16 +1,18 @@
-# Full audited distribution reference
+# Current qualified complete distribution
 
-The independently constructed complete TSAO distribution contains the master skill plus complete EPDM v9, SJTU POE and universal-polymer source trees and historical release archives.
+The alpha.6 complete distribution contains the TSAO master layer plus the full EPDM v9, SJTU-POE and universal-polymer assets and their controlled historical release identities.
 
-Qualification record:
+- version: `0.1.0-alpha.6`
+- archive SHA-256: `6948a6753bc7349104e2c3f2c8b9a4738b07d72f536cf28a7f17d1e5e5c07c25`
+- archive bytes: `2851502`
+- archive members: `1202`
+- full CI round 1: `477/477 PASS`
+- full CI round 2: `477/477 PASS`
+- isolated phases: `28/28`
+- frozen core identity: `0e6a15d953b6f0478881f75caa5f1514219185ab42036d0661f180e8ee63e723`
+- cleanroom extracted CI: `477/477 PASS`
+- CRC, path, symlink, case-collision, per-file checksum and SBOM validation: `PASS`
 
-- version: `0.1.0-alpha.1`
-- archive members: 1046
-- tests: 362/362 passed
-- archive SHA-256: `630e5a87f8b9214950d4dde8f6d0312c0e80f89a31540bd417c538d14764b63b`
-- core identity: `bb178beccaf72e7debf9451b30dd8086bf41e5ade69d1bbfec6eeddcba4ef344`
-- cleanroom archive validation: PASS
+The public repository records this identity in `reports/COMPLETE_DISTRIBUTION_REFERENCE.json`; the complete distribution contains the per-file full manifest and controlled binary assets.
 
-This GitHub source-core PR deliberately avoids committing opaque multi-megabyte binary archives through an unverified transport path. Controlled full-asset ingestion is specified in `docs/VERSIONED_ASSET_INGESTION.md`.
-
-Artifact/software qualification is PASS. Scientific, engineering, safety, legal, customer and industrial approvals remain `NOT_EVALUATED`.
+Software-artifact qualification is PASS. Scientific, engineering, safety, legal, customer and industrial approvals remain `NOT_EVALUATED`.
