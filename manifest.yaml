@@ -1,6 +1,6 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 status: active-alpha
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
