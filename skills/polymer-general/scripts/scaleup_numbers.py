@@ -15,26 +15,35 @@ def positive(value: float | None, label: str) -> float | None:
     return result
 
 
+def _complete(values: dict[str, float | None], names: tuple[str, ...]) -> bool:
+    return all(values.get(name) is not None for name in names)
+
+
 def calculate(**values: float | None) -> dict[str, float | str]:
     clean = {name: positive(value, name) for name, value in values.items()}
     out: dict[str, float | str] = {}
-    rho = clean.get("rho")
-    mu = clean.get("mu")
-    velocity = clean.get("velocity")
-    length = clean.get("length")
-    cp = clean.get("cp")
-    conductivity = clean.get("k")
-    diffusivity = clean.get("diffusivity")
-    reaction_time = clean.get("reaction_time")
-    mixing_time = clean.get("mixing_time")
-    if None not in (rho, mu, velocity, length):
-        out["Re"] = rho * velocity * length / mu  # type: ignore[operator]
-    if None not in (cp, mu, conductivity):
-        out["Pr"] = cp * mu / conductivity  # type: ignore[operator]
-    if None not in (mu, rho, diffusivity):
-        out["Sc"] = mu / (rho * diffusivity)  # type: ignore[operator]
-    if None not in (reaction_time, mixing_time):
-        out["Da_mixing"] = mixing_time / reaction_time  # type: ignore[operator]
+
+    reynolds = ("rho", "mu", "velocity", "length")
+    prandtl = ("cp", "mu", "k")
+    schmidt = ("mu", "rho", "diffusivity")
+    damkohler = ("reaction_time", "mixing_time")
+
+    if _complete(clean, reynolds):
+        out["Re"] = (
+            clean["rho"] * clean["velocity"] * clean["length"] / clean["mu"]
+        )  # type: ignore[operator]
+    if _complete(clean, prandtl):
+        out["Pr"] = clean["cp"] * clean["mu"] / clean["k"]  # type: ignore[operator]
+    if _complete(clean, schmidt):
+        out["Sc"] = clean["mu"] / (clean["rho"] * clean["diffusivity"])  # type: ignore[operator]
+    if _complete(clean, damkohler):
+        out["Da_mixing"] = clean["mixing_time"] / clean["reaction_time"]  # type: ignore[operator]
+
+    if not out:
+        raise ValueError(
+            "insufficient inputs: provide a complete Re, Pr, Sc or Da_mixing parameter set"
+        )
+
     out["warning"] = (
         "Definitions and characteristic scales are process-specific; "
         "expert review is required before design use."
