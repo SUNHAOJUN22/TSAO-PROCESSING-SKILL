@@ -1,0 +1,107 @@
+name: One-shot POE alpha6 bootstrap
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: tsao-poe-alpha6-bootstrap-main-only
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: ${{ startsWith(github.event.issue.title, '[BOOTSTRAP-POE-ALPHA6]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Assemble P0 base and hardening overlay
+        env:
+          GH_TOKEN: ${{ github.token }}
+          P0_COMMIT: 1e7a63f27b77341da76923747ca45dbd7e1ba5ed
+          HARDENING_COMMIT: 16b235299d46277e6b526a480a316e762c62f13e
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          base_sha=$(git rev-parse HEAD)
+          echo "$base_sha" > "$RUNNER_TEMP/base-sha"
+          mkdir -p "$RUNNER_TEMP/p0" "$RUNNER_TEMP/hardening"
+          gh api "repos/$GITHUB_REPOSITORY/zipball/$P0_COMMIT" > "$RUNNER_TEMP/p0.zip"
+          gh api "repos/$GITHUB_REPOSITORY/zipball/$HARDENING_COMMIT" > "$RUNNER_TEMP/hardening.zip"
+          unzip -q "$RUNNER_TEMP/p0.zip" -d "$RUNNER_TEMP/p0"
+          unzip -q "$RUNNER_TEMP/hardening.zip" -d "$RUNNER_TEMP/hardening"
+          p0_root=$(find "$RUNNER_TEMP/p0" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          hard_root=$(find "$RUNNER_TEMP/hardening" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          [ -n "$p0_root" ] && [ -n "$hard_root" ]
+
+          mkdir -p skills/poe
+          for directory in data docs fixtures modules schemas; do
+            rm -rf "skills/poe/$directory"
+            cp -a "$p0_root/skills/poe/$directory" "skills/poe/$directory"
+          done
+          for file in __init__.py core.py kinetics.py; do
+            cp -a "$p0_root/skills/poe/$file" "skills/poe/$file"
+          done
+          cp -a "$hard_root"/. .
+
+          rm -rf build dist wheelhouse work .pytest_cache .ruff_cache
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          find . -maxdepth 1 -type d -name '*.egg-info' -prune -exec rm -rf {} +
+          rm -f reports/runtime/*.json reports/runtime/*.tmp
+          git rm .github/workflows/bootstrap-poe-alpha6-once.yml
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+      - name: Full candidate qualification
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          python scripts/run_ci.py
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+      - name: Publish candidate to existing main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -rf build dist wheelhouse work .pytest_cache .ruff_cache
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          find . -maxdepth 1 -type d -name '*.egg-info' -prune -exec rm -rf {} +
+          rm -f reports/runtime/*.json reports/runtime/*.tmp
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          python -m tsao.cli doctor --root . --profile core
+
+          git fetch origin main
+          base_sha=$(cat "$RUNNER_TEMP/base-sha")
+          current_remote=$(git rev-parse origin/main)
+          [ "$current_remote" = "$base_sha" ] || {
+            echo "main moved from $base_sha to $current_remote; refusing stale publish" >&2
+            exit 31
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(poe): stage alpha6 executable specialist candidate"
+          git push origin HEAD:main
+          candidate_sha=$(git rev-parse HEAD)
+          gh issue create \
+            --title "[APPLY-POE-ALPHA6] Cross-platform qualify and finalize POE alpha6" \
+            --body "Candidate \`$candidate_sha\` was assembled on the existing main branch after full Ubuntu qualification. Run the four-platform fail-closed finalizer, remove its temporary workflow, rebuild the frozen source manifest and verify that main remains the only branch."
+          gh issue comment "${{ github.event.issue.number }}" --body "POE alpha.6 candidate published to existing main: \`$candidate_sha\`. Four-platform final qualification has been triggered. No branch was created."
+          gh issue close "${{ github.event.issue.number }}" --reason completed
+      - name: Report failure without stale publish
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "POE alpha.6 bootstrap stopped fail-closed. No unverified candidate was published by this run. Workflow run: \`$GITHUB_RUN_ID\`."
