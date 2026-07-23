@@ -91,11 +91,7 @@ jobs:
               if cleanup_step not in text:
                   if dependency_marker not in text:
                       raise SystemExit(f"dependency marker not found in {filename}")
-                  text = text.replace(
-                      dependency_marker,
-                      dependency_marker + cleanup_step,
-                      1,
-                  )
+                  text = text.replace(dependency_marker, dependency_marker + cleanup_step, 1)
               if filename.endswith("apply-poe-alpha6-once.yml"):
                   marker = '''          python -m pip check
                       python scripts/run_ci.py
@@ -168,31 +164,60 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          step="initialization"
+          report_publish_failure() {
+            status=$?
+            {
+              echo "POE candidate publish failed at stage: **$step** (exit $status)."
+              echo
+              echo '```text'
+              git status --short || true
+              echo "local=$(git rev-parse HEAD 2>/dev/null || true)"
+              echo "remote=$(git rev-parse origin/main 2>/dev/null || true)"
+              echo '```'
+            } > "$RUNNER_TEMP/publish-failure.md"
+            gh issue comment "${{ github.event.issue.number }}" --body-file "$RUNNER_TEMP/publish-failure.md" || true
+            exit "$status"
+          }
+          trap report_publish_failure ERR
+
+          step="cleanup"
           rm -rf build dist wheelhouse work .pytest_cache .ruff_cache
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
           find . -maxdepth 1 -type d -name '*.egg-info' -prune -exec rm -rf {} +
           rm -f reports/runtime/*.json reports/runtime/*.tmp
+
+          step="source manifest"
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+
+          step="doctor"
           python -m tsao.cli doctor --root . --profile core
 
+          step="concurrency check"
           git fetch origin main
           base_sha=$(cat "$RUNNER_TEMP/base-sha")
           current_remote=$(git rev-parse origin/main)
-          [ "$current_remote" = "$base_sha" ] || {
-            echo "main moved from $base_sha to $current_remote; refusing stale publish" >&2
-            exit 31
-          }
+          [ "$current_remote" = "$base_sha" ]
+
+          step="commit"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "feat(poe): stage alpha6 executable specialist candidate"
+
+          step="push"
           git push origin HEAD:main
           candidate_sha=$(git rev-parse HEAD)
+
+          step="trigger final qualification"
           gh issue create \
             --title "[APPLY-POE-ALPHA6] Cross-platform qualify and finalize POE alpha6" \
             --body "Candidate \`$candidate_sha\` was assembled on the existing main branch after full Ubuntu qualification. Run the four-platform fail-closed finalizer, remove its temporary workflow, rebuild the frozen source manifest and verify that main remains the only branch."
+
+          step="close bootstrap issue"
           gh issue comment "${{ github.event.issue.number }}" --body "POE alpha.6 candidate published to existing main: \`$candidate_sha\`. Four-platform final qualification has been triggered. No branch was created."
           gh issue close "${{ github.event.issue.number }}" --reason completed
+          trap - ERR
       - name: Report failure without stale publish
         if: failure()
         env:
