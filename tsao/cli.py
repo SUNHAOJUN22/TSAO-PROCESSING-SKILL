@@ -13,6 +13,7 @@ from .core import (
     validate_zip_archive,
 )
 from .doctor import diagnose
+from .provenance import build_manifest
 from .snapshot import build_source_snapshot
 
 
@@ -39,6 +40,11 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="fail when cache or virtual-environment paths are present",
     )
+    doctor_parser.add_argument(
+        "--refresh-source-manifest",
+        action="store_true",
+        help="rebuild SOURCE_CORE_MANIFEST.tsv before core verification",
+    )
 
     build_parser = commands.add_parser("build", help="create a deterministic project archive")
     build_parser.add_argument("--root", required=True)
@@ -63,8 +69,13 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "doctor":
+            root = Path(args.root)
+            if args.refresh_source_manifest:
+                if args.profile == "full":
+                    raise ValueError("full profile cannot refresh only the public-source manifest")
+                build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
             result = diagnose(
-                Path(args.root),
+                root,
                 profile=args.profile,
                 strict_source_clean=args.strict_source_clean,
             )
