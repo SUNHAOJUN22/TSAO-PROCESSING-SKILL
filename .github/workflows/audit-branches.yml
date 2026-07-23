@@ -1,0 +1,48 @@
+name: Temporary branch audit
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    if: ${{ startsWith(github.event.issue.title, '[BRANCH-AUDIT]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Inventory all remote branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          report="$RUNNER_TEMP/audit.md"
+          {
+            echo '## Complete branch audit'
+            echo
+            mapfile -t branches < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/ | grep -v '^HEAD$' | sort -u)
+            echo "Total branches: **${#branches[@]}**"
+            echo
+            for branch in "${branches[@]}"; do
+              if [ "$branch" = main ]; then
+                echo "- \`main\`: \`$(git rev-parse origin/main)\` (default)"
+                continue
+              fi
+              ahead=$(git rev-list --count "origin/main..origin/$branch")
+              behind=$(git rev-list --count "origin/$branch..origin/main")
+              files=$(git diff --name-only "origin/main...origin/$branch" | wc -l | tr -d ' ')
+              head=$(git rev-parse "origin/$branch")
+              echo "- \`$branch\`: head=\`$head\`; ahead=$ahead; behind=$behind; changed_files=$files"
+            done
+          } > "$report"
+          gh issue comment "${{ github.event.issue.number }}" --body-file "$report"
+          gh issue close "${{ github.event.issue.number }}" --reason completed
