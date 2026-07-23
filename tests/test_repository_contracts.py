@@ -14,7 +14,6 @@ import tsao
 
 ROOT = Path(__file__).resolve().parents[1]
 _CACHE_PARTS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
-
 _REQUIRED_PATHS = {
     "README.md",
     "README.zh-CN.md",
@@ -43,6 +42,9 @@ _REQUIRED_PATHS = {
     "tsao/process_general.py",
     "tsao/doctor.py",
     "tsao/provenance.py",
+    "tsao/integrity.py",
+    "tsao/snapshot.py",
+    "scripts/export_source_snapshot.py",
     "schemas/work_package.schema.json",
     "schemas/maturity.schema.json",
     "schemas/scaleup_claim.schema.json",
@@ -50,6 +52,8 @@ _REQUIRED_PATHS = {
     "schemas/acceptance.schema.json",
     "schemas/source_asset.schema.json",
     "reports/SOURCE_CORE_MANIFEST.tsv",
+    "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv",
+    "reports/RELEASE_IDENTITY.json",
     "docs/SOURCE_PARITY.md",
 }
 
@@ -72,8 +76,7 @@ def _skill_frontmatter(path: Path) -> dict:
 
 
 def test_required_repository_paths_exist() -> None:
-    missing = sorted(path for path in _REQUIRED_PATHS if not (ROOT / path).exists())
-    assert missing == []
+    assert sorted(path for path in _REQUIRED_PATHS if not (ROOT / path).exists()) == []
 
 
 def test_all_json_and_yaml_files_parse() -> None:
@@ -85,7 +88,9 @@ def test_all_json_and_yaml_files_parse() -> None:
 
 
 def test_all_json_schemas_are_valid_draft_202012() -> None:
-    for path in sorted((ROOT / "schemas").glob("*.schema.json")):
+    schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
+    assert schemas
+    for path in schemas:
         Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
 
 
@@ -94,28 +99,29 @@ def test_version_metadata_is_consistent() -> None:
     manifest = yaml.safe_load((ROOT / "manifest.yaml").read_text(encoding="utf-8"))
     citation = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     root_skill = _skill_frontmatter(ROOT / "SKILL.md")
-    assert pyproject["project"]["version"] == "0.1.0a5"
-    assert tsao.__version__ == "0.1.0-alpha.5"
+    identity = json.loads((ROOT / "reports/RELEASE_IDENTITY.json").read_text(encoding="utf-8"))
+    assert tsao.__version__ == "0.1.0-alpha.6"
+    assert pyproject["project"]["version"] == "0.1.0a6"
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
     assert root_skill["version"] == tsao.__version__
-    assert "## 0.1.0-alpha.5" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert identity["version"] == tsao.__version__
+    assert "## 0.1.0-alpha.6" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
 
 
 def test_root_skill_preserves_original_execution_contract() -> None:
-    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8").casefold()
     required = {
-        "Mandatory actions for one complete invocation",
-        "Parallel professional workstreams",
-        "M0 idea",
-        "M9 operationally-validated",
+        "mandatory actions for one complete invocation",
+        "parallel professional workstreams",
+        "m0 idea",
+        "m9 operationally-validated",
         "process-general",
-        "PLANNED",
-        "REQUIRES_EXTERNAL_EXECUTION",
+        "planned",
+        "requires_external_execution",
     }
-    missing = sorted(item for item in required if item.casefold() not in skill.casefold())
-    assert missing == []
+    assert sorted(item for item in required if item not in skill) == []
 
 
 def test_manifest_registers_all_specialists() -> None:
@@ -129,21 +135,23 @@ def test_manifest_registers_all_specialists() -> None:
 
 
 def test_github_issue_form_uses_issue_form_contract() -> None:
-    issue_form = yaml.safe_load(
-        (ROOT / ".github/ISSUE_TEMPLATE/feature.yml").read_text(encoding="utf-8")
-    )
-    assert issue_form["description"]
-    assert "about" not in issue_form
-    assert isinstance(issue_form["body"], list) and issue_form["body"]
+    form = yaml.safe_load((ROOT / ".github/ISSUE_TEMPLATE/feature.yml").read_text(encoding="utf-8"))
+    assert form["description"]
+    assert "about" not in form
+    assert isinstance(form["body"], list) and form["body"]
 
 
-def test_github_actions_are_pinned_to_commit_shas() -> None:
+def test_github_actions_are_pinned_and_least_privilege() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     actions = re.findall(r"uses:\s*([^@\s]+)@([^\s#]+)", workflow)
     assert actions
     assert all(re.fullmatch(r"[0-9a-f]{40}", revision) for _, revision in actions)
     assert "fail-fast: false" in workflow
     assert "timeout-minutes:" in workflow
+    assert "permissions:\n  contents: read" in workflow
+    assert "refresh-source-manifest:\n    permissions:\n      contents: write" in workflow
+    assert "[skip ci]" not in workflow
+    assert "export_source_snapshot.py" in workflow
     assert "tsao.cli doctor" in workflow
 
 
