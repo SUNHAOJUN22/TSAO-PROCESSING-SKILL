@@ -81,32 +81,39 @@ jobs:
       - name: Full repository qualification
         run: |
           python -m pip check
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           python -m compileall -f -q tsao scripts skills
           python -m pytest -q -p no:cacheprovider tests skills/process-general/tests skills/poe/tests skills/polymer-general/tests
           python scripts/run_ci.py
-          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          python -m tsao.cli doctor --root . --profile core
           python -m ruff check tsao tests scripts skills
           python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
 
-      - name: Remove temporary branch-management workflows
+      - name: Remove temporary branch-management workflows and refresh identity
         run: |
-          git rm -f .github/workflows/consolidate-branches.yml .github/workflows/audit-branches.yml
+          git rm -f \
+            .github/workflows/consolidate-branches.yml \
+            .github/workflows/audit-branches.yml \
+            .github/workflows/diagnose-consolidation.yml
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "chore: finish main-only branch consolidation"
           fi
+          python -m tsao.cli doctor --root . --profile core
 
       - name: Reconcile any concurrent main updates
         run: |
           git fetch origin main
           if ! git merge-base --is-ancestor origin/main HEAD; then
             git merge --no-edit -X ours origin/main -m "Merge concurrent main updates before consolidation publish"
-            python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
-            git add reports/SOURCE_CORE_MANIFEST.tsv
-            if ! git diff --cached --quiet; then
-              git commit -m "chore: refresh source manifest after final merge"
-            fi
           fi
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          git add reports/SOURCE_CORE_MANIFEST.tsv
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: refresh source manifest after final merge"
+          fi
+          python -m tsao.cli doctor --root . --profile core
 
       - name: Publish consolidated main
         run: git push origin HEAD:main
@@ -146,7 +153,7 @@ jobs:
             echo "- integrated dependency and historical utilities: **PASS**"
             echo "- full repository qualification: **PASS**"
             echo "- remaining remote branches: \`main\`"
-            echo "- temporary audit/consolidation workflows: removed"
+            echo "- temporary audit/consolidation/diagnostic workflows: removed"
           } > "$RUNNER_TEMP/result.md"
           gh issue comment "${{ github.event.issue.number }}" --body-file "$RUNNER_TEMP/result.md"
           gh issue close "${{ github.event.issue.number }}" --reason completed
