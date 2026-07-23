@@ -1,0 +1,18 @@
+{
+  "format": "TSAO-SOURCE-PARITY-1",
+  "version": "0.1.0-alpha.5",
+  "complete_distribution": {
+    "files": 1100,
+    "zip_members": 1187,
+    "zip_sha256": "3ee1f0f137b92e0d872f084f77a1fb6faff4305ec8acae9c5d47de3ea66b705b",
+    "core_sha256": "5f02a95a6584f2f3e6a8d74e76a63b578830404ad45b82d42ebeb61d34a7830b",
+    "tests": 472,
+    "cleanroom": "PASS"
+  },
+  "public_repository_sync": {
+    "status": "reviewable-core-plus-specialist-contracts",
+    "full_parity_verified": false,
+    "reason": "The GitHub connector cannot upload release assets or atomically mirror every inherited specialist file in this session. The public tree carries the executable master core, specialist contracts, hardened POE/polymer utilities and exact complete-distribution identity."
+  },
+  "technical_approval_status": "NOT_EVALUATED"
+}

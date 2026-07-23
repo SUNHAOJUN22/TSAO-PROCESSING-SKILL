@@ -9,5 +9,3 @@
 **Fail closed:** HOLD when polymorph, supersaturation, PSD measurement or slurry handling is unqualified.
 
 **Outputs:** crystallization/precipitation basis, PBM/PSD model, seed and trajectory strategy, solid-liquid separation plan, drying/handling basis and acceptance tests.
-
-**External accountable work:** polymorph confirmation, dust/explosion testing, industrial filtration/drying trials, product-form release and occupational exposure approval require qualified laboratories and site specialists.

@@ -1,7 +1,7 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
 version: 0.1.0-alpha.5
-status: active-alpha
+status: draft-pr-candidate
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
 license: Apache-2.0

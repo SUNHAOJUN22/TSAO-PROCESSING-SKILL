@@ -9,5 +9,3 @@
 **Fail closed:** HOLD when purge, trace impurity, phase split, residual or waste treatment is missing or an equilibrium stage model is used outside its domain.
 
 **Outputs:** separation basis, recycle network, purge optimization, residual specification, utility/waste inventory and equipment/test requirements.
-
-**External accountable work:** pilot separation trials, hazardous material handling, waste-treatment acceptance and equipment guarantees require qualified laboratories, vendors and responsible engineers.

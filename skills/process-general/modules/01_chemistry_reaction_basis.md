@@ -9,5 +9,3 @@
 **Fail closed:** HOLD when identity, units, reaction network, calorimetry, termination or independent balance are unresolved.
 
 **Outputs:** reaction-basis dossier, stoichiometric matrix, kinetic hypothesis set, impurity map, heat-release basis, experiment/acceptance matrix and external-execution handoff.
-
-**External accountable work:** chemical identity confirmation, hazardous reaction calorimetry, pressure experimentation and signed chemistry/safety review require named qualified laboratories and accountable specialists.

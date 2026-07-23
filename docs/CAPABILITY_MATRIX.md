@@ -1,14 +1,27 @@
-# TSAO capability matrix — 0.1.0-alpha.4
+# TSAO Capability Matrix
 
-| Capability | Master | Process-general | EPDM | POE | Polymer-general | Machine contract |
-|---|---:|---:|---:|---:|---:|---:|
-| G0–G18 Gate lifecycle | ✓ | inherits | inherits | inherits | inherits | Gate Schema/tests |
-| M0–M9 maturity | ✓ | inherits | detailed | supported | detailed | maturity Schema |
-| Evidence/claim/assurance graph | ✓ | ✓ | detailed | ✓ | ✓ | evidence/claim/graph Schemas |
-| Experiment and model qualification | ✓ | ✓ | detailed | ✓ | ✓ | experiment/model tests |
-| Thermodynamics/kinetics/reactors | ✓ | ✓ | EPDM-specific | POE-specific | mechanism-neutral | scientific known-solution tests |
-| Separation/recycle/control | ✓ | ✓ | detailed | detailed | ✓ | balance and process tests |
-| Scale-up/pilot/package/acceptance | ✓ | ✓ | detailed | detailed | detailed | scale-up/work-package/acceptance Schemas |
-| Deterministic release/cleanroom | ✓ | inherits | attack-tested | audited | audited | release tests |
+## Master operating system
 
-`✓` means the capability is implemented at the stated level. It does not mean a real project has passed technical approval.
+- G0–G18 fail-closed lifecycle;
+- fourteen professional workstreams;
+- M0–M9 maturity;
+- evidence, claim, model-risk and assurance contracts;
+- 266 initialized work packages;
+- deterministic release and cleanroom validation.
+
+## Specialist routes
+
+| Specialist | Public source role | Complete distribution role |
+|---|---|---|
+| process-general | full public modules and kernels | same |
+| EPDM v9 | contract and selected public interfaces | full catalyst-to-customer source tree |
+| SJTU-POE | contract and hardened public utilities | full evidence/kinetics/flowsheet/dynamic/acceptance tree |
+| universal polymer | contract and hardened public utilities | full multi-mechanism development tree |
+
+## Alpha.5 closure
+
+- `tsao doctor` is the single health-check entrypoint.
+- Exact complete ZIP/core/test identities are published in `reports/SOURCE_PARITY_ALPHA5.json`.
+- Public Git parity is reported truthfully and is never inferred from the complete ZIP.
+- POE and universal-polymer public utilities reject malformed, duplicate, non-finite and unsafe inputs.
+- Software qualification remains distinct from scientific, engineering, safety, legal, customer and industrial approval.

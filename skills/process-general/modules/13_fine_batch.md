@@ -9,5 +9,3 @@
 **Fail closed:** HOLD when heat accumulation, quench, recipe identity or cleaning validation is unresolved.
 
 **Outputs:** master recipe, semibatch accumulation model, calorimetry/safety basis, control/interlock narrative, batch record, cleaning validation and campaign plan.
-
-**External accountable work:** reaction calorimetry, plant recipe authorization, cleaning validation, occupational exposure controls and regulated batch release require qualified laboratories, production and quality authorities.

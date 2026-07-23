@@ -37,12 +37,7 @@ tsao = "tsao.cli:main"
 include = ["tsao*"]
 
 [tool.pytest.ini_options]
-testpaths = [
-  "tests",
-  "skills/process-general/tests",
-  "skills/poe/tests",
-  "skills/polymer-general/tests",
-]
+testpaths = ["tests"]
 addopts = "-q -p no:cacheprovider"
 
 [tool.ruff]

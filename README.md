@@ -4,61 +4,56 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Stage](https://img.shields.io/badge/stage-0.1.0--alpha.5-orange.svg)](CHANGELOG.md)
 
-**Turn a chemical-process question into a traceable development programme: evidence → experiments → models → scale-up → process package → acceptance → field learning.**
+**Traceable · Scientific · Auditable · Operational**
 
-TSAO is software-neutral and fail-closed. Literature, patents, simulations, generated files and passing software tests never become plant setpoints or technical approvals by themselves.
+TSAO turns a chemical-process brief, evidence corpus, dataset, model or plant package into a fail-closed development programme:
 
-[中文](README.zh-CN.md) · [Execution contract](SKILL.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md)
+`evidence → chemistry → measurement → properties/kinetics → reactor → separation/recycle → lab → bench → pilot → industrial design → control/HSE → qualification → technology package → transfer → field learning`
 
-## Choose one route
+It creates auditable artifacts; it does not invent experimental, safety, legal or industrial approval.
 
-| Route | Scope |
-|---|---|
-| `process-general` | reaction, properties, reactors, separation/recycle, control, HSE, reliability and scale-up |
-| `epdm` | EPM/EPDM catalyst-to-customer lifecycle |
-| `poe` | POE solution-polymerization kinetics, flowsheet, dynamics, scale-up and acceptance |
-| `polymer-general` | other polymerization, modification, formulation and recycling routes |
-
-All routes inherit the same G0–G18 Gates, evidence states, model-risk controls, uncertainty rules and human approval boundary.
+[中文](README.zh-CN.md) · [Skill](SKILL.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md)
 
 ## Start here
 
 ```bash
 python -m pip install -e .[dev]
-python -m tsao.cli doctor --root .
-python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
-python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
-python -m tsao.cli audit --root work/demo
+tsao doctor
+tsao init --brief examples/generic-process/brief.yaml --out work/demo
+tsao audit --root work/demo
 ```
 
-`tsao init` creates G0–G18, 14 professional workstreams, **266 fail-closed work packages**, M0–M9 maturity records and explicit external-execution states.
+`tsao doctor` is the single health check for versions, schemas, specialist skills, provenance, release metadata, caches and approval boundaries.
 
-AI agents read `SKILL.md`, then execute `prompts/TSAO_PROJECT_EXECUTION_PROMPT.md`.
+## Four specialist routes
 
-## Verify the repository
+| Route | Use it for |
+|---|---|
+| `process-general` | catalytic, petrochemical, fine-chemical, biochemical, electrochemical, crystallization/solids and generic processes |
+| `epdm` | EPDM catalyst, E/P/diene polymerization, recovery, compounding, product and customer qualification |
+| `poe` | POE solution polymerization, properties, flowsheet, dynamics, scale-up and acceptance |
+| `polymer-general` | other polymerization mechanisms, formulations, modification and reactive processing |
 
-Run the same core qualification locally:
+Routing keeps the master G0–G18 lifecycle, 14 workstreams and M0–M9 maturity model active.
+
+## What one initialization creates
+
+- G0–G18 Gate register and 266 fail-closed work packages;
+- evidence, claim, assumption and contradiction records;
+- experiment, model, scale-up and external-execution contracts;
+- process-package, acceptance, transfer and field-learning structure;
+- `NOT_EVALUATED` status for all work not backed by real evidence and named approval.
+
+## Verify
 
 ```bash
 python scripts/run_ci.py
+python scripts/audit_capabilities.py
+python -m tsao.cli verify-archive --archive TSAO-PROCESSING-SKILL.zip
 ```
 
-The gate compiles the source, runs the root and specialist test suites, audits capabilities, verifies repository provenance with `tsao doctor`, and applies Ruff. GitHub Actions repeats the gate on Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12, then builds a wheel and runs CLI smoke tests.
+The complete distribution includes the full inherited EPDM v9, SJTU-POE and universal-polymer source trees. The complete ZIP carries a per-file provenance ledger; the public branch carries a family-level parity ledger and exact release identity. `reports/SOURCE_PARITY_ALPHA5.json` states the public-repository parity status without pretending that a partial sync is complete.
 
-## What the repository contains
+## Boundary
 
-- `SKILL.md` — non-negotiable operating contract
-- `tsao/` — executable core, router, project generator, audits and `doctor`
-- `skills/` — process-general, EPDM, POE and polymer-general specialist packs
-- `schemas/` — typed evidence, Gate, work-package, maturity and approval contracts
-- `reports/SOURCE_CORE_MANIFEST.tsv` — public-source identity
-- `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv` — complete qualified-distribution identity
-- `scripts/` — local CI, capability and provenance tooling
-
-The authoritative development line is `main`; release identity, source lineage and inherited-asset boundaries are documented rather than hidden in extra branches.
-
-## Trust boundary
-
-Software qualification is not scientific, engineering, safety, legal, customer or industrial approval. Physical experiments, commercial simulation, equipment and relief design, HAZOP/LOPA/SIL, FTO, pilot/demonstration work, customer qualification and plant guarantees remain `NOT_EVALUATED` until real evidence and named qualified approval exist.
-
-Original TSAO code and documentation are Apache-2.0. See [NOTICE.md](NOTICE.md) and [source parity](docs/SOURCE_PARITY.md) for inherited-asset attribution and distribution boundaries.
+A green CI qualifies the software artifact only. Catalyst synthesis, physical experiments, commercial simulation, equipment/relief design, HAZOP/LOPA/SIL, legal FTO, customer qualification, pilot/demonstration and industrial guarantees remain **`NOT_EVALUATED`** until project-specific evidence and named qualified approval exist.
