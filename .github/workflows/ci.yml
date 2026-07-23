@@ -5,8 +5,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
-  issues: write
+  contents: write
 
 jobs:
   qualification:
@@ -42,39 +41,30 @@ jobs:
           python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
 
-  export-source-manifest:
+  refresh-source-manifest:
     needs: qualification
-    if: ${{ needs.qualification.result == 'success' }}
+    if: ${{ needs.qualification.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
       - name: Install
         run: python -m pip install --quiet -e .
-      - name: Generate complete public-source manifest
-        run: python scripts/build_source_asset_manifest.py --root . --out "${{ runner.temp }}/SOURCE_CORE_MANIFEST.tsv"
-      - name: Upload source manifest
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsao-source-manifest
-          path: ${{ runner.temp }}/SOURCE_CORE_MANIFEST.tsv
-          if-no-files-found: error
-          archive: false
-      - name: Publish manifest to temporary audit issue
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Refresh complete public-source manifest
+        run: python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+      - name: Commit refreshed manifest
         run: |
-          {
-            echo '### Generated SOURCE_CORE_MANIFEST.tsv'
-            echo
-            echo '```tsv'
-            cat "${{ runner.temp }}/SOURCE_CORE_MANIFEST.tsv"
-            echo '```'
-          } > "${{ runner.temp }}/manifest-comment.md"
-          gh issue comment 6 --body-file "${{ runner.temp }}/manifest-comment.md"
+          if git diff --quiet -- reports/SOURCE_CORE_MANIFEST.tsv; then
+            echo "manifest already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m "chore: refresh complete source manifest [skip ci]"
+          git push origin HEAD:main
