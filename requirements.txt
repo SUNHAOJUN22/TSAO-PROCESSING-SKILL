@@ -3,5 +3,5 @@ jsonschema[format]>=4.20,<5
 numpy>=1.26,<3
 pytest>=8.0,<9
 ruff>=0.5,<1
-setuptools>=68,<82
+setuptools>=68,<84
 wheel>=0.41,<1
