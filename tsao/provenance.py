@@ -5,7 +5,21 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-_EXCLUDED_PARTS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
+_EXCLUDED_PARTS = {
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".tox",
+    ".nox",
+    "build",
+    "dist",
+    "wheelhouse",
+    "htmlcov",
+}
 _EXCLUDED_PREFIXES = ("reports/runtime/",)
 _SELF_MANIFESTS = {
     "reports/SOURCE_CORE_MANIFEST.tsv",
@@ -52,13 +66,18 @@ def classify_path(relative: str) -> tuple[str, str, str]:
     return specialist, "PUBLIC_SOURCE", "PROJECT_OWNED_OR_COMPATIBLE"
 
 
+def _generated_part(part: str) -> bool:
+    return part in _EXCLUDED_PARTS or part.endswith(".egg-info")
+
+
 def iter_source_files(root: Path):
     root = Path(root)
     for path in sorted(root.rglob("*")):
         if not path.is_file() or path.is_symlink():
             continue
-        relative = path.relative_to(root).as_posix()
-        if any(part in _EXCLUDED_PARTS for part in path.relative_to(root).parts):
+        relative_path = path.relative_to(root)
+        relative = relative_path.as_posix()
+        if any(_generated_part(part) for part in relative_path.parts):
             continue
         if relative in _SELF_MANIFESTS or relative.startswith(_EXCLUDED_PREFIXES):
             continue
@@ -142,4 +161,11 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
                 issues.append(f"manifest row {row_number}: hash mismatch {relative}")
     if not seen:
         issues.append("source manifest contains no file records")
+        return issues
+
+    actual = {relative for _, relative in iter_source_files(root)}
+    for relative in sorted(actual - seen):
+        issues.append(f"unlisted source file: {relative}")
+    for relative in sorted(seen - actual):
+        issues.append(f"manifest lists excluded or unavailable file: {relative}")
     return issues
