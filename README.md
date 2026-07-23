@@ -25,7 +25,7 @@ Every route inherits G0–G18 Gates, 14 professional workstreams, M0–M9 maturi
 
 ```bash
 python -m pip install -e .[dev]
-python -m tsao.cli doctor --root . --profile core
+python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
 python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
 python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
 python -m tsao.cli audit --root work/demo
@@ -41,10 +41,10 @@ python -m tsao.cli snapshot --root . --out TSAO-source.zip
 python -m tsao.cli verify-archive --archive TSAO-source.zip
 ```
 
-- `doctor --profile core` verifies the GitHub source tree and `reports/SOURCE_CORE_MANIFEST.tsv`.
-- `doctor --profile full` additionally verifies `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv`, `FILE_MANIFEST.tsv`, `checksums.sha256` and `SBOM.json`.
+- `doctor --profile core --refresh-source-manifest` atomically rebuilds and verifies the GitHub source identity.
+- `doctor --profile full` is run inside the complete distribution and verifies its per-file manifest, `FILE_MANIFEST.tsv`, `checksums.sha256` and `SBOM.json`.
 - GitHub Actions runs the canonical qualification on Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12, builds a wheel and publishes a deterministic source snapshot.
-- The current machine-readable release record is [reports/RELEASE_IDENTITY.json](reports/RELEASE_IDENTITY.json).
+- Current machine-readable identities: [source core](reports/ALPHA6_SOURCE_CORE_STATUS.json), [complete distribution](reports/COMPLETE_DISTRIBUTION_REFERENCE.json), and [release](reports/RELEASE_IDENTITY.json).
 
 ## Repository map
 
