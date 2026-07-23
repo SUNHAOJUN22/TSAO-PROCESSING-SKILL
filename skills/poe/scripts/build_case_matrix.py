@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate a deterministic Cartesian process-case matrix from JSON."""
+
 from __future__ import annotations
 
 import argparse

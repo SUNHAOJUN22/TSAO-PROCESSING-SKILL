@@ -43,12 +43,19 @@ def oxygen_transfer_rate(kla_s: float, saturation: float, bulk: float) -> float:
     return kla_s * (saturation - bulk)
 
 
-def faradaic_efficiency(product_mol: float, electron_number: float, current_A: float, time_s: float) -> float:
+def faradaic_efficiency(
+    product_mol: float, electron_number: float, current_A: float, time_s: float
+) -> float:
     product_mol = _finite(product_mol, "product amount")
     electron_number = _finite(electron_number, "electron number")
     current_A = _finite(current_A, "current")
     time_s = _finite(time_s, "time")
-    if min(product_mol, current_A, time_s) < 0 or electron_number <= 0 or current_A == 0 or time_s == 0:
+    if (
+        min(product_mol, current_A, time_s) < 0
+        or electron_number <= 0
+        or current_A == 0
+        or time_s == 0
+    ):
         raise ValueError("amount/current/time must be positive and electron number positive")
     efficiency = product_mol * electron_number * FARADAY_C_MOL / (current_A * time_s)
     if efficiency > 1.0 + 1e-9:
@@ -64,7 +71,9 @@ def supersaturation_ratio(concentration: float, saturation_concentration: float)
     return concentration / saturation_concentration
 
 
-def recycle_impurity_steady_state(fresh_input: float, recycle_fraction: float, purge_fraction: float) -> float:
+def recycle_impurity_steady_state(
+    fresh_input: float, recycle_fraction: float, purge_fraction: float
+) -> float:
     fresh_input = _finite(fresh_input, "fresh impurity input")
     recycle_fraction = _finite(recycle_fraction, "recycle fraction")
     purge_fraction = _finite(purge_fraction, "purge fraction")

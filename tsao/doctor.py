@@ -91,7 +91,9 @@ def _link_issues(root: Path) -> list[str]:
             try:
                 resolved.relative_to(root_resolved)
             except ValueError:
-                issues.append(f"Markdown link escapes root: {path.relative_to(root)} -> {raw_target}")
+                issues.append(
+                    f"Markdown link escapes root: {path.relative_to(root)} -> {raw_target}"
+                )
                 continue
             if not resolved.exists():
                 issues.append(f"broken Markdown link: {path.relative_to(root)} -> {raw_target}")
@@ -105,7 +107,9 @@ def _repository_issues(root: Path, *, strict_source_clean: bool) -> list[str]:
         cache_hit = next((part for part in relative_parts if part in _CACHE_PARTS), None)
         if cache_hit:
             if strict_source_clean:
-                issues.append(f"source tree contains cache path: {path.relative_to(root).as_posix()}")
+                issues.append(
+                    f"source tree contains cache path: {path.relative_to(root).as_posix()}"
+                )
             continue
         if path.is_symlink():
             issues.append(f"repository contains symlink: {path.relative_to(root).as_posix()}")
@@ -187,10 +191,7 @@ def diagnose(
         "profile": active_profile,
         "pass": not issues,
         "strict_source_clean": strict_source_clean,
-        "checks": {
-            name: {"pass": not values, "issues": values}
-            for name, values in checks.items()
-        },
+        "checks": {name: {"pass": not values, "issues": values} for name, values in checks.items()},
         "issues": issues,
         "warnings": [],
         "metrics": {

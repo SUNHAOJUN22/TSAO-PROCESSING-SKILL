@@ -59,7 +59,11 @@ def main(argv: list[str] | None = None) -> int:
         writer = csv.DictWriter(stream, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         writer.writerows(rows)
-    print(json.dumps({"files": len(rows), "json": str(json_path), "tsv": str(tsv_path)}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {"files": len(rows), "json": str(json_path), "tsv": str(tsv_path)}, ensure_ascii=False
+        )
+    )
     return 0
 
 

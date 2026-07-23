@@ -29,9 +29,7 @@ def calculate(**values: float | None) -> dict[str, float | str]:
     damkohler = ("reaction_time", "mixing_time")
 
     if _complete(clean, reynolds):
-        out["Re"] = (
-            clean["rho"] * clean["velocity"] * clean["length"] / clean["mu"]
-        )  # type: ignore[operator]
+        out["Re"] = clean["rho"] * clean["velocity"] * clean["length"] / clean["mu"]  # type: ignore[operator]
     if _complete(clean, prandtl):
         out["Pr"] = clean["cp"] * clean["mu"] / clean["k"]  # type: ignore[operator]
     if _complete(clean, schmidt):

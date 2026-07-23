@@ -28,11 +28,14 @@ def test_generated_build_trees_are_not_source_identity(tmp_path: Path) -> None:
     egg_info = tmp_path / "package.egg-info" / "PKG-INFO"
     egg_info.parent.mkdir()
     egg_info.write_text("generated\n", encoding="utf-8")
+    runtime = tmp_path / "reports" / "runtime" / "CI_RESULTS.json"
+    runtime.parent.mkdir(parents=True)
+    runtime.write_text("{}\n", encoding="utf-8")
 
     paths = {relative for _, relative in iter_source_files(tmp_path)}
     assert paths == {"source.py"}
 
 
-@pytest.mark.parametrize("directory", ["build", "dist", "wheelhouse"])
+@pytest.mark.parametrize("directory", ["build", "dist", "wheelhouse", "work"])
 def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:
     assert not (ROOT / directory).exists()

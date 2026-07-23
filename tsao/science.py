@@ -14,9 +14,7 @@ def balance_residual(
 ) -> dict[str, float]:
     checked_inputs = validate_flow_mapping("inputs", inputs, allow_negative=False)
     checked_outputs = validate_flow_mapping("outputs", outputs, allow_negative=False)
-    checked_generation = validate_flow_mapping(
-        "generation", generation or {}, allow_negative=True
-    )
+    checked_generation = validate_flow_mapping("generation", generation or {}, allow_negative=True)
     keys = set(checked_inputs) | set(checked_outputs) | set(checked_generation)
     return {
         key: checked_inputs.get(key, 0.0)

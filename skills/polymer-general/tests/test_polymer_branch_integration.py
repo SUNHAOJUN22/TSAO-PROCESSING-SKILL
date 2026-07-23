@@ -45,15 +45,18 @@ def test_scaleup_numbers_known_solution_and_fail_closed():
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["Re"] == 100000
-    assert run(
-        "scaleup_numbers.py",
-        "--rho",
-        -1,
-        "--mu",
-        1,
-        "--velocity",
-        1,
-        "--length",
-        1,
-    ).returncode != 0
+    assert (
+        run(
+            "scaleup_numbers.py",
+            "--rho",
+            -1,
+            "--mu",
+            1,
+            "--velocity",
+            1,
+            "--length",
+            1,
+        ).returncode
+        != 0
+    )
     assert run("scaleup_numbers.py", "--rho", 1).returncode != 0

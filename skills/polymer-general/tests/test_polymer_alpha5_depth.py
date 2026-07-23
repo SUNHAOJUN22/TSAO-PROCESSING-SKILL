@@ -54,8 +54,7 @@ def test_balance_known_solution_and_duplicate_rejection(tmp_path: Path):
     )
     assert module.check(path, 1e-12)["pass"] is True
     path.write_text(
-        "component,in,out,generation,consumption\n"
-        "A,10,8,0,2\nA,1,1,0,0\n",
+        "component,in,out,generation,consumption\nA,10,8,0,2\nA,1,1,0,0\n",
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="unique"):

@@ -13,31 +13,90 @@ from jsonschema import Draft202012Validator
 import tsao
 
 ROOT = Path(__file__).resolve().parents[1]
-_CACHE_PARTS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
+_CACHE_PARTS = {
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".tox",
+    ".nox",
+    "build",
+    "dist",
+    "wheelhouse",
+    "work",
+}
 _REQUIRED_PATHS = {
-    "README.md", "README.zh-CN.md", "SKILL.md", "ARCHITECTURE.md", "ROADMAP.md",
-    "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md", "GOVERNANCE.md",
-    "CITATION.cff", "LICENSE", "NOTICE.md", "manifest.yaml", "pyproject.toml",
-    ".github/workflows/ci.yml", ".github/ISSUE_TEMPLATE/feature.yml",
-    ".github/PULL_REQUEST_TEMPLATE.md", "skills/process-general/SKILL.md",
-    "skills/epdm/SKILL.md", "skills/poe/SKILL.md", "skills/polymer-general/SKILL.md",
+    "README.md",
+    "README.zh-CN.md",
+    "SKILL.md",
+    "ARCHITECTURE.md",
+    "ROADMAP.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "GOVERNANCE.md",
+    "CITATION.cff",
+    "LICENSE",
+    "NOTICE.md",
+    "manifest.yaml",
+    "pyproject.toml",
+    ".github/workflows/ci.yml",
+    ".github/ISSUE_TEMPLATE/feature.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    "skills/process-general/SKILL.md",
+    "skills/epdm/SKILL.md",
+    "skills/poe/SKILL.md",
+    "skills/poe/STATUS.md",
+    "skills/poe/core.py",
+    "skills/poe/governance.py",
+    "skills/poe/kinetics.py",
+    "skills/poe/qualification.py",
+    "skills/poe/package_audit.py",
+    "skills/poe/scripts/audit_p0.py",
+    "skills/poe/scripts/audit_process_package.py",
     "skills/poe/tests/test_poe_alpha5_depth.py",
+    "skills/poe/tests/test_poe_alpha6_p0.py",
+    "skills/poe/tests/test_poe_alpha6_package.py",
+    "skills/poe/tests/test_poe_alpha6_adversarial.py",
+    "skills/polymer-general/SKILL.md",
     "skills/polymer-general/tests/test_polymer_alpha5_depth.py",
-    "tsao/capabilities.py", "tsao/process_general.py", "tsao/doctor.py",
-    "tsao/provenance.py", "tsao/integrity.py", "tsao/snapshot.py",
-    "scripts/export_source_snapshot.py", "schemas/work_package.schema.json",
-    "schemas/maturity.schema.json", "schemas/scaleup_claim.schema.json",
-    "schemas/external_execution.schema.json", "schemas/acceptance.schema.json",
-    "schemas/source_asset.schema.json", "reports/SOURCE_CORE_MANIFEST.tsv",
-    "reports/COMPLETE_DISTRIBUTION_REFERENCE.json", "reports/RELEASE_IDENTITY.json",
+    "tsao/capabilities.py",
+    "tsao/process_general.py",
+    "tsao/doctor.py",
+    "tsao/provenance.py",
+    "tsao/integrity.py",
+    "tsao/snapshot.py",
+    "scripts/export_source_snapshot.py",
+    "scripts/verify_wheel_contents.py",
+    "schemas/work_package.schema.json",
+    "schemas/maturity.schema.json",
+    "schemas/scaleup_claim.schema.json",
+    "schemas/external_execution.schema.json",
+    "schemas/acceptance.schema.json",
+    "schemas/source_asset.schema.json",
+    "reports/SOURCE_CORE_MANIFEST.tsv",
+    "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
+    "reports/RELEASE_IDENTITY.json",
+    "reports/runtime/README.md",
+    "reports/history/CI_RESULTS_BEFORE_RUNTIME_SPLIT.json",
     "docs/SOURCE_PARITY.md",
+    "reports/poe/POE_ALPHA6_P0_REMEDIATION.md",
+    "reports/poe/POE_ALPHA6_COVERAGE_MATRIX.csv",
+    "reports/poe/POE_ALPHA6_REMEDIATION_STATUS.csv",
 }
 
 
 def source_paths(pattern: str):
     return (
-        path for path in ROOT.rglob(pattern)
-        if not any(part in _CACHE_PARTS for part in path.relative_to(ROOT).parts)
+        path
+        for path in ROOT.rglob(pattern)
+        if not any(
+            part in _CACHE_PARTS or part.endswith(".egg-info")
+            for part in path.relative_to(ROOT).parts
+        )
     )
 
 
@@ -56,14 +115,15 @@ def test_required_repository_paths_exist() -> None:
 
 def test_all_json_and_yaml_files_parse() -> None:
     for path in sorted(source_paths("*.json")):
-        json.loads(path.read_text(encoding="utf-8"))
+        if "reports/runtime" not in path.as_posix():
+            json.loads(path.read_text(encoding="utf-8"))
     for pattern in ("*.yml", "*.yaml"):
         for path in sorted(source_paths(pattern)):
             yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def test_all_json_schemas_are_valid_draft_202012() -> None:
-    schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
+    schemas = sorted(source_paths("*.schema.json"))
     assert schemas
     for path in schemas:
         Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
@@ -75,7 +135,9 @@ def test_version_metadata_is_consistent() -> None:
     citation = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     root_skill = _skill_frontmatter(ROOT / "SKILL.md")
     identity = json.loads((ROOT / "reports/RELEASE_IDENTITY.json").read_text(encoding="utf-8"))
-    reference = json.loads((ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8"))
+    reference = json.loads(
+        (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
+    )
     assert tsao.__version__ == "0.1.0-alpha.6"
     assert pyproject["project"]["version"] == "0.1.0a6"
     assert manifest["version"] == tsao.__version__
@@ -90,17 +152,32 @@ def test_version_metadata_is_consistent() -> None:
 
 def test_root_skill_preserves_original_execution_contract() -> None:
     skill = (ROOT / "SKILL.md").read_text(encoding="utf-8").casefold()
-    required = {"mandatory actions for one complete invocation", "parallel professional workstreams",
-                "m0 idea", "m9 operationally-validated", "process-general", "planned",
-                "requires_external_execution"}
+    required = {
+        "mandatory actions for one complete invocation",
+        "parallel professional workstreams",
+        "m0 idea",
+        "m9 operationally-validated",
+        "process-general",
+        "planned",
+        "requires_external_execution",
+    }
     assert sorted(item for item in required if item not in skill) == []
 
 
-def test_manifest_registers_all_specialists() -> None:
+def test_manifest_registers_all_specialists_and_truthful_poe_status() -> None:
     manifest = yaml.safe_load((ROOT / "manifest.yaml").read_text(encoding="utf-8"))
     assert [item["id"] for item in manifest["subskills"]] == [
-        "process-general", "epdm", "poe", "polymer-general"
+        "process-general",
+        "epdm",
+        "poe",
+        "polymer-general",
     ]
+    poe = next(item for item in manifest["subskills"] if item["id"] == "poe")
+    assert poe["inherited_release"] == "1.1.0-tsao.2"
+    assert poe["implementation_status"] == "executable-specialist-alpha"
+    assert poe["scientific_execution"] == "UNDER_DISTILLATION"
+    assert poe["historical_asset_lineage"] == "REGISTERED_139_OF_139"
+    assert poe["process_package_qualification"] == "CONTENT_LEVEL_SOFTWARE_AUDIT_ALPHA"
 
 
 def test_github_issue_form_uses_issue_form_contract() -> None:
@@ -110,7 +187,7 @@ def test_github_issue_form_uses_issue_form_contract() -> None:
     assert isinstance(form["body"], list) and form["body"]
 
 
-def test_github_actions_are_pinned_and_least_privilege() -> None:
+def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     actions = re.findall(r"uses:\s*([^@\s]+)@([^\s#]+)", workflow)
     assert actions
@@ -125,6 +202,8 @@ def test_github_actions_are_pinned_and_least_privilege() -> None:
     assert "[skip ci]" not in workflow
     assert "export_source_snapshot.py" in workflow
     assert "tsao.cli doctor" in workflow
+    assert "verify_wheel_contents.py" in workflow
+    assert "skills/poe/scripts/audit_p0.py" in workflow
 
 
 def test_relative_markdown_links_resolve() -> None:
@@ -152,3 +231,18 @@ def test_relative_markdown_links_resolve() -> None:
 @pytest.mark.parametrize("suffix", [".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"])
 def test_repository_has_no_forbidden_generated_or_secret_files(suffix: str) -> None:
     assert list(source_paths(f"*{suffix}")) == []
+
+
+@pytest.mark.parametrize("directory", ["build", "dist", "wheelhouse", "work"])
+def test_repository_excludes_generated_build_trees(directory: str) -> None:
+    assert not (ROOT / directory).exists()
+
+
+def test_repository_excludes_egg_info() -> None:
+    from tsao.provenance import iter_source_files
+
+    source_paths = [relative for _, relative in iter_source_files(ROOT)]
+    assert not any(
+        any(part.endswith(".egg-info") for part in Path(relative).parts)
+        for relative in source_paths
+    )

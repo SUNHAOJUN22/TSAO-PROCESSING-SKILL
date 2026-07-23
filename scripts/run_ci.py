@@ -22,11 +22,9 @@ RUFF_PATHS = (
     "tsao",
     "tests",
     "scripts",
-    "skills/process-general/tests",
-    "skills/poe/scripts",
-    "skills/poe/tests",
-    "skills/polymer-general/scripts",
-    "skills/polymer-general/tests",
+    "skills/process-general",
+    "skills/poe",
+    "skills/polymer-general",
 )
 
 
@@ -127,6 +125,7 @@ def main() -> int:
             cwd=root,
         ),
         run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
+        run([sys.executable, "skills/poe/scripts/audit_p0.py", "--root", "."], cwd=root),
         run(
             [sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"],
             cwd=root,
@@ -139,6 +138,8 @@ def main() -> int:
         "pass": passed,
         "checks": checks,
         "artifact_software_qualification": "PASS" if passed else "FAIL",
+        "poe_software_status": "EXECUTABLE_SPECIALIST_ALPHA" if passed else "HOLD",
+        "poe_scientific_execution": "UNDER_DISTILLATION",
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",
         "customer_qualification": "NOT_EVALUATED",

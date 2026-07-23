@@ -26,9 +26,7 @@ def registry() -> Registry:
 
 def validate(name: str, instance: dict) -> None:
     schema = load_schema(name)
-    validator = Draft202012Validator(
-        schema, registry=registry(), format_checker=FormatChecker()
-    )
+    validator = Draft202012Validator(schema, registry=registry(), format_checker=FormatChecker())
     validator.validate(instance)
 
 

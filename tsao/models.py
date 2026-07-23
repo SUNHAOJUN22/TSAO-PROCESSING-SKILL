@@ -27,6 +27,4 @@ class ModelRecord:
             or self.identifiability not in {"PASS", "CONDITIONAL"}
         ):
             return False
-        return self.risk_class not in {"MR4", "MR5"} or nonempty(
-            self.independent_reviewer
-        )
+        return self.risk_class not in {"MR4", "MR5"} or nonempty(self.independent_reviewer)

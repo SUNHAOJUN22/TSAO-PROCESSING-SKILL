@@ -31,9 +31,7 @@ def validate_flow_mapping(
     return checked
 
 
-def required_or_default_string(
-    data: Mapping[str, Any], key: str, default: str
-) -> str:
+def required_or_default_string(data: Mapping[str, Any], key: str, default: str) -> str:
     value = data.get(key, default)
     if not nonempty(value):
         raise ValueError(f"{key} must be a non-empty string")

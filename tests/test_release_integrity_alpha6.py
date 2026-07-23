@@ -76,6 +76,4 @@ def test_full_doctor_verifies_distribution_metadata(tmp_path: Path) -> None:
     (root / "README.md").write_text("changed", encoding="utf-8")
     result = diagnose(root, profile="full")
     assert not result["pass"]
-    assert any(
-        "provenance" in issue or "release_metadata" in issue for issue in result["issues"]
-    )
+    assert any("provenance" in issue or "release_metadata" in issue for issue in result["issues"])

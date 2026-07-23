@@ -19,7 +19,9 @@ def test_ci_runner_covers_all_specialist_suites() -> None:
         "skills/polymer-general/tests",
     }
     assert set(TEST_PATHS) == expected
-    assert expected <= set(RUFF_PATHS)
+    assert {"tests", "skills/process-general", "skills/poe", "skills/polymer-general"} <= set(
+        RUFF_PATHS
+    )
 
 
 def test_ci_runner_records_success(tmp_path: Path) -> None:

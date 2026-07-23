@@ -48,7 +48,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     result = audit(Path(args.csv))
-    print(json.dumps(result, ensure_ascii=False, indent=2) if args.json else f"rows={result['rows']} errors={len(result['errors'])}")
+    print(
+        json.dumps(result, ensure_ascii=False, indent=2)
+        if args.json
+        else f"rows={result['rows']} errors={len(result['errors'])}"
+    )
     return 0 if result["pass"] else 1
 
 

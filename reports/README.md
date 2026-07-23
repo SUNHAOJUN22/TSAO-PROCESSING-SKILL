@@ -9,6 +9,12 @@ This directory contains machine- and human-readable qualification, release, migr
 - `SOURCE_CORE_MANIFEST.tsv` — committed public-source identity verified by `tsao doctor --profile core`.
 - `ALPHA6_SOURCE_CORE_STATUS.json` — source-core qualification request state; CI status remains external to the source tree.
 
+## POE alpha.6
+
+- `poe/POE_ALPHA6_P0_REMEDIATION.md` — P0 implementation, verification and remaining approval boundaries.
+- `poe/POE_ALPHA6_COVERAGE_MATRIX.csv` — 28-domain semantic, executable and test coverage.
+- `poe/POE_ALPHA6_REMEDIATION_STATUS.csv` — remediation status and evidence.
+
 ## Runtime output
 
 `scripts/run_ci.py` writes mutable execution output under `reports/runtime/`. Runtime logs and reports are intentionally excluded from frozen source manifests and release hashes. A release report becomes immutable only after it is copied to a versioned filename with its tested source identity.

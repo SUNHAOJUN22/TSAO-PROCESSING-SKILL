@@ -11,14 +11,7 @@ from skills.poe.scripts.build_case_matrix import build
 
 
 def write_ledger(path: Path, rows: list[dict[str, str]]) -> None:
-    fields = [
-        "claim_id",
-        "claim",
-        "source_id",
-        "locator",
-        "evidence_class",
-        "conflict_status",
-    ]
+    fields = ["claim_id", "claim", "source_id", "locator", "evidence_class", "conflict_status"]
     with path.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
@@ -63,20 +56,18 @@ def test_evidence_duplicate_and_invalid_class(tmp_path: Path):
 
 def test_case_matrix_cartesian_and_invalid_inputs():
     keys, rows = build({"variables": {"temperature": [100, 120], "feed": [1, 2, 3]}})
-    assert keys == ["temperature", "feed"]
-    assert len(rows) == 6
+    assert keys == ["temperature", "feed"] and len(rows) == 6
     with pytest.raises(ValueError):
         build({"variables": {}})
     with pytest.raises(ValueError):
         build({"variables": {"temperature": []}})
 
 
-def test_process_package_requires_all_groups_and_nonempty_files(tmp_path: Path):
+def test_placeholder_package_is_rejected(tmp_path: Path):
     root = tmp_path / "package"
     root.mkdir()
-    assert audit_process_package.audit(root)["pass"] is False
     for group in audit_process_package.REQUIRED_GROUPS:
         (root / f"{group}.md").write_text("qualified placeholder", encoding="utf-8")
-    assert audit_process_package.audit(root)["pass"] is True
-    (root / "pfd.md").write_text("", encoding="utf-8")
-    assert audit_process_package.audit(root)["pass"] is False
+    result = audit_process_package.audit(root)
+    assert result["pass"] is False
+    assert result["status"] in {"HOLD", "FAIL"}

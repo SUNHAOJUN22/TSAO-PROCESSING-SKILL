@@ -19,6 +19,7 @@ _EXCLUDED_PARTS = {
     "dist",
     "wheelhouse",
     "htmlcov",
+    "work",
 }
 _EXCLUDED_PREFIXES = ("reports/runtime/",)
 _SELF_MANIFESTS = {

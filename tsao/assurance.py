@@ -30,9 +30,7 @@ class AssuranceGraph:
         self.out[source].append(edge)
         self.inc[target].append((source, relation.strip()))
 
-    def has_path(
-        self, source: str, target: str, relations: set[str] | None = None
-    ) -> bool:
+    def has_path(self, source: str, target: str, relations: set[str] | None = None) -> bool:
         if source not in self.nodes or target not in self.nodes:
             return False
         queue = deque([source])

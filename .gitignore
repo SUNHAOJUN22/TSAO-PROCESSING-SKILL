@@ -13,3 +13,5 @@ work/
 .env.*
 .DS_Store
 *.log
+reports/runtime/*.json
+reports/runtime/*.tmp

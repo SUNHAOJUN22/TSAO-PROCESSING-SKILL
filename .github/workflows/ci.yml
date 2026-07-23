@@ -15,7 +15,7 @@ concurrency:
 jobs:
   qualification:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -36,14 +36,20 @@ jobs:
         run: python -m pip install --quiet -e .[dev]
       - name: Dependency integrity
         run: python -m pip check
-      - name: Core qualification
+      - name: Clean editable-install metadata
+        run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+      - name: Core and POE qualification
         run: python scripts/run_ci.py
+      - name: POE P0 closure
+        run: python skills/poe/scripts/audit_p0.py --root .
       - name: Build wheel
         run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+      - name: Verify wheel contains POE specialist
+        run: python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
       - name: CLI smoke
         run: |
           python -m tsao.cli doctor --root . --profile core
-          python -m tsao.cli route "continuous catalytic reactor and solvent recovery"
+          python -m tsao.cli route "POE solution polymerization and solvent recovery"
           python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
 
   source-snapshot:

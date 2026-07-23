@@ -4,6 +4,18 @@ All notable changes are documented here. The project follows Semantic Versioning
 
 ## 0.1.0-alpha.6 — 2026-07-23
 
+### POE executable specialist alpha
+
+- Registered all 139 audited SJTU POE corpus assets with SHA-256, lifecycle, confidentiality, software and scale metadata.
+- Added the 18-item requirement trace, seven conflict/deviation records and twelve module contracts.
+- Isolated historical `POE_Kinetics.m` as controlled evidence and added an independent reference kinetics kernel with conservation and boundary tests.
+- Added property-method and simulator-neutral steady/dynamic case qualification.
+- Replaced filename/non-empty package checks with manifest, Schema, hash, content, cross-reference, conflict and approval auditing.
+- Added placeholder, path-traversal, hash-tampering, malformed composition, unclosed recycle, missing dynamic asset and Chinese legacy-package attacks.
+- Packaged the POE Skill and controlled data into the wheel, verified wheel contents, and removed tracked build/egg-info duplicates.
+- Kept historical commercial execution and all scientific/engineering/HSE/customer/industrial approvals `NOT_EVALUATED`.
+
+
 ### Trust-chain convergence
 
 - Unified the package, manifest, Skill, citation, README, CI and release-identity version.

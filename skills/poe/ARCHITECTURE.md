@@ -1,39 +1,52 @@
-# POE subskill architecture
+# POE subskill architecture — 1.1.0-tsao.2
 
-The POE subskill converts the Shanghai Jiao Tong University solution-polymerization acceptance corpus into a reusable research and process-package methodology. Historical values are reference evidence, not inherited design settings.
+## Purpose
 
-## Technical spine
+The POE pack converts the Shanghai Jiao Tong University acceptance corpus into a simulator-neutral, traceable development method without redistributing controlled files or promoting historical parameters to current design settings.
+
+## Digital thread
 
 ```text
-product/application target
-→ ethylene/alpha-olefin architecture and CQA
-→ catalyst/activator/impurity hypotheses
-→ kinetics and active-site qualification
-→ polymer-solution thermodynamics and transport
-→ reactor train and heat-removal design
-→ steady-state flowsheet
-→ devolatilization and solvent/monomer recovery
-→ scale-up basis
-→ dynamic model, control and grade transition
-→ pilot/industrial validation
-→ process design package and acceptance matrix
+controlled source asset
+→ requirement / claim / conflict
+→ measurement boundary
+→ equation and parameter passport
+→ transparent reference kernel or external-execution adapter
+→ fixture and independent check
+→ steady/dynamic process case
+→ scale-up claim
+→ package deliverable
+→ acceptance criterion
+→ named approval
 ```
 
-## Core capability blocks
+An orphaned link blocks the relevant Gate.
 
-1. **Evidence reconstruction** — map every source document, Aspen/Matlab/Origin artifact, report table and acceptance statement to a traceable claim.
-2. **Catalyst and kinetics** — distinguish total catalyst from active-site concentration; estimate propagation, comonomer incorporation, transfer and deactivation with identifiability and uncertainty checks.
-3. **Property method selection** — qualify polymer/solvent/monomer phase behaviour, density, viscosity, heat capacity and enthalpy methods over the intended operating envelope. A commercial simulator is an implementation, not evidence by itself.
-4. **Reactor engineering** — close component and energy balances, residence-time distribution, mixing, heat-removal margin, polymer concentration and viscosity limits.
-5. **Steady flowsheet** — define feed purification, reaction, quench, catalyst-residue handling, flash/preconcentration, steam stripping or equivalent finishing, solvent purification, recycle and purge.
-6. **Scale-up** — preserve the controlling chemistry, mixing, heat-transfer, phase-stability, fouling and separation similarities; document every scale-up claim and counterexample.
-7. **Dynamic operation** — qualify state estimation, constraints, inventory effects, recycle memory, startup/shutdown and grade transition rather than tuning only nominal PID loops.
-8. **Technology package** — produce design basis, PFD/P&ID interfaces, stream and equipment data, control narratives, utility and emission bases, hazard handoffs, operating procedures, test plans and acceptance evidence.
+## Layers
 
-## Historical-case rule
+1. **Lineage layer** — 139-asset registry, hashes, lifecycle status, confidentiality and canonicality.
+2. **Requirement layer** — contract, deliverable, criterion, asset, verification, deviation, Gate and approver.
+3. **Scientific layer** — kinetics, parameter estimation, properties, rheology, transport, reactor and balance contracts.
+4. **Process layer** — simulator-neutral streams/equipment, steady/dynamic cases, recovery, recycle, purge and finishing.
+5. **Assurance layer** — conflicts, applicability, uncertainty, package content, hashes, approvals and false-PASS attacks.
+6. **External adapter layer** — Aspen, MATLAB, Origin, CFD, laboratory and engineering handoffs; no external execution is implied.
 
-The SJTU POE case may provide model structures, candidate ranges, validation practices and document patterns. A value enters a new design basis only after unit reconciliation, measurement-system review, applicability-domain assessment and project Gate approval.
+## Twelve modules
 
-## External execution boundary
+The twelve directories under `modules/` are mandatory and individually testable. Each contains `README.md` and `contract.schema.json`; shared executable reference logic is in `core.py`.
 
-Catalyst preparation, high-pressure polymerization, reaction calorimetry, commercial process simulation, equipment design, HAZOP/LOPA/SIL, pilot runs, environmental permitting and industrial performance guarantees remain `NOT_EVALUATED` until performed and approved by qualified teams.
+## Historical-asset rule
+
+All audited source-corpus files remain `CONTROLLED_HISTORICAL_EVIDENCE`. The registry explicitly excludes zero-byte, lock, unrelated, backup/history and snapshot assets from canonical scientific inference. Commercial binary presence proves only that a file exists with a given hash.
+
+## Reference-kernel rule
+
+The alpha.6 kinetics/property/case logic is intentionally transparent and minimal. It exists to test units, conservation, boundaries and failure semantics. It is not a reproduction of the historical commercial model and carries `NOT_EVALUATED` scientific/engineering approval.
+
+## Package qualification
+
+The package auditor is manifest-driven and validates content identity, non-placeholder content, required deliverable groups, structured property/process/acceptance/requirement/conflict records and named approval. Legacy Chinese packages are mapped rather than reported as wholly missing, but remain HOLD until normalized.
+
+## Status
+
+The open software layer is `EXECUTABLE_SPECIALIST_ALPHA` after P0, wheel-payload and cross-platform qualification. Scientific execution remains `UNDER_DISTILLATION`; historical commercial models and project approvals remain `NOT_EVALUATED`. See `STATUS.md`.

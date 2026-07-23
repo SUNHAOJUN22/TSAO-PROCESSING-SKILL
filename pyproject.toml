@@ -34,7 +34,21 @@ dev = [
 tsao = "tsao.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["tsao*"]
+include = ["tsao*", "skills.poe*"]
+exclude = ["skills.poe.tests*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"skills.poe" = [
+  "*.md",
+  "data/*.json",
+  "docs/*.md",
+  "fixtures/*.json",
+  "schemas/*.json",
+  "scripts/*.py",
+  "modules/*/*.md",
+  "modules/*/*.json",
+]
 
 [tool.pytest.ini_options]
 testpaths = [
