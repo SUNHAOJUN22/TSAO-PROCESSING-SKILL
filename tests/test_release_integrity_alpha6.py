@@ -68,9 +68,9 @@ def test_full_doctor_verifies_distribution_metadata(tmp_path: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
-    build_release_metadata(root)
     build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
     build_manifest(root, root / "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv")
+    build_release_metadata(root)
     result = diagnose(root, profile="full")
     assert result["pass"], result["issues"]
     (root / "README.md").write_text("changed", encoding="utf-8")
