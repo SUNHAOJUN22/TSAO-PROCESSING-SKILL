@@ -8,7 +8,18 @@ from pathlib import Path
 
 import pytest
 
-from scripts.run_ci import run
+from scripts.run_ci import RUFF_PATHS, TEST_PATHS, run
+
+
+def test_ci_runner_covers_all_specialist_suites() -> None:
+    expected = {
+        "tests",
+        "skills/process-general/tests",
+        "skills/poe/tests",
+        "skills/polymer-general/tests",
+    }
+    assert set(TEST_PATHS) == expected
+    assert expected <= set(RUFF_PATHS)
 
 
 def test_ci_runner_records_success(tmp_path: Path) -> None:
