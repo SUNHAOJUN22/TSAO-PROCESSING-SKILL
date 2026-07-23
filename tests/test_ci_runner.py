@@ -55,6 +55,14 @@ def _gone_or_zombie(pid: int) -> bool:
     return False
 
 
+def _assert_process_gone(pid: int) -> None:
+    for _ in range(100):
+        if _gone_or_zombie(pid):
+            return
+        time.sleep(0.05)
+    pytest.fail(f"descendant process remained live: {pid}")
+
+
 @pytest.mark.skipif(os.name != "posix", reason="process-group assertion is POSIX-specific")
 def test_ci_runner_timeout_kills_descendants(tmp_path: Path) -> None:
     child_pid_file = tmp_path / "child.pid"
@@ -66,10 +74,17 @@ def test_ci_runner_timeout_kills_descendants(tmp_path: Path) -> None:
     )
     result = run([sys.executable, "-c", code], cwd=tmp_path, timeout=1)
     assert result["timed_out"] is True
-    child_pid = int(child_pid_file.read_text())
-    for _ in range(100):
-        if _gone_or_zombie(child_pid):
-            break
-        time.sleep(0.05)
-    else:
-        pytest.fail("timed-out descendant process remained live")
+    _assert_process_gone(int(child_pid_file.read_text()))
+
+
+@pytest.mark.skipif(os.name != "posix", reason="process-group assertion is POSIX-specific")
+def test_ci_runner_success_reaps_lingering_descendants(tmp_path: Path) -> None:
+    child_pid_file = tmp_path / "child-success.pid"
+    code = (
+        "import pathlib, subprocess, sys; "
+        "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
+        f"pathlib.Path({str(child_pid_file)!r}).write_text(str(p.pid))"
+    )
+    result = run([sys.executable, "-c", code], cwd=tmp_path, timeout=5)
+    assert result["returncode"] == 0
+    _assert_process_gone(int(child_pid_file.read_text()))
