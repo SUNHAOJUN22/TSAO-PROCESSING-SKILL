@@ -16,7 +16,7 @@ jobs:
   bootstrap:
     if: ${{ startsWith(github.event.issue.title, '[BOOTSTRAP-POE-ALPHA6]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,13 +61,49 @@ jobs:
           rm -f reports/runtime/*.json reports/runtime/*.tmp
           git rm .github/workflows/bootstrap-poe-alpha6-once.yml
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
-      - name: Full candidate qualification
+      - name: Diagnose and qualify candidate
+        id: qualify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          python -m pip install --quiet -e .[dev]
-          python -m pip check
-          python scripts/run_ci.py
-          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          set -u
+          report="$RUNNER_TEMP/poe-alpha6-qualification.md"
+          echo '## POE alpha.6 bootstrap qualification' > "$report"
+          echo >> "$report"
+          failed=0
+          run_check() {
+            local label="$1"
+            shift
+            local slug=${label// /_}
+            local log="$RUNNER_TEMP/${slug}.log"
+            set +e
+            "$@" >"$log" 2>&1
+            local status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then
+              echo "- $label: **PASS**" >> "$report"
+            else
+              failed=1
+              echo "- $label: **FAIL** (exit $status)" >> "$report"
+              echo >> "$report"
+              echo "### $label log" >> "$report"
+              echo '```text' >> "$report"
+              tail -n 180 "$log" >> "$report"
+              echo '```' >> "$report"
+            fi
+          }
+          run_check install python -m pip install --quiet -e '.[dev]'
+          run_check 'pip check' python -m pip check
+          run_check pytest python -m pytest -q -p no:cacheprovider tests skills/process-general/tests skills/poe/tests skills/polymer-general/tests
+          run_check capabilities python scripts/audit_capabilities.py
+          run_check 'POE P0 audit' python skills/poe/scripts/audit_p0.py --root .
+          run_check doctor python -m tsao.cli doctor --root . --profile core
+          run_check ruff python -m ruff check tsao tests scripts skills/process-general skills/poe skills/polymer-general
+          run_check wheel python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          run_check 'wheel payload' python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          gh issue comment "${{ github.event.issue.number }}" --body-file "$report"
+          [ "$failed" -eq 0 ]
       - name: Publish candidate to existing main
         env:
           GH_TOKEN: ${{ github.token }}
