@@ -33,6 +33,10 @@ Alpha.6 resolves the mixed alpha.5/alpha.6 version state, stale full-release ref
 - cleanroom extracted CI: **477/477 PASS**;
 - cleanroom issues: none.
 
+## Public source-core status
+
+`main` is the sole authoritative source line. Its qualification workflow rebuilds `reports/SOURCE_CORE_MANIFEST.tsv` before testing and commits a refreshed manifest only after the four-platform qualification succeeds. The public source-core state remains `NOT_EVALUATED` in `RELEASE_IDENTITY.json` until that final manifest-head workflow closes.
+
 ## Honest boundary
 
-The public `main` source snapshot and the complete distribution are separate, explicitly identified artifacts. Software-artifact qualification is PASS. Catalyst synthesis, physical experiments, commercial simulation, equipment/relief design, HAZOP/LOPA/SIL, legal FTO, customer qualification, pilot/demonstration and industrial performance remain `NOT_EVALUATED`.
+The public `main` source snapshot and the complete distribution are separate, explicitly identified artifacts. Complete-distribution software qualification is PASS. Catalyst synthesis, physical experiments, commercial simulation, equipment/relief design, HAZOP/LOPA/SIL, legal FTO, customer qualification, pilot/demonstration and industrial performance remain `NOT_EVALUATED`.
