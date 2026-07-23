@@ -1,0 +1,6 @@
+path	bytes	sha256	asset_family	provenance	license_boundary
+TSAO-master/**	292980	9272ff73751f4d0ad8eedf5d05a7101d77797d2aa8a91f570059fda5931dc105	TSAO-master	family-summary	Apache-2.0 unless NOTICE states otherwise
+skills/epdm/**	2122713	6d640b35e79fabffb2a1fbbf47043bed854767bf17c17fc5be8ce95af9fc26c8	EPDM-v9	family-summary	project-controlled; validate third-party citations individually
+skills/poe/**	126714	8f1739f742544e129f9410e84cb6c8d01a531023ed34451e35d2ac4901260d78	SJTU-POE	family-summary	project-controlled; source-corpus redistribution restrictions may apply
+skills/polymer-general/**	151181	3d552b5356f7956742c5e2cc3d70e70aff2d4217df124e10e7b263187f5b81cb	SJTU-universal-polymer	family-summary	project-controlled; validate embedded references individually
+vendor/releases/**	1267907	4806c09528e9d33038d356d6352ba4d607a584474a7274138e909657b543dc8f	versioned-upstream-identity	family-summary	do-not-redistribute without recorded license
