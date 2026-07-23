@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import yaml
 from jsonschema import Draft202012Validator
 
 from . import __version__
 from .capabilities import capability_contract_issues
+from .integrity import verify_release_metadata
 from .provenance import verify_manifest
 
 _REQUIRED = (
@@ -26,8 +29,10 @@ _REQUIRED = (
     "skills/epdm/SKILL.md",
     "skills/poe/SKILL.md",
     "skills/polymer-general/SKILL.md",
+    "reports/SOURCE_CORE_MANIFEST.tsv",
 )
 _CACHE_PARTS = {"__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "venv"}
+_LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
 def _version_issues(root: Path) -> list[str]:
@@ -58,6 +63,37 @@ def _schema_issues(root: Path) -> list[str]:
             Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
             issues.append(f"invalid schema {path.name}: {exc}")
+    if not list((root / "schemas").glob("*.schema.json")):
+        issues.append("repository contains no JSON Schemas")
+    return issues
+
+
+def _link_issues(root: Path) -> list[str]:
+    issues: list[str] = []
+    root_resolved = root.resolve()
+    for path in sorted(root.rglob("*.md")):
+        if any(part in _CACHE_PARTS or part == ".git" for part in path.relative_to(root).parts):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            issues.append(f"cannot read Markdown file {path.relative_to(root)}: {exc}")
+            continue
+        for raw_target in _LINK_PATTERN.findall(text):
+            target = raw_target.strip().strip("<>")
+            if not target or target.startswith(("#", "http://", "https://", "mailto:")):
+                continue
+            target = unquote(target.split("#", 1)[0].split("?", 1)[0])
+            if not target or any(character in target for character in "{}*|"):
+                continue
+            resolved = (path.parent / target).resolve(strict=False)
+            try:
+                resolved.relative_to(root_resolved)
+            except ValueError:
+                issues.append(f"Markdown link escapes root: {path.relative_to(root)} -> {raw_target}")
+                continue
+            if not resolved.exists():
+                issues.append(f"broken Markdown link: {path.relative_to(root)} -> {raw_target}")
     return issues
 
 
@@ -75,7 +111,8 @@ def _repository_issues(root: Path) -> list[str]:
         for command in ("tsao.cli doctor", "tsao.cli init", "tsao.cli audit"):
             if command not in text:
                 issues.append(f"README missing canonical command: {command}")
-    return issues
+    issues.extend(_link_issues(root))
+    return sorted(set(issues))
 
 
 def _has_full_distribution_markers(root: Path) -> bool:
@@ -88,6 +125,29 @@ def _has_full_distribution_markers(root: Path) -> bool:
             "SBOM.json",
         )
     )
+
+
+def _release_identity_issues(root: Path, profile: str) -> list[str]:
+    path = root / "reports/RELEASE_IDENTITY.json"
+    if not path.is_file():
+        return [] if profile == "core" else ["missing reports/RELEASE_IDENTITY.json"]
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f"invalid release identity: {exc}"]
+    issues: list[str] = []
+    if data.get("version") != __version__:
+        issues.append("release identity version mismatch")
+    if data.get("artifact_software_qualification") not in {"PASS", "NOT_EVALUATED"}:
+        issues.append("release identity has invalid software qualification")
+    for field in (
+        "scientific_technical_approval",
+        "engineering_design_approval",
+        "industrial_performance_guarantee",
+    ):
+        if data.get(field) != "NOT_EVALUATED":
+            issues.append(f"release identity must keep {field} NOT_EVALUATED")
+    return issues
 
 
 def diagnose(root: Path, *, profile: str = "auto") -> dict[str, Any]:
@@ -109,6 +169,9 @@ def diagnose(root: Path, *, profile: str = "auto") -> dict[str, Any]:
         else "reports/SOURCE_CORE_MANIFEST.tsv"
     )
     checks["provenance"] = verify_manifest(root, root / manifest_name)
+    checks["release_identity"] = _release_identity_issues(root, active_profile)
+    if active_profile == "full":
+        checks["release_metadata"] = verify_release_metadata(root)
     issues = [f"{name}: {issue}" for name, values in checks.items() for issue in values]
     return {
         "version": __version__,
@@ -119,7 +182,9 @@ def diagnose(root: Path, *, profile: str = "auto") -> dict[str, Any]:
             for name, values in checks.items()
         },
         "issues": issues,
+        "artifact_software_qualification": "PASS" if not issues else "FAIL",
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",
+        "customer_qualification": "NOT_EVALUATED",
         "industrial_performance_guarantee": "NOT_EVALUATED",
     }
