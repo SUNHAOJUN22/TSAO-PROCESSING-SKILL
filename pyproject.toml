@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68,<82", "wheel>=0.41,<1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tsao-processing-skill"
+version = "0.1.0a5"
+description = "Traceable, scientific, auditable and operational chemical process development skill"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [{name = "SUNHAOJUN22"}]
+dependencies = [
+  "PyYAML>=6.0,<7",
+  "jsonschema[format]>=4.20,<5",
+  "numpy>=1.26,<3",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Chemistry",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<9",
+  "ruff>=0.5,<1",
+  "setuptools>=68,<82",
+  "wheel>=0.41,<1",
+]
+
+[project.scripts]
+tsao = "tsao.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["tsao*"]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "tests",
+  "skills/process-general/tests",
+  "skills/poe/tests",
+  "skills/polymer-general/tests",
+]
+addopts = "-q -p no:cacheprovider"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
