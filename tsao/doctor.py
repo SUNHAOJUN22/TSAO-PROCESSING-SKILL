@@ -58,13 +58,14 @@ def _version_issues(root: Path) -> list[str]:
 
 def _schema_issues(root: Path) -> list[str]:
     issues: list[str] = []
-    for path in sorted((root / "schemas").glob("*.schema.json")):
+    schemas = sorted((root / "schemas").glob("*.schema.json"))
+    if not schemas:
+        return ["repository contains no JSON Schemas"]
+    for path in schemas:
         try:
             Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
             issues.append(f"invalid schema {path.name}: {exc}")
-    if not list((root / "schemas").glob("*.schema.json")):
-        issues.append("repository contains no JSON Schemas")
     return issues
 
 
@@ -97,11 +98,14 @@ def _link_issues(root: Path) -> list[str]:
     return issues
 
 
-def _repository_issues(root: Path) -> list[str]:
+def _repository_issues(root: Path, *, strict_source_clean: bool) -> list[str]:
     issues = [f"missing required path: {item}" for item in _REQUIRED if not (root / item).exists()]
     for path in root.rglob("*"):
         relative_parts = path.relative_to(root).parts
-        if any(part in _CACHE_PARTS for part in relative_parts):
+        cache_hit = next((part for part in relative_parts if part in _CACHE_PARTS), None)
+        if cache_hit:
+            if strict_source_clean:
+                issues.append(f"source tree contains cache path: {path.relative_to(root).as_posix()}")
             continue
         if path.is_symlink():
             issues.append(f"repository contains symlink: {path.relative_to(root).as_posix()}")
@@ -150,7 +154,12 @@ def _release_identity_issues(root: Path, profile: str) -> list[str]:
     return issues
 
 
-def diagnose(root: Path, *, profile: str = "auto") -> dict[str, Any]:
+def diagnose(
+    root: Path,
+    *,
+    profile: str = "auto",
+    strict_source_clean: bool = False,
+) -> dict[str, Any]:
     root = Path(root).resolve()
     if profile not in {"auto", "core", "full"}:
         raise ValueError("profile must be auto, core or full")
@@ -158,7 +167,7 @@ def diagnose(root: Path, *, profile: str = "auto") -> dict[str, Any]:
     if active_profile == "auto":
         active_profile = "full" if _has_full_distribution_markers(root) else "core"
     checks: dict[str, list[str]] = {
-        "repository": _repository_issues(root),
+        "repository": _repository_issues(root, strict_source_clean=strict_source_clean),
         "version": _version_issues(root),
         "schemas": _schema_issues(root),
         "capabilities": capability_contract_issues(root),
@@ -177,14 +186,26 @@ def diagnose(root: Path, *, profile: str = "auto") -> dict[str, Any]:
         "version": __version__,
         "profile": active_profile,
         "pass": not issues,
+        "strict_source_clean": strict_source_clean,
         "checks": {
             name: {"pass": not values, "issues": values}
             for name, values in checks.items()
         },
         "issues": issues,
+        "warnings": [],
+        "metrics": {
+            "schemas": len(list((root / "schemas").glob("*.schema.json"))),
+            "specialists": 4,
+        },
         "artifact_software_qualification": "PASS" if not issues else "FAIL",
+        "technical_approval_status": "NOT_EVALUATED",
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",
         "customer_qualification": "NOT_EVALUATED",
         "industrial_performance_guarantee": "NOT_EVALUATED",
     }
+
+
+def doctor(root: Path, *, strict_source_clean: bool = False) -> dict[str, Any]:
+    """Backward-compatible alias for older full-distribution callers."""
+    return diagnose(root, profile="auto", strict_source_clean=strict_source_clean)
