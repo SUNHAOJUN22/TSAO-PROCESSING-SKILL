@@ -50,10 +50,10 @@ def test_full_doctor_verifies_distribution_metadata(tmp_path: Path) -> None:
     shutil.copytree(
         ROOT,
         root,
-        ignore=shutil.ignore_patterns(".git", "__pycache__", ".pytest_cache", ".ruff_cache", "runtime"),
+        ignore=shutil.ignore_patterns(
+            ".git", "__pycache__", ".pytest_cache", ".ruff_cache", "runtime"
+        ),
     )
-    build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
-    build_manifest(root, root / "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv")
     (root / "reports/RELEASE_IDENTITY.json").write_text(
         json.dumps(
             {
@@ -69,9 +69,13 @@ def test_full_doctor_verifies_distribution_metadata(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     build_release_metadata(root)
+    build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
+    build_manifest(root, root / "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv")
     result = diagnose(root, profile="full")
     assert result["pass"], result["issues"]
     (root / "README.md").write_text("changed", encoding="utf-8")
     result = diagnose(root, profile="full")
     assert not result["pass"]
-    assert any("provenance" in issue or "release_metadata" in issue for issue in result["issues"])
+    assert any(
+        "provenance" in issue or "release_metadata" in issue for issue in result["issues"]
+    )
