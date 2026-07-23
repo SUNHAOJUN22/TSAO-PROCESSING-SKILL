@@ -118,8 +118,10 @@ def test_github_actions_are_pinned_and_least_privilege() -> None:
     assert "fail-fast: false" in workflow
     assert "timeout-minutes:" in workflow
     assert "permissions:\n  contents: read" in workflow
-    assert "refresh-source-manifest:\n    needs: qualification" in workflow
-    assert "contents: write" in workflow
+    assert "contents: write" not in workflow
+    assert "\n  issues:" not in workflow
+    assert "refresh-source-manifest:" not in workflow
+    assert "build_source_asset_manifest.py" not in workflow
     assert "[skip ci]" not in workflow
     assert "export_source_snapshot.py" in workflow
     assert "tsao.cli doctor" in workflow
