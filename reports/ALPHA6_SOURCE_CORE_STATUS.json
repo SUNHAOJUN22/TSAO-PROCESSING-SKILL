@@ -1,0 +1,10 @@
+{
+  "version": "0.1.0-alpha.6",
+  "status": "QUALIFICATION_REQUESTED",
+  "trigger": "[CI] Issue event",
+  "source_manifest": "reports/SOURCE_CORE_MANIFEST.tsv",
+  "artifact_software_qualification": "NOT_EVALUATED",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
