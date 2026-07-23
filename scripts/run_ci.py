@@ -11,6 +11,23 @@ from typing import Any
 
 from tsao import __version__
 
+TEST_PATHS = (
+    "tests",
+    "skills/process-general/tests",
+    "skills/poe/tests",
+    "skills/polymer-general/tests",
+)
+RUFF_PATHS = (
+    "tsao",
+    "tests",
+    "scripts",
+    "skills/process-general/tests",
+    "skills/poe/scripts",
+    "skills/poe/tests",
+    "skills/polymer-general/scripts",
+    "skills/polymer-general/tests",
+)
+
 
 def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
     if process.poll() is not None:
@@ -77,33 +94,18 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    test_paths = [
-        "tests",
-        "skills/process-general/tests",
-        "skills/poe/tests",
-        "skills/polymer-general/tests",
-    ]
-    ruff_paths = [
-        "tsao",
-        "tests",
-        "scripts",
-        "skills/poe/scripts",
-        "skills/poe/tests",
-        "skills/polymer-general/scripts",
-        "skills/polymer-general/tests",
-    ]
     checks = [
         run(
             [sys.executable, "-m", "compileall", "-f", "-q", "tsao", "scripts", "skills"],
             cwd=root,
         ),
         run(
-            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *test_paths],
+            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *TEST_PATHS],
             cwd=root,
         ),
         run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
         run([sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"], cwd=root),
-        run([sys.executable, "-m", "ruff", "check", *ruff_paths], cwd=root),
+        run([sys.executable, "-m", "ruff", "check", *RUFF_PATHS], cwd=root),
     ]
     passed = all(check["returncode"] == 0 for check in checks)
     report = {
