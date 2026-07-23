@@ -12,12 +12,13 @@ TSAO publishes two software artifacts and never treats them as interchangeable.
 
 ## Qualified complete distribution
 
-- Manifest: `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv`.
+- Public reference: `reports/COMPLETE_DISTRIBUTION_REFERENCE.json`.
+- Full manifest: `reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv` inside the complete distribution.
 - Internal integrity: `FILE_MANIFEST.tsv`, `checksums.sha256`, `SBOM.json`.
 - Verification: `python -m tsao.cli doctor --root . --profile full` plus cleanroom extraction CI.
 - Purpose: public source plus controlled inherited EPDM v9, SJTU-POE and universal-polymer assets and historical identities.
 
-The complete manifest can be stored in the public repository as an identity record even when controlled binary archives are distributed separately. A manifest entry does not change the file's ownership or license; `artifact_class` and `license_scope` remain authoritative.
+The public reference records the archive SHA-256, byte size, member count, test count, core hash and cleanroom result without pretending that controlled binary assets are ordinary Git source. The complete manifest retains per-file classification and does not change ownership or license.
 
 ## Technical approval
 
