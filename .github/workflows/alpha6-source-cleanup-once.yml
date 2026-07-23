@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   cleanup:
-    if: ${{ github.event.issue.title == '[TSAO-ALPHA6-SOURCE-CLEANUP-20260723-R3]' }}
+    if: ${{ github.event.issue.title == '[TSAO-ALPHA6-SOURCE-CLEANUP-20260723-R4]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
