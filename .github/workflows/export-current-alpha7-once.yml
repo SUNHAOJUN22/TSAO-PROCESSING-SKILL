@@ -159,6 +159,8 @@ jobs:
 
           run_stage "install editable package" python -m pip install --quiet -e '.[dev]'
           run_stage "dependency integrity" python -m pip check
+          run_stage "format repaired audit" python -m ruff format skills/poe/package_audit.py
+          run_stage "lint repaired audit" python -m ruff check --fix skills/poe/package_audit.py
           clean_tree
           run_stage "rebuild candidate manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           run_stage "complete run_ci" python scripts/run_ci.py
