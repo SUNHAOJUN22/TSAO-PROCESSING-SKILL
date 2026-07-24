@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
   issues: write
-  actions: read
+  actions: write
 
 concurrency:
   group: tsao-alpha7-final-orchestrator
@@ -33,24 +33,39 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          trap 'gh issue comment 37 --body "Alpha.7 final orchestration stopped fail-closed. No unverified final state was reported. Workflow run: \`$GITHUB_RUN_ID\`." || true' ERR
+          stage="initialization"
+          run_id="none"
+          report_failure() {
+            gh issue comment 37 --body "Alpha.7 final orchestration stopped fail-closed at stage **$stage**. Related CI run: \`$run_id\`. Orchestrator run: \`$GITHUB_RUN_ID\`. No unverified final state was reported." || true
+          }
+          trap report_failure ERR
 
-          wait_ci() {
+          wait_dispatched_ci() {
             local sha="$1"
+            local started="$2"
             local row status conclusion
+            run_id="none"
             for _ in $(seq 1 270); do
-              row=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$sha&event=push&per_page=10" --jq '.workflow_runs[0] | [.id,.status,(.conclusion // "")] | @tsv' 2>/dev/null || true)
-              if [ -z "$row" ]; then sleep 10; continue; fi
+              row=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=workflow_dispatch&branch=main&per_page=20" --jq ".workflow_runs | map(select(.head_sha == \"$sha\" and .created_at >= \"$started\")) | sort_by(.created_at) | reverse | .[0] | [.id,.status,(.conclusion // \"\")] | @tsv" 2>/dev/null || true)
+              if [ -z "$row" ] || [ "$row" = $'\t\t' ]; then sleep 10; continue; fi
               IFS=$'\t' read -r run_id status conclusion <<< "$row"
               if [ "$status" = completed ]; then
                 test "$conclusion" = success
-                echo "CI success for $sha (run $run_id)"
+                echo "ci.yml success for $sha (run $run_id)"
                 return 0
               fi
               sleep 10
             done
-            echo "Timed out waiting for ci.yml on $sha" >&2
+            echo "Timed out waiting for dispatched ci.yml on $sha" >&2
             return 1
+          }
+
+          dispatch_and_wait() {
+            local sha="$1"
+            local started
+            started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            gh workflow run ci.yml --ref main
+            wait_dispatched_ci "$sha" "$started"
           }
 
           clean_tree() {
@@ -60,11 +75,13 @@ jobs:
             rm -f reports/runtime/*.json reports/runtime/*.tmp 2>/dev/null || true
           }
 
+          stage="lock current main"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
 
+          stage="local candidate qualification"
           python -m pip install --quiet -e .[dev]
           python -m pip check
           clean_tree
@@ -75,14 +92,21 @@ jobs:
           python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
           python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
           python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+
+          stage="publish frozen candidate identity"
           clean_tree
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           git add reports/SOURCE_CORE_MANIFEST.tsv
-          git commit -m "chore: freeze alpha7 candidate source identity"
-          git push origin HEAD:main
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: freeze alpha7 candidate source identity"
+            git push origin HEAD:main
+          fi
           prepared_sha=$(git rev-parse HEAD)
-          wait_ci "$prepared_sha"
 
+          stage="prepared four-platform CI"
+          dispatch_and_wait "$prepared_sha"
+
+          stage="prepare exact final tree"
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$prepared_sha"
           git rm .github/workflows/export-current-alpha7-once.yml
@@ -92,15 +116,22 @@ jobs:
           python skills/poe/scripts/audit_p0.py --root .
           python skills/poe/scripts/audit_p1.py --root .
           python -m tsao.cli doctor --root . --profile core
+
+          stage="publish final main"
           clean_tree
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           git add -A
           git commit -m "feat(poe): deliver alpha7 P1 reference specialist"
           git push origin HEAD:main
           final_sha=$(git rev-parse HEAD)
-          wait_ci "$final_sha"
 
+          stage="final four-platform CI"
+          dispatch_and_wait "$final_sha"
+
+          stage="verify sole main branch"
           mapfile -t branches < <(git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | sort)
           test "${#branches[@]}" -eq 1 && test "${branches[0]}" = main
-          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
+
+          trap - ERR
+          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- prepared CI run: **PASS**\n- final CI run: \`$run_id\` **PASS**\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
           gh issue close 37 --reason completed
