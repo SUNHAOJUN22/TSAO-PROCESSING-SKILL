@@ -1,21 +1,16 @@
 {
-  "format": "TSAO-RELEASE-IDENTITY-1",
-  "version": "0.1.0-alpha.6",
+  "format": "TSAO-RELEASE-IDENTITY-2",
+  "version": "0.1.0-alpha.7",
   "source_core": {
     "manifest": "reports/SOURCE_CORE_MANIFEST.tsv",
-    "qualification": "NOT_EVALUATED"
+    "qualification": "EXTERNAL_VERIFICATION"
   },
   "complete_distribution": {
     "reference": "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
-    "qualification": "PASS",
-    "tests": 477,
-    "isolated_phases": 28,
-    "sha256": "6948a6753bc7349104e2c3f2c8b9a4738b07d72f536cf28a7f17d1e5e5c07c25",
-    "members": 1202,
-    "core_hash": "0e6a15d953b6f0478881f75caa5f1514219185ab42036d0661f180e8ee63e723",
-    "cleanroom_pass": true
+    "qualification": "NOT_EVALUATED",
+    "historical_alpha6_reference": "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json"
   },
-  "artifact_software_qualification": "PASS",
+  "artifact_software_qualification": "NOT_EVALUATED",
   "scientific_technical_approval": "NOT_EVALUATED",
   "engineering_design_approval": "NOT_EVALUATED",
   "industrial_performance_guarantee": "NOT_EVALUATED"

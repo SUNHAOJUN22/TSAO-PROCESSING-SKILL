@@ -22,6 +22,7 @@ _EXCLUDED_PARTS = {
     "work",
 }
 _EXCLUDED_PREFIXES = ("reports/runtime/",)
+_EXCLUDED_FILES = {".coverage", "coverage.xml"}
 _SELF_MANIFESTS = {
     "reports/SOURCE_CORE_MANIFEST.tsv",
     "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv",
@@ -80,7 +81,11 @@ def iter_source_files(root: Path):
         relative = relative_path.as_posix()
         if any(_generated_part(part) for part in relative_path.parts):
             continue
-        if relative in _SELF_MANIFESTS or relative.startswith(_EXCLUDED_PREFIXES):
+        if (
+            relative in _SELF_MANIFESTS
+            or relative in _EXCLUDED_FILES
+            or relative.startswith(_EXCLUDED_PREFIXES)
+        ):
             continue
         yield path, relative
 

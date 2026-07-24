@@ -1,3 +1,4 @@
 """POE solution-polymerization specialist package."""
 
-__all__ = []
+from .core import *  # noqa: F403
+from .core import __all__

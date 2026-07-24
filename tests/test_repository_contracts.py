@@ -48,6 +48,7 @@ _REQUIRED_PATHS = {
     ".github/PULL_REQUEST_TEMPLATE.md",
     "skills/process-general/SKILL.md",
     "skills/epdm/SKILL.md",
+    "skills/__init__.py",
     "skills/poe/SKILL.md",
     "skills/poe/STATUS.md",
     "skills/poe/core.py",
@@ -55,7 +56,16 @@ _REQUIRED_PATHS = {
     "skills/poe/kinetics.py",
     "skills/poe/qualification.py",
     "skills/poe/package_audit.py",
+    "skills/poe/estimation.py",
+    "skills/poe/reactors.py",
+    "skills/poe/dynamics.py",
+    "skills/poe/properties.py",
+    "skills/poe/scaleup.py",
+    "skills/poe/model_passport.py",
+    "skills/poe/data/model_asset_passports.json",
+    "skills/poe/schemas/model_asset_passport.schema.json",
     "skills/poe/scripts/audit_p0.py",
+    "skills/poe/scripts/audit_p1.py",
     "skills/poe/scripts/audit_process_package.py",
     "skills/poe/tests/test_poe_alpha5_depth.py",
     "skills/poe/tests/test_poe_alpha6_p0.py",
@@ -71,6 +81,7 @@ _REQUIRED_PATHS = {
     "tsao/snapshot.py",
     "scripts/export_source_snapshot.py",
     "scripts/verify_wheel_contents.py",
+    "scripts/verify_wheel_runtime.py",
     "schemas/work_package.schema.json",
     "schemas/maturity.schema.json",
     "schemas/scaleup_claim.schema.json",
@@ -86,6 +97,9 @@ _REQUIRED_PATHS = {
     "reports/poe/POE_ALPHA6_P0_REMEDIATION.md",
     "reports/poe/POE_ALPHA6_COVERAGE_MATRIX.csv",
     "reports/poe/POE_ALPHA6_REMEDIATION_STATUS.csv",
+    "reports/poe/POE_ALPHA7_P1_REMEDIATION.md",
+    "reports/ALPHA7_SOURCE_CORE_STATUS.json",
+    "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",
 }
 
 
@@ -138,15 +152,16 @@ def test_version_metadata_is_consistent() -> None:
     reference = json.loads(
         (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
     )
-    assert tsao.__version__ == "0.1.0-alpha.6"
-    assert pyproject["project"]["version"] == "0.1.0a6"
+    assert tsao.__version__ == "0.1.0-alpha.7"
+    assert pyproject["project"]["version"] == "0.1.0a7"
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
     assert root_skill["version"] == tsao.__version__
     assert identity["version"] == tsao.__version__
     assert reference["version"] == tsao.__version__
-    assert identity["complete_distribution"]["sha256"] == reference["sha256"]
-    assert "## 0.1.0-alpha.6" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert reference["qualification"] == "NOT_EVALUATED"
+    assert identity["complete_distribution"]["qualification"] == "NOT_EVALUATED"
+    assert "## 0.1.0-alpha.7" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
 
 
@@ -173,11 +188,13 @@ def test_manifest_registers_all_specialists_and_truthful_poe_status() -> None:
         "polymer-general",
     ]
     poe = next(item for item in manifest["subskills"] if item["id"] == "poe")
-    assert poe["inherited_release"] == "1.1.0-tsao.2"
-    assert poe["implementation_status"] == "executable-specialist-alpha"
+    assert poe["inherited_release"] == "1.2.0-tsao.3"
+    assert poe["implementation_status"] == "executable-specialist-alpha-p1-reference"
     assert poe["scientific_execution"] == "UNDER_DISTILLATION"
     assert poe["historical_asset_lineage"] == "REGISTERED_139_OF_139"
-    assert poe["process_package_qualification"] == "CONTENT_LEVEL_SOFTWARE_AUDIT_ALPHA"
+    assert poe["process_package_qualification"] == "CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA"
+    assert poe["reference_scientific_kernel"] == "P1_REFERENCE_KERNEL_ALPHA"
+    assert poe["wheel_delivery"] == "RUNTIME_VERIFIED"
 
 
 def test_github_issue_form_uses_issue_form_contract() -> None:
@@ -204,6 +221,10 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "tsao.cli doctor" in workflow
     assert "verify_wheel_contents.py" in workflow
     assert "skills/poe/scripts/audit_p0.py" in workflow
+    assert "skills/poe/scripts/audit_p1.py" in workflow
+    assert "verify_wheel_runtime.py" in workflow
+    assert "coverage" in (ROOT / "scripts/run_ci.py").read_text(encoding="utf-8")
+    assert "alpha7" in workflow.casefold()
 
 
 def test_relative_markdown_links_resolve() -> None:

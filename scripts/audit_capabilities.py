@@ -44,7 +44,7 @@ def main() -> int:
         "workstreams": len(WORKSTREAMS),
         "maturity_levels": len(MATURITY_LEVELS),
         "subskills": details,
-        "poe_status": "EXECUTABLE_SPECIALIST_ALPHA",
+        "poe_status": "EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE",
         "technical_approval_status": "NOT_EVALUATED",
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))

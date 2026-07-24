@@ -58,6 +58,13 @@ def _parser() -> argparse.ArgumentParser:
 
     verify_parser = commands.add_parser("verify-archive", help="validate ZIP safety and integrity")
     verify_parser.add_argument("--archive", required=True)
+
+    poe_parser = commands.add_parser("poe", help="POE specialist status, audits and references")
+    poe_commands = poe_parser.add_subparsers(dest="poe_command", required=True)
+    for name in ("status", "audit-p0", "audit-p1"):
+        subcommand = poe_commands.add_parser(name)
+        subcommand.add_argument("--root", default=".")
+    poe_commands.add_parser("reference-demo")
     return parser
 
 
@@ -102,6 +109,44 @@ def main(argv: list[str] | None = None) -> int:
             issues = validate_zip_archive(Path(args.archive))
             _print({"pass": not issues, "issues": issues})
             return 0 if not issues else 2
+        if args.command == "poe":
+            if args.poe_command == "status":
+                import yaml
+
+                root = Path(args.root)
+                manifest = yaml.safe_load((root / "manifest.yaml").read_text(encoding="utf-8"))
+                poe = next(item for item in manifest["subskills"] if item["id"] == "poe")
+                _print({"version": __import__("tsao").__version__, **poe})
+                return 0
+            if args.poe_command == "audit-p0":
+                from skills.poe.scripts.audit_p0 import audit as audit_p0
+
+                result = audit_p0(Path(args.root))
+                _print(result)
+                return 0 if result["pass"] else 2
+            if args.poe_command == "audit-p1":
+                from skills.poe.scripts.audit_p1 import audit as audit_p1
+
+                result = audit_p1(Path(args.root))
+                _print(result)
+                return 0 if result["pass"] else 2
+            if args.poe_command == "reference-demo":
+                from skills.poe.core import (
+                    first_order_cstr_conversion,
+                    first_order_pfr_conversion,
+                    reactor_reference_suite,
+                )
+
+                _print(
+                    {
+                        "status": "CALCULATED_REFERENCE_ONLY",
+                        "reactors": reactor_reference_suite(0.2, 5.0),
+                        "PFR": first_order_pfr_conversion(0.2, 5.0),
+                        "CSTR": first_order_cstr_conversion(0.2, 5.0),
+                        "scientific_technical_approval": "NOT_EVALUATED",
+                    }
+                )
+                return 0
     except (OSError, TypeError, ValueError) as exc:
         print(
             json.dumps({"pass": False, "error": str(exc)}, ensure_ascii=False),

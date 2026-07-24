@@ -1,6 +1,6 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.6
+version: 0.1.0-alpha.7
 status: active-alpha
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
@@ -43,13 +43,15 @@ subskills:
   inherited_release: 9.0.0
 - id: poe
   path: skills/poe
-  inherited_release: 1.1.0-tsao.2
-  implementation_status: executable-specialist-alpha
+  inherited_release: 1.2.0-tsao.3
+  implementation_status: executable-specialist-alpha-p1-reference
   historical_asset_lineage: REGISTERED_139_OF_139
   scientific_execution: UNDER_DISTILLATION
-  reference_scientific_kernel: P0_REFERENCE_ONLY
-  process_package_qualification: CONTENT_LEVEL_SOFTWARE_AUDIT_ALPHA
+  reference_scientific_kernel: P1_REFERENCE_KERNEL_ALPHA
+  process_package_qualification: CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA
   historical_assets: CONTROLLED_HISTORICAL_EVIDENCE
+  model_asset_passports: IMPLEMENTED_REFERENCE_SCHEMA
+  wheel_delivery: RUNTIME_VERIFIED
 - id: polymer-general
   path: skills/polymer-general
   inherited_release: 2.0.0

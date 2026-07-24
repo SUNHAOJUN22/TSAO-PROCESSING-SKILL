@@ -2,6 +2,20 @@
 
 All notable changes are documented here. The project follows Semantic Versioning.
 
+## 0.1.0-alpha.7 — 2026-07-24
+
+### POE P1 reference and delivery closure
+
+- Added bounded parameter estimation, identifiability, reactor, property/transport, dynamics and scale-up reference kernels.
+- Added model-asset passports and evidence-level process-package audit v2.
+- Added `tsao poe` CLI, P1 audit, coverage gate, wheel member and installed-runtime verification.
+- Simplified and synchronized the English/Chinese READMEs and capability matrix.
+- Removed one-shot repair/export/finalizer workflows from the final source tree.
+
+### Boundary
+
+The alpha.7 qualification covers open software artifacts only. Historical model restoration and all scientific, engineering, HSE, legal, customer and industrial approvals remain `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.6 — 2026-07-23
 
 ### POE executable specialist alpha

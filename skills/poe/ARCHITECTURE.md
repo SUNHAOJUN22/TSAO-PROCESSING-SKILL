@@ -1,52 +1,24 @@
-# POE subskill architecture — 1.1.0-tsao.2
-
-## Purpose
-
-The POE pack converts the Shanghai Jiao Tong University acceptance corpus into a simulator-neutral, traceable development method without redistributing controlled files or promoting historical parameters to current design settings.
-
-## Digital thread
-
-```text
-controlled source asset
-→ requirement / claim / conflict
-→ measurement boundary
-→ equation and parameter passport
-→ transparent reference kernel or external-execution adapter
-→ fixture and independent check
-→ steady/dynamic process case
-→ scale-up claim
-→ package deliverable
-→ acceptance criterion
-→ named approval
-```
-
-An orphaned link blocks the relevant Gate.
+# POE alpha.7 architecture
 
 ## Layers
 
-1. **Lineage layer** — 139-asset registry, hashes, lifecycle status, confidentiality and canonicality.
-2. **Requirement layer** — contract, deliverable, criterion, asset, verification, deviation, Gate and approver.
-3. **Scientific layer** — kinetics, parameter estimation, properties, rheology, transport, reactor and balance contracts.
-4. **Process layer** — simulator-neutral streams/equipment, steady/dynamic cases, recovery, recycle, purge and finishing.
-5. **Assurance layer** — conflicts, applicability, uncertainty, package content, hashes, approvals and false-PASS attacks.
-6. **External adapter layer** — Aspen, MATLAB, Origin, CFD, laboratory and engineering handoffs; no external execution is implied.
+1. **Controlled lineage** — 139 asset passports, requirement trace and conflict ledger; no controlled binary is redistributed.
+2. **Module contracts** — twelve specialist domains from product CQA through package acceptance.
+3. **P0 reference layer** — transparent moment kinetics, property-method and simulator-neutral case qualification.
+4. **P1 reference layer** — bounded first-order fitting, Jacobian/identifiability, PFR/CSTR solutions, property and transport metrics, FOPDT dynamics, recycle memory, scale-up groups and model-asset passports.
+5. **Evidence audit v2** — content, hashes, structured-record integrity, evidence decision status, requirements, conflicts, model passports and named approvals.
+6. **Delivery** — source identity, four-platform CI, wheel payload and installed-wheel runtime checks.
 
-## Twelve modules
+## Dependency direction
 
-The twelve directories under `modules/` are mandatory and individually testable. Each contains `README.md` and `contract.schema.json`; shared executable reference logic is in `core.py`.
+`data/schemas → governance and qualification → P0/P1 kernels → package audit → CLI/tests/wheel`.
 
-## Historical-asset rule
+Commercial simulators and experiments are adapters outside the open reference layer. A converged external model is an implementation result, not scientific or engineering approval.
 
-All audited source-corpus files remain `CONTROLLED_HISTORICAL_EVIDENCE`. The registry explicitly excludes zero-byte, lock, unrelated, backup/history and snapshot assets from canonical scientific inference. Commercial binary presence proves only that a file exists with a given hash.
+## Stable invariants
 
-## Reference-kernel rule
-
-The alpha.6 kinetics/property/case logic is intentionally transparent and minimal. It exists to test units, conservation, boundaries and failure semantics. It is not a reproduction of the historical commercial model and carries `NOT_EVALUATED` scientific/engineering approval.
-
-## Package qualification
-
-The package auditor is manifest-driven and validates content identity, non-placeholder content, required deliverable groups, structured property/process/acceptance/requirement/conflict records and named approval. Legacy Chinese packages are mapped rather than reported as wholly missing, but remain HOLD until normalized.
-
-## Status
-
-The open software layer is `EXECUTABLE_SPECIALIST_ALPHA` after P0, wheel-payload and cross-platform qualification. Scientific execution remains `UNDER_DISTILLATION`; historical commercial models and project approvals remain `NOT_EVALUATED`. See `STATUS.md`.
+- SI units unless an explicit conversion is recorded;
+- finite/non-negative physical inputs where applicable;
+- conservation and cross-reference checks are fail-closed;
+- historical parameters never become active-project settings by inheritance;
+- software PASS never changes scientific, engineering, HSE, legal, customer or industrial status from `NOT_EVALUATED`.

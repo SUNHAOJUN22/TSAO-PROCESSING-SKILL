@@ -114,6 +114,36 @@ def build_manifested_package(root: Path, *, placeholders: bool = False) -> None:
             ]
         },
         "conflict_ledger.json": {"conflicts": []},
+        "evidence_ledger.json": {
+            "evidence": [
+                {
+                    "evidence_id": "SYNTHETIC-EVIDENCE",
+                    "source_id": "SYNTHETIC",
+                    "locator": "fixture",
+                    "applicability": "software test only",
+                    "status": "QUALIFIED",
+                    "decision_use": True,
+                }
+            ]
+        },
+        "model_passports.json": {
+            "models": [
+                {
+                    "model_id": "POE-MODEL-900",
+                    "model_type": "PYTHON_REFERENCE",
+                    "software": "TSAO POE",
+                    "software_version": "test",
+                    "purpose": "synthetic package test",
+                    "unit_system": "SI",
+                    "applicability_domain": "synthetic software fixture",
+                    "dependencies": [],
+                    "evidence_ids": ["SYNTHETIC-EVIDENCE"],
+                    "execution_status": "QUALIFIED_REFERENCE",
+                    "validation_status": "PASS",
+                    "approver": "Qualified Reviewer",
+                }
+            ]
+        },
     }
     for name, data in records.items():
         (root / name).write_text(json.dumps(data), encoding="utf-8")
@@ -127,6 +157,16 @@ def build_manifested_package(root: Path, *, placeholders: bool = False) -> None:
             "acceptance": "acceptance.json",
             "requirement_trace": "requirement_trace.json",
             "conflict_ledger": "conflict_ledger.json",
+            "evidence_ledger": "evidence_ledger.json",
+            "model_passports": "model_passports.json",
+        },
+        "structured_record_integrity": {
+            key.removesuffix(".json"): {
+                "path": key,
+                "sha256": sha(root / key),
+                "bytes": (root / key).stat().st_size,
+            }
+            for key in records
         },
         "approvals": {"package_approver": "Qualified Reviewer"},
     }
@@ -209,7 +249,16 @@ def test_unclosed_recycle_and_missing_dynamic_asset_hold(tmp_path: Path):
     )
     case["mode"] = "dynamic"
     case["claims"] = {"dynamic_validated": True}
-    (root / "process_case.json").write_text(json.dumps(case))
+    case_path = root / "process_case.json"
+    case_path.write_text(json.dumps(case))
+    manifest_path = root / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["structured_record_integrity"]["process_case"] = {
+        "path": "process_case.json",
+        "sha256": sha(case_path),
+        "bytes": case_path.stat().st_size,
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     result = audit_process_package(root)
     assert result["status"] == "HOLD"
     assert any("recycle" in item for item in result["holds"])

@@ -1,4 +1,4 @@
-name: TSAO alpha6 qualification
+name: TSAO alpha7 qualification
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   qualification:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -38,19 +38,26 @@ jobs:
         run: python -m pip check
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
-      - name: Core and POE qualification
+      - name: Core, P0, P1 and coverage qualification
         run: python scripts/run_ci.py
-      - name: POE P0 closure
+      - name: Explicit POE P0 closure
         run: python skills/poe/scripts/audit_p0.py --root .
+      - name: Explicit POE P1 reference closure
+        run: python skills/poe/scripts/audit_p1.py --root .
       - name: Build wheel
         run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-      - name: Verify wheel contains POE specialist
-        run: python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+      - name: Verify wheel members and installed runtime
+        run: |
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
       - name: CLI smoke
         run: |
           python -m tsao.cli doctor --root . --profile core
           python -m tsao.cli route "POE solution polymerization and solvent recovery"
-          python -m tsao.cli route "metallocene EPDM ENB solution polymerization"
+          python -m tsao.cli poe status --root .
+          python -m tsao.cli poe audit-p0 --root .
+          python -m tsao.cli poe audit-p1 --root .
+          python -m tsao.cli poe reference-demo
 
   source-snapshot:
     needs: qualification
@@ -66,12 +73,12 @@ jobs:
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
       - name: Build deterministic public-source snapshot
-        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.6.zip
+        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.7.zip
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tsao-source-alpha6-${{ github.sha }}
+          name: tsao-source-alpha7-${{ github.sha }}
           path: |
-            TSAO-PROCESSING-SKILL-source-alpha.6.zip
-            TSAO-PROCESSING-SKILL-source-alpha.6.zip.sha256
+            TSAO-PROCESSING-SKILL-source-alpha.7.zip
+            TSAO-PROCESSING-SKILL-source-alpha.7.zip.sha256
           if-no-files-found: error
           retention-days: 14

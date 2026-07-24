@@ -35,3 +35,7 @@ Positive, boundary and malicious-input tests are located in `../../tests/test_po
 ## External execution boundary
 
 Physical polymerization, commercial Aspen/Origin/MATLAB execution, CFD, equipment design, HAZOP/LOPA/SIL, pilot operation, customer qualification and industrial guarantees remain `NOT_EVALUATED` until performed and approved by named qualified teams.
+
+## Alpha.7 executable reference
+
+`skills.poe.scaleup` provides Reynolds, Prandtl, Schmidt, mass Péclet and mixing Damköhler groups with tolerance-based similarity audit; `skills.poe.package_audit` performs evidence-level package audit v2.

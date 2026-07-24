@@ -35,3 +35,7 @@ Positive, boundary and malicious-input tests are located in `../../tests/test_po
 ## External execution boundary
 
 Physical polymerization, commercial Aspen/Origin/MATLAB execution, CFD, equipment design, HAZOP/LOPA/SIL, pilot operation, customer qualification and industrial guarantees remain `NOT_EVALUATED` until performed and approved by named qualified teams.
+
+## Alpha.7 executable reference
+
+`skills.poe.properties` provides regression error metrics, power-law apparent viscosity and heat-transfer margin calculations. Property-method qualification remains bounded by benchmarks and applicability ranges.

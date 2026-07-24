@@ -223,8 +223,8 @@ def test_twelve_module_contracts_and_truthful_status():
     status = (POE / "STATUS.md").read_text(encoding="utf-8")
     assert (
         "UNDER_DISTILLATION" in status
-        and "CONTENT_LEVEL_SOFTWARE_AUDIT_ALPHA" in status
-        and "EXECUTABLE_SPECIALIST_ALPHA" in status
+        and "CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA" in status
+        and "EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE" in status
         and "NOT_EVALUATED" in status
     )
 

@@ -92,6 +92,15 @@ POE_REQUIRED_ARTIFACTS = (
     "skills/poe/schemas/property_method.schema.json",
     "skills/poe/schemas/process_case.schema.json",
     "skills/poe/schemas/package_manifest.schema.json",
+    "skills/poe/schemas/model_asset_passport.schema.json",
+    "skills/poe/data/model_asset_passports.json",
+    "skills/poe/estimation.py",
+    "skills/poe/reactors.py",
+    "skills/poe/dynamics.py",
+    "skills/poe/properties.py",
+    "skills/poe/scaleup.py",
+    "skills/poe/model_passport.py",
+    "skills/poe/scripts/audit_p1.py",
 )
 
 
@@ -179,9 +188,11 @@ def capability_contract_issues(root: Path) -> list[str]:
     if poe_skill.is_file():
         text = poe_skill.read_text(encoding="utf-8").casefold()
         for token in (
-            "1.1.0-tsao.2",
+            "1.2.0-tsao.3",
             "under_distillation",
-            "content_level_software_audit_alpha",
+            "content_and_evidence_audit_v2_alpha",
+            "p1_reference_kernel_alpha",
+            "runtime_verified",
             "registered_139_of_139",
             "controlled_historical_evidence",
             "not_evaluated",

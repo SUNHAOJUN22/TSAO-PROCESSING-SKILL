@@ -10,7 +10,13 @@ import time
 from pathlib import Path
 from typing import Any
 
-from tsao import __version__
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import tsao
+
+__version__ = tsao.__version__
 
 TEST_PATHS = (
     "tests",
@@ -114,18 +120,46 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = ROOT
     checks = [
         run(
             [sys.executable, "-m", "compileall", "-f", "-q", "tsao", "scripts", "skills"],
             cwd=root,
         ),
+        run([sys.executable, "-m", "coverage", "erase"], cwd=root),
         run(
-            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *TEST_PATHS],
+            [
+                sys.executable,
+                "-m",
+                "coverage",
+                "run",
+                "--branch",
+                "--source=skills.poe",
+                "--omit=skills/poe/scripts/*",
+                "-m",
+                "pytest",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                *TEST_PATHS,
+            ],
+            cwd=root,
+        ),
+        run(
+            [sys.executable, "-m", "coverage", "report", "--fail-under=75"],
+            cwd=root,
+        ),
+        run(
+            [
+                sys.executable,
+                "-c",
+                "from pathlib import Path; Path('.coverage').unlink(missing_ok=True); Path('coverage.xml').unlink(missing_ok=True)",
+            ],
             cwd=root,
         ),
         run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
         run([sys.executable, "skills/poe/scripts/audit_p0.py", "--root", "."], cwd=root),
+        run([sys.executable, "skills/poe/scripts/audit_p1.py", "--root", "."], cwd=root),
         run(
             [sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"],
             cwd=root,
@@ -138,7 +172,9 @@ def main() -> int:
         "pass": passed,
         "checks": checks,
         "artifact_software_qualification": "PASS" if passed else "FAIL",
-        "poe_software_status": "EXECUTABLE_SPECIALIST_ALPHA" if passed else "HOLD",
+        "poe_software_status": (
+            "EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE" if passed else "HOLD"
+        ),
         "poe_scientific_execution": "UNDER_DISTILLATION",
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",

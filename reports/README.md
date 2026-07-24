@@ -1,26 +1,21 @@
 # Reports
 
-This directory contains machine- and human-readable qualification, release, migration and audit records. Every report must identify its source and distinguish software-artifact qualification from scientific, engineering, safety, legal, customer and industrial approval.
+This directory separates immutable release/source identities from mutable runtime output. Software qualification never substitutes for scientific, engineering, HSE, legal, customer or industrial approval.
 
-## Current identities
+## Current alpha.7 identities
 
-- `RELEASE_IDENTITY.json` — canonical alpha.6 release identity and approval boundary.
-- `COMPLETE_DISTRIBUTION_REFERENCE.json` — qualified complete-distribution hash, test count and cleanroom result.
-- `SOURCE_CORE_MANIFEST.tsv` — committed public-source identity verified by `tsao doctor --profile core`.
-- `ALPHA6_SOURCE_CORE_STATUS.json` — source-core qualification request state; CI status remains external to the source tree.
+- `RELEASE_IDENTITY.json` — alpha.7 source/release boundary.
+- `ALPHA7_SOURCE_CORE_STATUS.json` — external-verification policy for the committed source tree.
+- `SOURCE_CORE_MANIFEST.tsv` — frozen public-source identity verified by `tsao doctor --profile core`.
+- `COMPLETE_DISTRIBUTION_REFERENCE.json` — explicitly `NOT_EVALUATED` until the controlled alpha.7 complete distribution is rebuilt and cleanroom-qualified.
+- `poe/POE_ALPHA7_P1_REMEDIATION.md` — POE P1 software remediation and remaining external Gates.
 
-## POE alpha.6
+## Historical identities
 
-- `poe/POE_ALPHA6_P0_REMEDIATION.md` — P0 implementation, verification and remaining approval boundaries.
-- `poe/POE_ALPHA6_COVERAGE_MATRIX.csv` — 28-domain semantic, executable and test coverage.
-- `poe/POE_ALPHA6_REMEDIATION_STATUS.csv` — remediation status and evidence.
+- `history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json` — qualified alpha.6 controlled complete distribution.
+- `history/ALPHA6_SOURCE_CORE_STATUS.json` and `history/CI_RESULTS_BEFORE_RUNTIME_SPLIT.json` — frozen alpha.6 records.
+- Alpha.6 POE P0 reports remain historical evidence of the preceding release.
 
 ## Runtime output
 
-`scripts/run_ci.py` writes mutable execution output under `reports/runtime/`. Runtime logs and reports are intentionally excluded from frozen source manifests and release hashes. A release report becomes immutable only after it is copied to a versioned filename with its tested source identity.
-
-## Historical audits
-
-- `LINEAGE_COMPLETENESS_AUDIT_ALPHA3.md` compares the earliest SJTU-POE/universal-polymer mission, EPDM v9 and TSAO evolution.
-- `CODE_AUDIT_ALPHA2.md` records the alpha.2 code-hardening work.
-- `QUALIFICATION_BOUNDARY.md` defines what repository CI can and cannot approve.
+`scripts/run_ci.py` writes mutable execution output under `reports/runtime/`. Runtime files are excluded from frozen source and release manifests. Promote a result to a versioned report only with the exact tested source identity and approval boundary.

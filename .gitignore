@@ -15,3 +15,7 @@ work/
 *.log
 reports/runtime/*.json
 reports/runtime/*.tmp
+.coverage
+coverage.xml
+htmlcov/
+wheelhouse/
