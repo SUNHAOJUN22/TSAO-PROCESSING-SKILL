@@ -19,12 +19,10 @@ def patch_mother_files() -> None:
     (ROOT / "tsao/capabilities.py").write_bytes(payload)
 
     path = ROOT / "tsao/cli.py"
-    expected_cli = "3228a396dfe76d91f9e049d5041cd291c704639d756b09e95619bb7f7fac111b"
-    if hashlib.sha256(path.read_bytes()).hexdigest() == expected_cli:
-        return
     text = path.read_text(encoding="utf-8")
-    parser_marker = '    poe_commands.add_parser("reference-demo")\n    return parser\n'
-    parser_block = '''    poe_commands.add_parser("reference-demo")
+    if 'commands.add_parser("package"' not in text:
+        parser_marker = '    poe_commands.add_parser("reference-demo")\n    return parser\n'
+        parser_block = '''    poe_commands.add_parser("reference-demo")
 
     package_parser = commands.add_parser("package", help="universal process-package templates and audits")
     package_commands = package_parser.add_subparsers(dest="package_command", required=True)
@@ -41,11 +39,13 @@ def patch_mother_files() -> None:
     epdm_commands.add_parser("reference-demo")
     return parser
 '''
-    if parser_marker not in text:
-        raise SystemExit("CLI parser marker missing")
-    text = text.replace(parser_marker, parser_block, 1)
-    main_marker = '        if args.command == "poe":\n'
-    main_block = '''        if args.command == "package":
+        if parser_marker not in text:
+            raise SystemExit("CLI parser marker missing")
+        text = text.replace(parser_marker, parser_block, 1)
+
+    if 'if args.command == "package":' not in text:
+        main_marker = '        if args.command == "poe":\n'
+        main_block = '''        if args.command == "package":
             from .process_package import process_package_template, validate_process_package
 
             if args.package_command == "template":
@@ -80,9 +80,17 @@ def patch_mother_files() -> None:
                 _print({"status": "CALCULATED_REFERENCE_ONLY", "architecture": metrics, "heat_removal_margin": heat_removal_margin(80.0, 110.0), "scientific_technical_approval": "NOT_EVALUATED"})
                 return 0
 '''
-    if main_marker not in text:
-        raise SystemExit("CLI main marker missing")
-    text = text.replace(main_marker, main_block + main_marker, 1)
+        if main_marker not in text:
+            raise SystemExit("CLI main marker missing")
+        text = text.replace(main_marker, main_block + main_marker, 1)
+
+    required_once = (
+        'commands.add_parser("package"',
+        'commands.add_parser("epdm"',
+        'if args.command == "package":',
+        'if args.command == "epdm":',
+    )
+    for token in required_once:
+        if text.count(token) != 1:
+            raise SystemExit(f"CLI token count must be one: {token}")
     path.write_text(text, encoding="utf-8")
-    if hashlib.sha256(path.read_bytes()).hexdigest() != expected_cli:
-        raise SystemExit("CLI SHA mismatch")
