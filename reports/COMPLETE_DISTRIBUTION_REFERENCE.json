@@ -1,6 +1,6 @@
 {
   "format": "TSAO-COMPLETE-DISTRIBUTION-REFERENCE-2",
-  "version": "0.1.0-alpha.7",
+  "version": "0.1.0-alpha.8",
   "qualification": "NOT_EVALUATED",
   "reason": "The controlled complete distribution has not yet been rebuilt and cleanroom-qualified for alpha.7.",
   "historical_reference": "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",

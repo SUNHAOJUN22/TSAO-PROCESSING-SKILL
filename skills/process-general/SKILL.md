@@ -1,6 +1,6 @@
 ---
 name: TSAO-PROCESS-GENERAL
-version: 0.2.0
+version: 0.3.0
 inherits: ../../SKILL.md
 ---
 
@@ -59,3 +59,7 @@ HOLD when chemistry or balance is unresolved, a property method is only a simula
 ## Required outputs
 
 Produce the master TSAO artifacts plus reaction-basis, property-method, reactor-selection, separation/recycle, utilities, operability, HSE/reliability, pilot/scale-up, TEA/LCA and process-package acceptance dossiers.
+
+## Universal executable package contract
+
+`tsao.process_package` validates design basis, streams, equipment, mass/energy closure, utilities, controls, HSE, evidence, acceptance and named approvals for every routed process family.

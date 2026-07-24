@@ -1,42 +1,28 @@
 ---
 name: TSAO-EPDM
-version: 9.0.0-tsao.1
+version: 9.1.0-tsao.2
 inherits: ../../SKILL.md
 ---
 
-# EPDM Technology Development Subskill
+# EPDM flagship process-package subskill
 
-This subskill specializes TSAO for EPM/EPDM while preserving the master G0–G18 lifecycle, evidence rules, model-risk system and approval boundary.
+EPDM is TSAO's deepest specialist route. It inherits the universal process-package platform and adds active-site-normalized catalyst comparison, E/P/diene competition, molecular-architecture risk, long-chain branching, high-viscosity reactor constraints, recovery/recycle impurities and poison memory, compound/cure bridges and customer-line acceptance.
 
-## Mandatory technical chain
+## Mandatory chain
 
-`application/CQA → catalyst family → active-site population → E/P/diene insertion and transfer → sequence/MWD/CCD/LCB/gel/crystallinity → reactor and heat removal → quench/deashing/devolatilization/recycle → Mooney/rheology/cure/compound → part durability → customer line → technology package`
+`application/CQA → catalyst benchmark and active sites → E/P/diene insertion/transfer/deactivation → sequence/MWD/CCD/retained unsaturation/LCB/gel → phase stability/mixing/heat removal → quench/deashing/devolatilization/recycle → Mooney/compound/cure → durability/customer line → process package`
 
-## Route set
+## Executable reference layer
 
-Evaluate, rather than assume:
+- `skills.epdm.kinetics`: ternary insertion rates, active-site normalization and architecture metrics;
+- `skills.epdm.process`: heat-removal margin, mixing, recycle poison, devolatilization, transition and Mooney references;
+- `skills.epdm.qualification`: fail-closed EPDM case validator;
+- `skills.epdm.package_audit`: universal process-package plus EPDM-specific audit;
+- `skills/epdm/data/module_contracts.json`: fourteen machine-readable professional modules;
+- `skills/epdm/data/requirements.json`: twenty explicit Gate requirements.
 
-- vanadium Ziegler–Natta industrial reference;
-- metallocene, constrained-geometry and other single-site systems;
-- supported and homogeneous catalysts;
-- ENB, DCPD, VNB and other diene options;
-- continuous solution as the principal industrial reference, with slurry or gas-phase candidates only where evidence supports them;
-- single and staged reactor architectures.
+## Non-negotiable holds
 
-## Required models and evidence
+HOLD when the vanadium benchmark is missing without approved retirement, active sites are not anchored, diene topology is unmeasured, heat/mixing/phase stability is open, recycle poison is unclosed, devolatilization lacks a non-equilibrium basis, or the chain from raw polymer to customer line is incomplete.
 
-1. Active-site concentration must be separated from total metal concentration.
-2. The kinetic model must address E/P/diene competition, activation, deactivation and chain transfer.
-3. Molecular architecture must cover sequence, MWD, CCD, long-chain branching, gel and retained unsaturation.
-4. Calorimetry, phase stability, high-viscosity mixing and heat removal define the safe operating envelope.
-5. Recovery must treat non-equilibrium flash/stripping, particle diffusion, RTD, recycle impurities and purge.
-6. Product qualification must bridge raw polymer, fixed compound, processing, cured article and customer line.
-7. Every catalyst and process comparison must preserve a vanadium industrial benchmark unless a Gate explicitly retires it.
-
-## Fail-closed conditions
-
-HOLD the relevant Gate when active-site anchoring is absent, parameters are structurally unidentifiable, diene topology is unmeasured, recycle poisons are unclosed, MR4/MR5 models lack independent review, or customer qualification is represented only by neat-polymer data.
-
-## Historical inheritance
-
-The v9 EPDM release supplied the version-lineage, assurance-graph, evidence-life, multi-fidelity and field-feedback methods absorbed here. Historical numerical values remain reference-only and do not constitute a new design basis.
+All historical catalyst experiments, licensed EOS/CFD, HAZOP/LOPA/SIL, equipment design, compounds and customer trials remain `NOT_EVALUATED` until executed and approved by named qualified teams.

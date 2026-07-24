@@ -48,6 +48,22 @@ _REQUIRED_PATHS = {
     ".github/PULL_REQUEST_TEMPLATE.md",
     "skills/process-general/SKILL.md",
     "skills/epdm/SKILL.md",
+    "tsao/process_package.py",
+    "tsao/data/process_package.schema.json",
+    "skills/process-general/PACKAGE_PLATFORM.md",
+    "skills/epdm/STATUS.md",
+    "skills/epdm/__init__.py",
+    "skills/epdm/core.py",
+    "skills/epdm/kinetics.py",
+    "skills/epdm/process.py",
+    "skills/epdm/qualification.py",
+    "skills/epdm/package_audit.py",
+    "skills/epdm/data/module_contracts.json",
+    "skills/epdm/data/requirements.json",
+    "skills/epdm/fixtures/reference_cases.json",
+    "skills/epdm/schemas/epdm_case.schema.json",
+    "skills/epdm/schemas/epdm_package.schema.json",
+    "skills/epdm/scripts/audit_epdm.py",
     "skills/__init__.py",
     "skills/poe/SKILL.md",
     "skills/poe/STATUS.md",
@@ -98,7 +114,7 @@ _REQUIRED_PATHS = {
     "reports/poe/POE_ALPHA6_COVERAGE_MATRIX.csv",
     "reports/poe/POE_ALPHA6_REMEDIATION_STATUS.csv",
     "reports/poe/POE_ALPHA7_P1_REMEDIATION.md",
-    "reports/ALPHA7_SOURCE_CORE_STATUS.json",
+    "reports/ALPHA8_SOURCE_CORE_STATUS.json",
     "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",
 }
 
@@ -152,8 +168,8 @@ def test_version_metadata_is_consistent() -> None:
     reference = json.loads(
         (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
     )
-    assert tsao.__version__ == "0.1.0-alpha.7"
-    assert pyproject["project"]["version"] == "0.1.0a7"
+    assert tsao.__version__ == "0.1.0-alpha.8"
+    assert pyproject["project"]["version"] == "0.1.0a8"
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
     assert root_skill["version"] == tsao.__version__
@@ -161,7 +177,7 @@ def test_version_metadata_is_consistent() -> None:
     assert reference["version"] == tsao.__version__
     assert reference["qualification"] == "NOT_EVALUATED"
     assert identity["complete_distribution"]["qualification"] == "NOT_EVALUATED"
-    assert "## 0.1.0-alpha.7" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "## 0.1.0-alpha.8" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
 
 
@@ -187,6 +203,11 @@ def test_manifest_registers_all_specialists_and_truthful_poe_status() -> None:
         "poe",
         "polymer-general",
     ]
+    epdm = next(item for item in manifest["subskills"] if item["id"] == "epdm")
+    assert epdm["inherited_release"] == "9.1.0-tsao.2"
+    assert epdm["implementation_status"] == "executable-flagship-alpha-p1-reference"
+    assert epdm["module_contracts"] == "14_OF_14"
+    assert epdm["requirement_registry"] == "20_OF_20"
     poe = next(item for item in manifest["subskills"] if item["id"] == "poe")
     assert poe["inherited_release"] == "1.2.0-tsao.3"
     assert poe["implementation_status"] == "executable-specialist-alpha-p1-reference"
@@ -220,11 +241,14 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "export_source_snapshot.py" in workflow
     assert "tsao.cli doctor" in workflow
     assert "verify_wheel_contents.py" in workflow
+    assert "skills/epdm/scripts/audit_epdm.py" in workflow
+    assert "tsao.cli package template" in workflow
+    assert "tsao.cli epdm audit" in workflow
     assert "skills/poe/scripts/audit_p0.py" in workflow
     assert "skills/poe/scripts/audit_p1.py" in workflow
     assert "verify_wheel_runtime.py" in workflow
     assert "coverage" in (ROOT / "scripts/run_ci.py").read_text(encoding="utf-8")
-    assert "alpha7" in workflow.casefold()
+    assert "alpha8" in workflow.casefold()
 
 
 def test_relative_markdown_links_resolve() -> None:

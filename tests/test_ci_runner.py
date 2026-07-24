@@ -15,6 +15,7 @@ def test_ci_runner_covers_all_specialist_suites() -> None:
     expected = {
         "tests",
         "skills/process-general/tests",
+        "skills/epdm/tests",
         "skills/poe/tests",
         "skills/polymer-general/tests",
     }

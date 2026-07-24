@@ -41,3 +41,7 @@ The GitHub source core contains the installable master kernel and reviewable spe
 ## Qualification boundary
 
 Repository CI qualifies code and data contracts only. Scientific validity, engineering design, process safety, FTO, customer approval and industrial performance remain `NOT_EVALUATED` until real evidence and named accountable reviewers are present.
+
+## Alpha.8 package platform
+
+`tsao.process_package` is the universal executable content contract. EPDM is the flagship specialist adapter; POE remains the evidence-rich specialist adapter.

@@ -21,3 +21,7 @@ The subskill inherits the TSAO G0–G18 state machine and supplies a non-polymer
 ## Software neutrality
 
 The canonical evidence, material, stream, reaction, model, Gate and acceptance records remain outside any simulator. DWSIM/CAPE-OPEN, IDAES, Cantera, Pyomo, CoolProp, commercial simulators and multiphysics tools act as adapters and must return versioned, reviewable outputs to the project digital thread.
+
+## Universal executable package contract
+
+`tsao.process_package` validates design basis, streams, equipment, mass/energy closure, utilities, controls, HSE, evidence, acceptance and named approvals for every routed process family.

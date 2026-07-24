@@ -1,19 +1,14 @@
-# TSAO capability matrix — 0.1.0-alpha.7
+# TSAO capability matrix — 0.1.0-alpha.8
 
-| Capability | Master | Process-general | EPDM | POE | Polymer-general | Verification |
-|---|---:|---:|---:|---:|---:|---|
-| G0–G18 lifecycle | native | inherits | inherits | inherits | inherits | Gate Schema and false-PASS tests |
-| 14 workstreams / 266 packages | native | inherits | inherits | inherits | inherits | bootstrap and work-package Schema |
-| Evidence and lineage | native | supported | detailed | executable alpha | supported | 139 assets, 18 requirements, 7 conflicts |
-| Kinetics and estimation | framework | general kernels | EPDM-specific | P1 reference | mechanism-neutral | conservation, bounded fit, Jacobian and identifiability |
-| Properties and transport | framework | general kernels | EPDM-specific | P1 reference | supported | error metrics, ranges, viscosity and heat-transfer checks |
-| Reactors and heat removal | framework | detailed | detailed | P1 reference | supported | PFR/CSTR known solutions and margin Gates |
-| Steady/dynamic process cases | framework | detailed | detailed | executable validator | supported | component balances, convergence and dynamic assets |
-| Dynamics and transitions | framework | detailed | detailed | P1 reference | supported | FOPDT, response metrics and recycle memory |
-| Scale-up | native | detailed | detailed | P1 reference | detailed | dimensionless groups and similarity tolerances |
-| Package and acceptance | native | detailed | detailed | audit v2 alpha | detailed | hashes, evidence, conflicts, requirements and approval |
-| Model-asset passports | framework | supported | controlled | executable Schema | controlled | software/database/property/dependency identity |
-| Wheel delivery | native | inherits | controlled | runtime verified | controlled | member and installed-runtime checks |
-| Cross-platform packaging | native | inherits | inherits | qualified alpha | inherits | Ubuntu 3.11/3.12, Windows 3.12, macOS 3.12 |
+| Capability | Universal package | EPDM flagship | POE specialist | Verification |
+|---|---:|---:|---:|---|
+| Design basis / streams / equipment | executable alpha | inherits + EPDM constraints | specialist case validator | Schema, references, attack tests |
+| Mass and energy closure | executable alpha | reactor/recovery package | POE flowsheet validator | known balances and false-PASS tests |
+| Evidence / acceptance / approvals | executable alpha | 20 EPDM Gate requirements | 139 assets / 18 requirements / 7 conflicts | qualified-evidence and named-approval tests |
+| Kinetics / architecture | framework | P1 ternary active-site reference | P1 POE moment reference | conservation, boundaries, known solutions |
+| Reactor / mixing / heat | framework | EPDM margin and mixing Gates | P1 reactor references | capacity, phase, transport Gates |
+| Recovery / recycle | generic closure | poison, purge, guard, devolatilization | POE recycle/devolatilization | finite steady state and HOLD tests |
+| Product/customer bridge | generic acceptance | raw polymer → compound → cure → part → line | application/CQA modules | stage-by-stage evidence tests |
+| Wheel/runtime | qualified alpha | runtime verified | runtime verified | clean-wheel import and calculations |
 
-These labels describe open-software depth, not project approval. Historical model execution and every scientific, engineering, HSE, legal, customer and industrial decision remain `NOT_EVALUATED` until supported by project evidence and named approval.
+Open-software depth is not scientific or engineering approval. Historical commercial models and physical qualification remain `NOT_EVALUATED`.

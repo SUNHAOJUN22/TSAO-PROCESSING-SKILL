@@ -7,6 +7,21 @@ import zipfile
 from pathlib import Path
 
 _REQUIRED = {
+    "tsao/process_package.py",
+    "tsao/data/process_package.schema.json",
+    "skills/epdm/__init__.py",
+    "skills/epdm/SKILL.md",
+    "skills/epdm/STATUS.md",
+    "skills/epdm/core.py",
+    "skills/epdm/kinetics.py",
+    "skills/epdm/process.py",
+    "skills/epdm/qualification.py",
+    "skills/epdm/package_audit.py",
+    "skills/epdm/data/module_contracts.json",
+    "skills/epdm/data/requirements.json",
+    "skills/epdm/fixtures/reference_cases.json",
+    "skills/epdm/schemas/epdm_case.schema.json",
+    "skills/epdm/schemas/epdm_package.schema.json",
     "skills/poe/__init__.py",
     "skills/poe/SKILL.md",
     "skills/poe/ARCHITECTURE.md",
@@ -89,6 +104,7 @@ def verify(wheel: Path) -> dict[str, object]:
         "pass": not errors,
         "errors": errors,
         "poe_members": len([name for name in names if name.startswith("skills/poe/")]),
+        "epdm_members": len([name for name in names if name.startswith("skills/epdm/")]),
         "module_count": len(_MODULES),
     }
 

@@ -44,6 +44,8 @@ def main() -> int:
         "workstreams": len(WORKSTREAMS),
         "maturity_levels": len(MATURITY_LEVELS),
         "subskills": details,
+        "universal_package_status": "EXECUTABLE_ALPHA",
+        "epdm_status": "EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE",
         "poe_status": "EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE",
         "technical_approval_status": "NOT_EVALUATED",
     }

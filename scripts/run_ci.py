@@ -21,6 +21,7 @@ __version__ = tsao.__version__
 TEST_PATHS = (
     "tests",
     "skills/process-general/tests",
+    "skills/epdm/tests",
     "skills/poe/tests",
     "skills/polymer-general/tests",
 )
@@ -29,6 +30,7 @@ RUFF_PATHS = (
     "tests",
     "scripts",
     "skills/process-general",
+    "skills/epdm",
     "skills/poe",
     "skills/polymer-general",
 )
@@ -134,8 +136,8 @@ def main() -> int:
                 "coverage",
                 "run",
                 "--branch",
-                "--source=skills.poe",
-                "--omit=skills/poe/scripts/*",
+                "--source=skills.poe,skills.epdm,tsao.process_package",
+                "--omit=skills/poe/scripts/*,skills/epdm/scripts/*",
                 "-m",
                 "pytest",
                 "-q",
@@ -158,6 +160,7 @@ def main() -> int:
             cwd=root,
         ),
         run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
+        run([sys.executable, "skills/epdm/scripts/audit_epdm.py"], cwd=root),
         run([sys.executable, "skills/poe/scripts/audit_p0.py", "--root", "."], cwd=root),
         run([sys.executable, "skills/poe/scripts/audit_p1.py", "--root", "."], cwd=root),
         run(
@@ -172,6 +175,8 @@ def main() -> int:
         "pass": passed,
         "checks": checks,
         "artifact_software_qualification": "PASS" if passed else "FAIL",
+        "universal_process_package_status": "EXECUTABLE_ALPHA" if passed else "HOLD",
+        "epdm_software_status": "EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE" if passed else "HOLD",
         "poe_software_status": (
             "EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE" if passed else "HOLD"
         ),

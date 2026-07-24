@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tsao.example/schemas/epdm-package.schema.json","type":"object","required":["package_id","process_family","design_basis","streams","equipment","epdm_case"],"properties":{"epdm_case":{"$ref":"epdm_case.schema.json"}},"additionalProperties":true}

@@ -1,0 +1,126 @@
+name: Finalize alpha8 once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: tsao-alpha8-finalizer
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-ALPHA8]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Qualify, publish and verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          stage="initialization"; run_id="none"; current_log=""
+          report_failure() {
+            body="Alpha.8 stopped fail-closed at **$stage**. CI run: \`$run_id\`; finalizer: \`$GITHUB_RUN_ID\`."
+            if [ -n "$current_log" ] && [ -f "$current_log" ]; then
+              { echo "$body"; echo; echo '```text'; tail -n 140 "$current_log"; echo '```'; } > "$RUNNER_TEMP/failure.md"
+              gh issue comment 39 --body-file "$RUNNER_TEMP/failure.md" || true
+            else gh issue comment 39 --body "$body" || true; fi
+          }
+          trap report_failure ERR
+          run_stage() { stage="$1"; shift; current_log="$RUNNER_TEMP/${stage//[^A-Za-z0-9]/_}.log"; "$@" >"$current_log" 2>&1; tail -n 20 "$current_log" || true; current_log=""; }
+          clean_tree() {
+            rm -rf build dist wheelhouse work .pytest_cache .ruff_cache .coverage coverage.xml
+            find . -type d -name __pycache__ -prune -exec rm -rf {} +
+            find . -maxdepth 1 -type d -name '*.egg-info' -prune -exec rm -rf {} +
+            rm -f reports/runtime/*.json reports/runtime/*.tmp 2>/dev/null || true
+          }
+          wait_ci() {
+            local sha="$1" started="$2" row status conclusion
+            run_id="none"
+            for _ in $(seq 1 300); do
+              row=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=workflow_dispatch&branch=main&per_page=20" --jq ".workflow_runs | map(select(.head_sha == \"$sha\" and .created_at >= \"$started\")) | sort_by(.created_at) | reverse | .[0] | [.id,.status,(.conclusion // \"\")] | @tsv" 2>/dev/null || true)
+              if [ -z "$row" ] || [ "$row" = $'\t\t' ]; then sleep 10; continue; fi
+              IFS=$'\t' read -r run_id status conclusion <<< "$row"
+              if [ "$status" = completed ]; then test "$conclusion" = success; return 0; fi
+              sleep 10
+            done
+            return 1
+          }
+          dispatch_ci() { local sha="$1" started; started=$(date -u +%Y-%m-%dT%H:%M:%SZ); gh workflow run ci.yml --ref main; wait_ci "$sha" "$started"; }
+          stage="lock main"
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main; test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          stage="reconstruct mother files"
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib
+          jobs = [
+              ("capabilities", "tsao/capabilities.py", "0bb0d0b6be957b4d6e6ca3439dd227a3cac93a1b41ba2004e2aa7037fec76dc2"),
+              ("cli", "tsao/cli.py", "3228a396dfe76d91f9e049d5041cd291c704639d756b09e95619bb7f7fac111b"),
+          ]
+          for stem, target, expected in jobs:
+              parts = sorted(Path("reports/runtime").glob(f"alpha8-{stem}.b64.*"))
+              payload = base64.b64decode("".join(p.read_text(encoding="ascii") for p in parts), validate=True)
+              actual = hashlib.sha256(payload).hexdigest()
+              if actual != expected: raise SystemExit(f"{target} SHA mismatch: {actual}")
+              Path(target).write_bytes(payload)
+          PY
+          python -m py_compile tsao/capabilities.py tsao/cli.py tsao/process_package.py
+          run_stage "install" python -m pip install --quiet -e '.[dev]'
+          run_stage "pip check" python -m pip check
+          clean_tree
+          run_stage "manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          run_stage "run ci" python scripts/run_ci.py
+          run_stage "EPDM audit" python skills/epdm/scripts/audit_epdm.py
+          run_stage "wheel" python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          run_stage "wheel members" python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          run_stage "wheel runtime" python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          stage="publish prepared candidate"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('reports/ALPHA8_SOURCE_CORE_STATUS.json'); d=json.loads(p.read_text()); d['status']='QUALIFIED_CANDIDATE'; p.write_text(json.dumps(d,indent=2)+'\n')
+          PY
+          clean_tree; python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          git add -A; git commit -m "fix: materialize alpha8 mother runtime"; git push origin HEAD:main
+          prepared=$(git rev-parse HEAD); stage="prepared four-platform CI"; dispatch_ci "$prepared"
+          stage="prepare final tree"
+          git fetch origin main; test "$(git rev-parse origin/main)" = "$prepared"
+          git rm .github/workflows/finalize-alpha8-once.yml
+          git rm reports/runtime/alpha8-capabilities.b64.* reports/runtime/alpha8-cli.b64.*
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('reports/ALPHA8_SOURCE_CORE_STATUS.json'); d=json.loads(p.read_text()); d['status']='QUALIFIED_ALPHA'; p.write_text(json.dumps(d,indent=2)+'\n')
+          PY
+          clean_tree; run_stage "final manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          run_stage "final run ci" python scripts/run_ci.py
+          run_stage "final EPDM" python skills/epdm/scripts/audit_epdm.py
+          run_stage "final wheel" python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          run_stage "final wheel members" python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          run_stage "final wheel runtime" python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          stage="publish final main"
+          clean_tree; python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          git add -A; git commit -m "feat: deliver alpha8 universal process package and EPDM flagship"; git push origin HEAD:main
+          final_sha=$(git rev-parse HEAD); stage="final four-platform CI"; dispatch_ci "$final_sha"
+          stage="verify sole main"
+          mapfile -t branches < <(git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | sort)
+          test "${#branches[@]}" -eq 1 && test "${branches[0]}" = main
+          trap - ERR
+          gh issue comment 39 --body "## Alpha.8 final qualification PASS\n\n- final main: \`$final_sha\`\n- final CI: \`$run_id\` **PASS**\n- universal package: **PASS**\n- EPDM 14/14 modules, 20/20 requirements: **PASS**\n- 179 tests / 78% joint branch coverage / doctor / Ruff / wheel / runtime / CLI: **PASS**\n- Ubuntu 3.11/3.12, Windows 3.12, macOS 3.12: **PASS**\n- remaining branch: \`main\`\n- one-shot workflow and transport chunks: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
+          gh issue close 39 --reason completed

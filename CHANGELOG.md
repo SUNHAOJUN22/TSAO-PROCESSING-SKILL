@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.8 — 2026-07-24
+
+- Added the universal executable process-package platform.
+- Promoted EPDM to a flagship P1 reference specialist with fourteen modules and twenty requirements.
+- Added generic/EPDM CLI, Schema, fixtures, wheel runtime and adversarial tests.
+- Simplified README around universal package, EPDM and POE entrances.
+
+
 All notable changes are documented here. The project follows Semantic Versioning.
 
 ## 0.1.0-alpha.7 — 2026-07-24

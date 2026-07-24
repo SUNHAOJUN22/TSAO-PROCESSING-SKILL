@@ -1,46 +1,28 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.7
+version: 0.1.0-alpha.8
 status: active-alpha
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
 license: Apache-2.0
 repository: SUNHAOJUN22/TSAO-PROCESSING-SKILL
-principles:
-- traceable
-- scientific
-- auditable
-- operational
-- fail-closed
-- software-neutral
-- human-accountable
-lifecycle_gates:
-- G0
-- G1
-- G2
-- G3
-- G4
-- G5
-- G6
-- G7
-- G8
-- G9
-- G10
-- G11
-- G12
-- G13
-- G14
-- G15
-- G16
-- G17
-- G18
+principles: [traceable, scientific, auditable, operational, fail-closed, software-neutral, human-accountable]
+lifecycle_gates: [G0, G1, G2, G3, G4, G5, G6, G7, G8, G9, G10, G11, G12, G13, G14, G15, G16, G17, G18]
 subskills:
 - id: process-general
   path: skills/process-general
-  inherited_release: 0.2.0
+  inherited_release: 0.3.0
+  implementation_status: universal-process-package-platform-alpha
 - id: epdm
   path: skills/epdm
-  inherited_release: 9.0.0
+  inherited_release: 9.1.0-tsao.2
+  implementation_status: executable-flagship-alpha-p1-reference
+  module_contracts: 14_OF_14
+  requirement_registry: 20_OF_20
+  process_package_qualification: UNIVERSAL_PLUS_EPDM_AUDIT_ALPHA
+  scientific_execution: UNDER_DISTILLATION
+  historical_asset_lineage: NOT_REGISTERED_IN_THIS_RELEASE
+  wheel_delivery: RUNTIME_VERIFIED
 - id: poe
   path: skills/poe
   inherited_release: 1.2.0-tsao.3

@@ -21,6 +21,8 @@ def verify(wheel: Path) -> dict[str, object]:
 import json
 from importlib.resources import files
 import numpy as np
+from tsao.process_package import validate_process_package
+from skills.epdm.core import active_site_fraction, heat_removal_margin, validate_epdm_case
 from skills.poe.core import (
     first_order_pfr_conversion,
     fit_first_order_rate,
@@ -33,7 +35,10 @@ fit = fit_first_order_rate(times, 1.0 - np.exp(-0.2 * times), lower_s=0.01, uppe
 response = fopdt_response([0.0, 1.0, 10.0], gain=1.0, time_constant_s=2.0)
 passport = json.loads(files('skills.poe').joinpath('data/model_asset_passports.json').read_text(encoding='utf-8'))
 validated = validate_model_passport_registry(passport)
-print(json.dumps({'pfr': pfr, 'fit': fit['rate_constant_s'], 'response': response.tolist(), 'passport_status': validated['status']}))
+epdm = json.loads(files('skills.epdm').joinpath('fixtures/reference_cases.json').read_text(encoding='utf-8'))
+case = validate_epdm_case(epdm['valid_case'])
+package = validate_process_package(epdm['valid_package'])
+print(json.dumps({'pfr': pfr, 'fit': fit['rate_constant_s'], 'response': response.tolist(), 'passport_status': validated['status'], 'active_site': active_site_fraction(10,6), 'heat_margin': heat_removal_margin(80,100), 'epdm_status': case['status'], 'package_status': package['status']}))
 """
     completed = subprocess.run(
         [
@@ -59,6 +64,10 @@ print(json.dumps({'pfr': pfr, 'fit': fit['rate_constant_s'], 'response': respons
             errors.append("installed wheel PFR known solution mismatch")
         if payload and abs(float(payload.get("fit", 0.0)) - 0.2) > 1e-5:
             errors.append("installed wheel parameter-fit known solution mismatch")
+        if payload and payload.get("epdm_status") != "PASS":
+            errors.append("installed wheel EPDM reference validation failed")
+        if payload and payload.get("package_status") != "PASS":
+            errors.append("installed wheel universal package validation failed")
     return {"wheel": str(wheel), "pass": not errors, "errors": errors, "runtime": payload}
 
 

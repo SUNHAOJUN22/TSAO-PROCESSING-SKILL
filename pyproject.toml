@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tsao-processing-skill"
-version = "0.1.0a7"
+version = "0.1.0a8"
 description = "Traceable, scientific, auditable and operational chemical process development skill"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -35,11 +35,20 @@ dev = [
 tsao = "tsao.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["tsao*", "skills", "skills.poe*"]
+include = ["tsao*", "skills", "skills.poe*", "skills.epdm*"]
 exclude = ["skills.poe.tests*"]
 namespaces = true
 
 [tool.setuptools.package-data]
+"tsao" = ["data/*.json"]
+"skills.epdm" = [
+  "*.md",
+  "data/*.json",
+  "docs/*.md",
+  "fixtures/*.json",
+  "schemas/*.json",
+  "scripts/*.py",
+]
 "skills.poe" = [
   "*.md",
   "data/*.json",
@@ -55,6 +64,7 @@ namespaces = true
 testpaths = [
   "tests",
   "skills/process-general/tests",
+  "skills/epdm/tests",
   "skills/poe/tests",
   "skills/polymer-general/tests",
 ]
