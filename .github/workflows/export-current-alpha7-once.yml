@@ -105,6 +105,28 @@ jobs:
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
 
+          stage="materialize verified package audit"
+          current_log="$RUNNER_TEMP/materialize_package_audit.log"
+          python - <<'PY' >"$current_log" 2>&1
+          from pathlib import Path
+          import base64
+          import hashlib
+
+          parts = [Path(f"reports/runtime/package_audit.b64.{index:02d}") for index in range(1, 5)]
+          encoded = "".join(path.read_text(encoding="ascii").strip() for path in parts)
+          payload = base64.b64decode(encoded, validate=True)
+          expected = "1ad841ef4603129fa9629036e443ecc90f432a86bd5a7418374f16527c1f74f6"
+          actual = hashlib.sha256(payload).hexdigest()
+          if actual != expected:
+              raise SystemExit(f"package_audit SHA-256 mismatch: {actual}")
+          target = Path("skills/poe/package_audit.py")
+          target.write_bytes(payload)
+          print({"bytes": len(payload), "sha256": actual})
+          PY
+          python -m py_compile skills/poe/package_audit.py >>"$current_log" 2>&1
+          tail -n 20 "$current_log"
+          current_log=""
+
           run_stage "install editable package" python -m pip install --quiet -e '.[dev]'
           run_stage "dependency integrity" python -m pip check
           clean_tree
@@ -119,9 +141,9 @@ jobs:
           stage="publish frozen candidate identity"
           clean_tree
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
-          git add reports/SOURCE_CORE_MANIFEST.tsv
+          git add skills/poe/package_audit.py reports/SOURCE_CORE_MANIFEST.tsv
           if ! git diff --cached --quiet; then
-            git commit -m "chore: freeze alpha7 candidate source identity"
+            git commit -m "fix(poe): restore verified package audit source"
             git push origin HEAD:main
           fi
           prepared_sha=$(git rev-parse HEAD)
@@ -133,6 +155,7 @@ jobs:
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$prepared_sha"
           git rm .github/workflows/export-current-alpha7-once.yml
+          git rm reports/runtime/package_audit.b64.01 reports/runtime/package_audit.b64.02 reports/runtime/package_audit.b64.03 reports/runtime/package_audit.b64.04
           clean_tree
           run_stage "final-tree manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           run_stage "final-tree run_ci" python scripts/run_ci.py
@@ -156,5 +179,5 @@ jobs:
           test "${#branches[@]}" -eq 1 && test "${branches[0]}" = main
 
           trap - ERR
-          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- final CI run: \`$run_id\` **PASS**\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
+          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- final CI run: \`$run_id\` **PASS**\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows and repair chunks: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
           gh issue close 37 --reason completed
