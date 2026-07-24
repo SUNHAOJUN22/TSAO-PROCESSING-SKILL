@@ -111,7 +111,7 @@ jobs:
           from pathlib import Path
 
           path = Path("skills/poe/package_audit.py")
-          text = path.read_text(encoding="utf-8")
+          text = path.read_text(encoding="utf-8", errors="replace")
           start = text.index("_PLACEHOLDER_PATTERNS = (")
           end = text.index("\n\n\ndef _sha256", start)
           replacement = r'''_PLACEHOLDER_PATTERNS = (
