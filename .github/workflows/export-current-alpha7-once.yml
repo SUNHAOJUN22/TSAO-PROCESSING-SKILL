@@ -39,7 +39,7 @@ jobs:
           report_failure() {
             body="Alpha.7 final orchestration stopped fail-closed at stage **$stage**. Related CI run: \`$run_id\`. Orchestrator run: \`$GITHUB_RUN_ID\`."
             if [ -n "$current_log" ] && [ -f "$current_log" ]; then
-              tail -n 120 "$current_log" > "$RUNNER_TEMP/failure-tail.txt"
+              tail -n 160 "$current_log" > "$RUNNER_TEMP/failure-tail.txt"
               {
                 echo "$body"
                 echo
@@ -161,6 +161,7 @@ jobs:
           run_stage "dependency integrity" python -m pip check
           run_stage "format repaired audit" python -m ruff format skills/poe/package_audit.py
           run_stage "lint repaired audit" python -m ruff check --fix skills/poe/package_audit.py
+          run_stage "repository ruff" python -m ruff check tsao tests scripts skills/process-general skills/poe skills/polymer-general
           clean_tree
           run_stage "rebuild candidate manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           run_stage "complete run_ci" python scripts/run_ci.py
