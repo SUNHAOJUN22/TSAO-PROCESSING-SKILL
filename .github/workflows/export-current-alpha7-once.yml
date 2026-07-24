@@ -1,8 +1,8 @@
 name: Export current alpha7 candidate
 
 on:
-  issues:
-    types: [opened]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -10,13 +10,12 @@ permissions:
 
 jobs:
   export:
-    if: ${{ startsWith(github.event.issue.title, '[EXPORT-CURRENT-ALPHA7]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - name: Export tracked source
         run: git archive --format=zip --output=current-alpha7-main.zip HEAD
@@ -29,6 +28,4 @@ jobs:
       - name: Report export
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment "${{ github.event.issue.number }}" --body "run_id=${{ github.run_id }} sha=${{ github.sha }}"
-          gh issue close "${{ github.event.issue.number }}" --reason completed
+        run: gh issue comment 38 --body "run_id=${{ github.run_id }} sha=${{ github.sha }}"
