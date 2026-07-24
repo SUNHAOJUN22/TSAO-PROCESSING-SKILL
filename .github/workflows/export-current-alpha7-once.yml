@@ -1,0 +1,34 @@
+name: Export current alpha7 candidate
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: ${{ startsWith(github.event.issue.title, '[EXPORT-CURRENT-ALPHA7]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Export tracked source
+        run: git archive --format=zip --output=current-alpha7-main.zip HEAD
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: current-alpha7-main-${{ github.sha }}
+          path: current-alpha7-main.zip
+          if-no-files-found: error
+          retention-days: 3
+      - name: Report export
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "run_id=${{ github.run_id }} sha=${{ github.sha }}"
+          gh issue close "${{ github.event.issue.number }}" --reason completed
