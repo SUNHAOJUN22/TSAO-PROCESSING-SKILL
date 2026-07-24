@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import tsao
+import tsao  # noqa: E402
 
 __version__ = tsao.__version__
 
