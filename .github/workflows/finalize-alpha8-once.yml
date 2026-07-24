@@ -66,21 +66,32 @@ jobs:
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main; test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
           stage="reconstruct mother files"
-          python - <<'PY'
+          current_log="$RUNNER_TEMP/reconstruct_mother_files.log"
+          python - <<'PY' >"$current_log" 2>&1
           from pathlib import Path
-          import base64, hashlib
+          import base64, hashlib, json
           jobs = [
               ("capabilities", "tsao/capabilities.py", "0bb0d0b6be957b4d6e6ca3439dd227a3cac93a1b41ba2004e2aa7037fec76dc2"),
               ("cli", "tsao/cli.py", "3228a396dfe76d91f9e049d5041cd291c704639d756b09e95619bb7f7fac111b"),
           ]
           for stem, target, expected in jobs:
               parts = sorted(Path("reports/runtime").glob(f"alpha8-{stem}.b64.*"))
-              payload = base64.b64decode("".join(p.read_text(encoding="ascii") for p in parts), validate=True)
+              encoded = "".join(p.read_text(encoding="ascii") for p in parts)
+              record = {"stem": stem, "parts": [p.name for p in parts], "encoded_chars": len(encoded), "expected": expected}
+              try:
+                  payload = base64.b64decode(encoded, validate=True)
+              except Exception as exc:
+                  record["decode_error"] = repr(exc)
+                  print(json.dumps(record), flush=True)
+                  raise
               actual = hashlib.sha256(payload).hexdigest()
+              record.update({"decoded_bytes": len(payload), "actual": actual})
+              print(json.dumps(record), flush=True)
               if actual != expected: raise SystemExit(f"{target} SHA mismatch: {actual}")
               Path(target).write_bytes(payload)
           PY
-          python -m py_compile tsao/capabilities.py tsao/cli.py tsao/process_package.py
+          python -m py_compile tsao/capabilities.py tsao/cli.py tsao/process_package.py >>"$current_log" 2>&1
+          tail -n 20 "$current_log"; current_log=""
           run_stage "install" python -m pip install --quiet -e '.[dev]'
           run_stage "pip check" python -m pip check
           clean_tree
