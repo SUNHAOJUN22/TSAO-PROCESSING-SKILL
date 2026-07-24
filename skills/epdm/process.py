@@ -23,7 +23,9 @@ def heat_removal_margin(generation_kW: float, removal_capacity_kW: float) -> flo
     return (capacity - generation) / capacity
 
 
-def mixing_reynolds(density_kg_m3: float, speed_s: float, diameter_m: float, viscosity_Pa_s: float) -> float:
+def mixing_reynolds(
+    density_kg_m3: float, speed_s: float, diameter_m: float, viscosity_Pa_s: float
+) -> float:
     density = _finite(density_kg_m3, "density")
     speed = _finite(speed_s, "speed")
     diameter = _finite(diameter_m, "diameter")
@@ -33,7 +35,12 @@ def mixing_reynolds(density_kg_m3: float, speed_s: float, diameter_m: float, vis
     return density * speed * diameter**2 / viscosity
 
 
-def recycle_poison_steady_state(fresh_poison_mol_h: float, recycle_fraction: float, purge_fraction: float, guard_removal_fraction: float) -> float:
+def recycle_poison_steady_state(
+    fresh_poison_mol_h: float,
+    recycle_fraction: float,
+    purge_fraction: float,
+    guard_removal_fraction: float,
+) -> float:
     fresh = _finite(fresh_poison_mol_h, "fresh poison")
     recycle = _finite(recycle_fraction, "recycle fraction")
     purge = _finite(purge_fraction, "purge fraction")
@@ -46,7 +53,9 @@ def recycle_poison_steady_state(fresh_poison_mol_h: float, recycle_fraction: flo
     return fresh / (1.0 - retained)
 
 
-def devolatilization_residual(initial_mass_fraction: float, rate_s: float, residence_s: float) -> float:
+def devolatilization_residual(
+    initial_mass_fraction: float, rate_s: float, residence_s: float
+) -> float:
     initial = _finite(initial_mass_fraction, "initial volatile fraction")
     rate = _finite(rate_s, "devolatilization rate")
     residence = _finite(residence_s, "residence time")

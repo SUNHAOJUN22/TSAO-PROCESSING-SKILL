@@ -25,7 +25,7 @@ class EpdmKineticParameters:
     k_deactivation_s: float
     k_poison_L_mol_s: float = 0.0
 
-    def validated(self) -> "EpdmKineticParameters":
+    def validated(self) -> EpdmKineticParameters:
         values = {name: _finite(value, name) for name, value in self.__dict__.items()}
         if min(values.values()) < 0:
             raise ValueError("kinetic parameters must be non-negative")
@@ -40,7 +40,7 @@ class EpdmKineticState:
     active_site_mol_L: float
     poison_mol_L: float = 0.0
 
-    def validated(self) -> "EpdmKineticState":
+    def validated(self) -> EpdmKineticState:
         values = {name: _finite(value, name) for name, value in self.__dict__.items()}
         if min(values.values()) < 0:
             raise ValueError("state concentrations must be non-negative")
@@ -65,13 +65,17 @@ def insertion_rates(state: EpdmKineticState, parameters: EpdmKineticParameters) 
         "diene": parameters.kp_d_L_mol_s * state.diene_mol_L * site,
     }
     transfer = parameters.k_transfer_s * site
-    deactivation = (parameters.k_deactivation_s + parameters.k_poison_L_mol_s * state.poison_mol_L) * site
+    deactivation = (
+        parameters.k_deactivation_s + parameters.k_poison_L_mol_s * state.poison_mol_L
+    ) * site
     rates["transfer"] = transfer
     rates["deactivation"] = deactivation
     return rates
 
 
-def insertion_fractions(state: EpdmKineticState, parameters: EpdmKineticParameters) -> dict[str, float]:
+def insertion_fractions(
+    state: EpdmKineticState, parameters: EpdmKineticParameters
+) -> dict[str, float]:
     rates = insertion_rates(state, parameters)
     total = rates["ethylene"] + rates["propylene"] + rates["diene"]
     if total <= 0:
@@ -79,7 +83,14 @@ def insertion_fractions(state: EpdmKineticState, parameters: EpdmKineticParamete
     return {name: rates[name] / total for name in ("ethylene", "propylene", "diene")}
 
 
-def architecture_metrics(state: EpdmKineticState, parameters: EpdmKineticParameters, *, secondary_diene_insertion_probability: float, branch_efficiency: float, gel_critical_branch_index: float) -> dict[str, float]:
+def architecture_metrics(
+    state: EpdmKineticState,
+    parameters: EpdmKineticParameters,
+    *,
+    secondary_diene_insertion_probability: float,
+    branch_efficiency: float,
+    gel_critical_branch_index: float,
+) -> dict[str, float]:
     fractions = insertion_fractions(state, parameters)
     secondary = _finite(secondary_diene_insertion_probability, "secondary diene insertion")
     efficiency = _finite(branch_efficiency, "branch efficiency")

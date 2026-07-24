@@ -61,14 +61,25 @@ def compare_similarity(
         reference = float(base[name])
         trial = float(candidate[name])
         tol = float(tolerance)
-        if not all(math.isfinite(value) for value in (reference, trial, tol)) or reference <= 0 or trial <= 0 or tol < 0:
+        if (
+            not all(math.isfinite(value) for value in (reference, trial, tol))
+            or reference <= 0
+            or trial <= 0
+            or tol < 0
+        ):
             errors.append(f"invalid similarity values for {name}")
             continue
         deviation = abs(trial / reference - 1.0)
         deviations[name] = deviation
         if deviation > tol:
             errors.append(f"{name} deviation {deviation:.6g} exceeds tolerance {tol:.6g}")
-    status = "PASS" if not errors and tolerances_fraction else "HOLD" if not tolerances_fraction else "FAIL"
+    status = (
+        "PASS"
+        if not errors and tolerances_fraction
+        else "HOLD"
+        if not tolerances_fraction
+        else "FAIL"
+    )
     return {
         "status": status,
         "deviations_fraction": deviations,

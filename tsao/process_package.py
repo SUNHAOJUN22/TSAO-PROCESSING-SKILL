@@ -34,7 +34,9 @@ def _records(value: object, label: str, errors: list[str]) -> list[dict[str, Any
     return records
 
 
-def _unique_ids(records: list[dict[str, Any]], field: str, label: str, errors: list[str]) -> set[str]:
+def _unique_ids(
+    records: list[dict[str, Any]], field: str, label: str, errors: list[str]
+) -> set[str]:
     seen: set[str] = set()
     for index, record in enumerate(records, start=1):
         value = record.get(field)
@@ -76,7 +78,12 @@ def validate_process_package(package: object) -> dict[str, Any]:
     errors: list[str] = []
     holds: list[str] = []
     if not isinstance(package, dict):
-        return {"status": "FAIL", "pass": False, "errors": ["package root must be an object"], "holds": []}
+        return {
+            "status": "FAIL",
+            "pass": False,
+            "errors": ["package root must be an object"],
+            "holds": [],
+        }
 
     package_id = package.get("package_id")
     process_family = package.get("process_family")
@@ -167,7 +174,9 @@ def validate_process_package(package: object) -> dict[str, Any]:
             if not isinstance(node, str) or not node.strip():
                 errors.append(f"stream {identifier or '<unknown>'} has invalid {label}")
             elif node not in equipment_ids and node not in _BOUNDARY_NODES:
-                errors.append(f"stream {identifier or '<unknown>'} references unknown {label}: {node}")
+                errors.append(
+                    f"stream {identifier or '<unknown>'} references unknown {label}: {node}"
+                )
         try:
             total_mass = _finite(stream.get("total_mass_kg_h"), f"stream {identifier} mass flow")
             _finite(stream.get("enthalpy_kW"), f"stream {identifier} enthalpy")
@@ -187,12 +196,16 @@ def validate_process_package(package: object) -> dict[str, Any]:
                 try:
                     value = _finite(fraction, f"stream {identifier} composition {component}")
                     if value < 0:
-                        errors.append(f"stream {identifier} composition {component} must be non-negative")
+                        errors.append(
+                            f"stream {identifier} composition {component} must be non-negative"
+                        )
                     total_fraction += value
                 except ValueError as exc:
                     errors.append(str(exc))
             if abs(total_fraction - 1.0) > composition_tol:
-                errors.append(f"stream {identifier} composition sum is {total_fraction:.12g}, expected 1")
+                errors.append(
+                    f"stream {identifier} composition sum is {total_fraction:.12g}, expected 1"
+                )
         refs = stream.get("evidence_ids", [])
         if not isinstance(refs, list) or not refs:
             holds.append(f"stream {identifier} has no evidence_ids")
@@ -223,7 +236,9 @@ def validate_process_package(package: object) -> dict[str, Any]:
         mass_error = abs(mass_in - mass_out) / mass_scale
         mass_errors[identifier] = mass_error
         if mass_error > mass_tol:
-            errors.append(f"equipment {identifier} mass balance relative error {mass_error:.6g} exceeds {mass_tol:.6g}")
+            errors.append(
+                f"equipment {identifier} mass balance relative error {mass_error:.6g} exceeds {mass_tol:.6g}"
+            )
         enthalpy_in = sum(float(stream_by_id[ref]["enthalpy_kW"]) for ref in inlet_ids)
         enthalpy_out = sum(float(stream_by_id[ref]["enthalpy_kW"]) for ref in outlet_ids)
         try:
@@ -235,7 +250,9 @@ def validate_process_package(package: object) -> dict[str, Any]:
         energy_error = abs(enthalpy_in + duty - enthalpy_out) / energy_scale
         energy_errors[identifier] = energy_error
         if energy_error > energy_tol:
-            errors.append(f"equipment {identifier} energy balance relative error {energy_error:.6g} exceeds {energy_tol:.6g}")
+            errors.append(
+                f"equipment {identifier} energy balance relative error {energy_error:.6g} exceeds {energy_tol:.6g}"
+            )
         if item.get("design_status") not in _ACCEPTANCE_STATES:
             holds.append(f"equipment {identifier} design_status is not evaluated")
 
@@ -251,7 +268,12 @@ def validate_process_package(package: object) -> dict[str, Any]:
 
     for loop in controls:
         identifier = loop.get("loop_id")
-        for field in ("controlled_variable", "manipulated_variable", "measurement_tag", "final_element_tag"):
+        for field in (
+            "controlled_variable",
+            "manipulated_variable",
+            "measurement_tag",
+            "final_element_tag",
+        ):
             if not isinstance(loop.get(field), str) or not loop[field].strip():
                 holds.append(f"control {identifier} lacks {field}")
         if loop.get("status") not in _ACCEPTANCE_STATES:
@@ -281,7 +303,9 @@ def validate_process_package(package: object) -> dict[str, Any]:
                 if ref not in evidence_ids:
                     errors.append(f"acceptance {identifier} references unknown evidence: {ref}")
                 elif state == "PASS" and evidence_status.get(ref) != "QUALIFIED":
-                    errors.append(f"acceptance {identifier} PASS uses non-qualified evidence: {ref}")
+                    errors.append(
+                        f"acceptance {identifier} PASS uses non-qualified evidence: {ref}"
+                    )
         if state == "PASS" and not criterion.get("approver"):
             errors.append(f"acceptance {identifier} PASS requires named approver")
         elif state != "PASS":

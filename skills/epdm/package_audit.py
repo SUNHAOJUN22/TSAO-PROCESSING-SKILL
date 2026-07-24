@@ -11,7 +11,9 @@ def _epdm_evidence_ids(case: dict[str, Any]) -> set[str]:
     referenced: set[str] = set()
     catalyst = case.get("catalyst")
     if isinstance(catalyst, dict) and isinstance(catalyst.get("active_site_evidence_ids"), list):
-        referenced.update(item for item in catalyst["active_site_evidence_ids"] if isinstance(item, str))
+        referenced.update(
+            item for item in catalyst["active_site_evidence_ids"] if isinstance(item, str)
+        )
     bridge = case.get("product_bridge")
     if isinstance(bridge, dict):
         for record in bridge.values():
@@ -22,17 +24,38 @@ def _epdm_evidence_ids(case: dict[str, Any]) -> set[str]:
 
 def audit_epdm_process_package(package: object) -> dict[str, Any]:
     if not isinstance(package, dict):
-        return {"status": "FAIL", "pass": False, "errors": ["package root must be an object"], "holds": []}
+        return {
+            "status": "FAIL",
+            "pass": False,
+            "errors": ["package root must be an object"],
+            "holds": [],
+        }
     generic = validate_process_package(package)
     case_payload = package.get("epdm_case")
     case = validate_epdm_case(case_payload)
-    errors = [f"process package: {item}" for item in generic["errors"]] + [f"EPDM case: {item}" for item in case["errors"]]
-    holds = [f"process package: {item}" for item in generic["holds"]] + [f"EPDM case: {item}" for item in case["holds"]]
+    errors = [f"process package: {item}" for item in generic["errors"]] + [
+        f"EPDM case: {item}" for item in case["errors"]
+    ]
+    holds = [f"process package: {item}" for item in generic["holds"]] + [
+        f"EPDM case: {item}" for item in case["holds"]
+    ]
     family = package.get("process_family")
-    if not isinstance(family, str) or not any(token in family.casefold() for token in ("epdm", "epm", "ethylene propylene")):
+    if not isinstance(family, str) or not any(
+        token in family.casefold() for token in ("epdm", "epm", "ethylene propylene")
+    ):
         errors.append("process package family is not identified as EPM/EPDM")
     ledger = package.get("evidence_ledger")
-    known = {item.get("evidence_id") for item in ledger if isinstance(ledger, list) and isinstance(item, dict) and isinstance(item.get("evidence_id"), str)} if isinstance(ledger, list) else set()
+    known = (
+        {
+            item.get("evidence_id")
+            for item in ledger
+            if isinstance(ledger, list)
+            and isinstance(item, dict)
+            and isinstance(item.get("evidence_id"), str)
+        }
+        if isinstance(ledger, list)
+        else set()
+    )
     if isinstance(case_payload, dict):
         missing = sorted(_epdm_evidence_ids(case_payload) - known)
         if missing:

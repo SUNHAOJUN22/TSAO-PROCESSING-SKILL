@@ -22,7 +22,7 @@ def patch_mother_files() -> None:
     text = path.read_text(encoding="utf-8")
     if 'commands.add_parser("package"' not in text:
         parser_marker = '    poe_commands.add_parser("reference-demo")\n    return parser\n'
-        parser_block = '''    poe_commands.add_parser("reference-demo")
+        parser_block = """    poe_commands.add_parser("reference-demo")
 
     package_parser = commands.add_parser("package", help="universal process-package templates and audits")
     package_commands = package_parser.add_subparsers(dest="package_command", required=True)
@@ -38,14 +38,14 @@ def patch_mother_files() -> None:
     epdm_audit.add_argument("--file")
     epdm_commands.add_parser("reference-demo")
     return parser
-'''
+"""
         if parser_marker not in text:
             raise SystemExit("CLI parser marker missing")
         text = text.replace(parser_marker, parser_block, 1)
 
     if 'if args.command == "package":' not in text:
         main_marker = '        if args.command == "poe":\n'
-        main_block = '''        if args.command == "package":
+        main_block = """        if args.command == "package":
             from .process_package import process_package_template, validate_process_package
 
             if args.package_command == "template":
@@ -79,7 +79,7 @@ def patch_mother_files() -> None:
                 metrics = architecture_metrics(EpdmKineticState(1.2, 1.0, 0.04, 0.001, 1e-6), EpdmKineticParameters(2.0, 1.6, 0.5, 0.08, 0.02, 10.0), secondary_diene_insertion_probability=0.05, branch_efficiency=0.5, gel_critical_branch_index=1.0)
                 _print({"status": "CALCULATED_REFERENCE_ONLY", "architecture": metrics, "heat_removal_margin": heat_removal_margin(80.0, 110.0), "scientific_technical_approval": "NOT_EVALUATED"})
                 return 0
-'''
+"""
         if main_marker not in text:
             raise SystemExit("CLI main marker missing")
         text = text.replace(main_marker, main_block + main_marker, 1)

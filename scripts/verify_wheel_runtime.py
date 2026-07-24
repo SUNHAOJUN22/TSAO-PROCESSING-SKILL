@@ -54,7 +54,9 @@ print(json.dumps({'pfr': pfr, 'fit': fit['rate_constant_s'], 'response': respons
     errors: list[str] = []
     payload: dict[str, object] = {}
     if completed.returncode != 0:
-        errors.append(completed.stderr.strip() or completed.stdout.strip() or "wheel runtime failed")
+        errors.append(
+            completed.stderr.strip() or completed.stdout.strip() or "wheel runtime failed"
+        )
     else:
         try:
             payload = json.loads(completed.stdout)

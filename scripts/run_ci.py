@@ -177,9 +177,7 @@ def main() -> int:
         "artifact_software_qualification": "PASS" if passed else "FAIL",
         "universal_process_package_status": "EXECUTABLE_ALPHA" if passed else "HOLD",
         "epdm_software_status": "EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE" if passed else "HOLD",
-        "poe_software_status": (
-            "EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE" if passed else "HOLD"
-        ),
+        "poe_software_status": ("EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE" if passed else "HOLD"),
         "poe_scientific_execution": "UNDER_DISTILLATION",
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",

@@ -11,16 +11,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def payload():
-    return json.loads((ROOT / "fixtures/reference_cases.json").read_text(encoding="utf-8"))["valid_package"]
+    return json.loads((ROOT / "fixtures/reference_cases.json").read_text(encoding="utf-8"))[
+        "valid_package"
+    ]
 
 
 def test_schemas_and_module_contracts_are_machine_valid():
     for path in (ROOT / "schemas").glob("*.schema.json"):
         Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
-    modules = json.loads((ROOT / "data/module_contracts.json").read_text(encoding="utf-8"))["modules"]
+    modules = json.loads((ROOT / "data/module_contracts.json").read_text(encoding="utf-8"))[
+        "modules"
+    ]
     assert len(modules) == 14
     assert all(item["fail_closed"] is True for item in modules)
-    requirements = json.loads((ROOT / "data/requirements.json").read_text(encoding="utf-8"))["requirements"]
+    requirements = json.loads((ROOT / "data/requirements.json").read_text(encoding="utf-8"))[
+        "requirements"
+    ]
     assert len(requirements) == 20
     assert all(item["status"] == "NOT_EVALUATED" for item in requirements)
 
@@ -54,7 +60,9 @@ def test_root_type_and_evidence_attack_fail_closed():
 
 def test_epdm_evidence_must_exist_in_package_ledger():
     data = payload()
-    data["evidence_ledger"] = [item for item in data["evidence_ledger"] if item["evidence_id"] != "E-ACTIVE"]
+    data["evidence_ledger"] = [
+        item for item in data["evidence_ledger"] if item["evidence_id"] != "E-ACTIVE"
+    ]
     result = audit_epdm_process_package(data)
     assert result["status"] == "FAIL"
     assert any("absent from package ledger" in item for item in result["errors"])

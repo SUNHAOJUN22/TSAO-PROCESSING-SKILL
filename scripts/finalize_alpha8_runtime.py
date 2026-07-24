@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path.cwd()
@@ -31,10 +31,7 @@ def run(args: list[str], stage: str, timeout: int = 1200) -> str:
     )
     output = (completed.stdout + "\n" + completed.stderr).strip()
     if completed.returncode:
-        comment(
-            f"Alpha.8 stopped fail-closed at **{stage}**.\n\n"
-            f"```text\n{output[-12000:]}\n```"
-        )
+        comment(f"Alpha.8 stopped fail-closed at **{stage}**.\n\n```text\n{output[-12000:]}\n```")
         raise SystemExit(completed.returncode)
     return output
 
@@ -117,7 +114,7 @@ def set_status(value: str) -> None:
 
 
 def dispatch_and_wait(sha: str) -> int:
-    started = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    started = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     run(["gh", "workflow", "run", "ci.yml", "--ref", "main"], "dispatch CI")
     for _ in range(300):
         raw = run(
@@ -132,8 +129,7 @@ def dispatch_and_wait(sha: str) -> int:
         matches = [
             record
             for record in json.loads(raw).get("workflow_runs", [])
-            if record.get("head_sha") == sha
-            and record.get("created_at", "") >= started
+            if record.get("head_sha") == sha and record.get("created_at", "") >= started
         ]
         if matches:
             latest = max(matches, key=lambda record: record["created_at"])

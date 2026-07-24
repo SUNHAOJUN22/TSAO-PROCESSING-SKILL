@@ -36,8 +36,21 @@ def release_audit(root: Path) -> dict[str, object]:
     if not case["pass"]:
         errors.extend(f"reference case: {item}" for item in [*case["errors"], *case["holds"]])
     if not package["pass"]:
-        errors.extend(f"reference package: {item}" for item in [*package["errors"], *package["holds"]])
-    return {"status": "PASS" if not errors else "FAIL", "pass": not errors, "errors": errors, "module_registration": f"{len(modules.get('modules', []))}/14", "requirement_registration": f"{len(requirements.get('requirements', []))}/20", "reference_case": case["status"], "reference_package": package["status"], "scientific_technical_approval": "NOT_EVALUATED", "engineering_design_approval": "NOT_EVALUATED", "customer_qualification": "NOT_EVALUATED"}
+        errors.extend(
+            f"reference package: {item}" for item in [*package["errors"], *package["holds"]]
+        )
+    return {
+        "status": "PASS" if not errors else "FAIL",
+        "pass": not errors,
+        "errors": errors,
+        "module_registration": f"{len(modules.get('modules', []))}/14",
+        "requirement_registration": f"{len(requirements.get('requirements', []))}/20",
+        "reference_case": case["status"],
+        "reference_package": package["status"],
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+        "customer_qualification": "NOT_EVALUATED",
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -50,11 +63,17 @@ def main(argv: list[str] | None = None) -> int:
         result = release_audit(args.root)
     else:
         if args.file is None:
-            data = json.loads((args.root / "skills/epdm/fixtures/reference_cases.json").read_text(encoding="utf-8"))
+            data = json.loads(
+                (args.root / "skills/epdm/fixtures/reference_cases.json").read_text(
+                    encoding="utf-8"
+                )
+            )
             payload = data["valid_case"]
         else:
             payload = json.loads(args.file.read_text(encoding="utf-8"))
-        result = validate_epdm_case(payload) if args.case_only else audit_epdm_process_package(payload)
+        result = (
+            validate_epdm_case(payload) if args.case_only else audit_epdm_process_package(payload)
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["pass"] else 2
 

@@ -79,6 +79,26 @@ POE_MODULES = (
     "11_dynamics_control_transitions",
     "12_scaleup_package_acceptance",
 )
+UNIVERSAL_PACKAGE_REQUIRED_ARTIFACTS = (
+    "tsao/process_package.py",
+    "tsao/data/process_package.schema.json",
+    "skills/process-general/PACKAGE_PLATFORM.md",
+)
+EPDM_REQUIRED_ARTIFACTS = (
+    "skills/epdm/STATUS.md",
+    "skills/epdm/__init__.py",
+    "skills/epdm/core.py",
+    "skills/epdm/kinetics.py",
+    "skills/epdm/process.py",
+    "skills/epdm/qualification.py",
+    "skills/epdm/package_audit.py",
+    "skills/epdm/data/module_contracts.json",
+    "skills/epdm/data/requirements.json",
+    "skills/epdm/fixtures/reference_cases.json",
+    "skills/epdm/schemas/epdm_case.schema.json",
+    "skills/epdm/schemas/epdm_package.schema.json",
+    "skills/epdm/scripts/audit_epdm.py",
+)
 POE_REQUIRED_ARTIFACTS = (
     "skills/poe/STATUS.md",
     "skills/poe/core.py",
@@ -161,6 +181,8 @@ def capability_contract_issues(root: Path) -> list[str]:
         "schemas/scaleup_claim.schema.json",
         "schemas/external_execution.schema.json",
         "schemas/acceptance.schema.json",
+        *UNIVERSAL_PACKAGE_REQUIRED_ARTIFACTS,
+        *EPDM_REQUIRED_ARTIFACTS,
         *POE_REQUIRED_ARTIFACTS,
     ]
     issues = [
@@ -169,6 +191,26 @@ def capability_contract_issues(root: Path) -> list[str]:
     modules = list((root / "skills/process-general/modules").glob("*.md"))
     if len(modules) != 14:
         issues.append(f"process-general must contain 14 modules, found {len(modules)}")
+    epdm_modules = root / "skills/epdm/data/module_contracts.json"
+    if epdm_modules.is_file():
+        import json
+
+        data = json.loads(epdm_modules.read_text(encoding="utf-8"))
+        if len(data.get("modules", [])) != 14:
+            issues.append("EPDM must contain fourteen machine-readable modules")
+    epdm_skill = root / "skills/epdm/SKILL.md"
+    if epdm_skill.is_file():
+        text = epdm_skill.read_text(encoding="utf-8").casefold()
+        for token in (
+            "9.1.0-tsao.2",
+            "active-site",
+            "e/p/diene",
+            "recycle",
+            "customer",
+            "not_evaluated",
+        ):
+            if token not in text:
+                issues.append(f"EPDM skill missing truthful capability token: {token}")
     poe_root = root / "skills/poe/modules"
     found_poe_modules = (
         {path.name for path in poe_root.iterdir() if path.is_dir()} if poe_root.is_dir() else set()

@@ -5,8 +5,21 @@ from pathlib import PurePosixPath
 from typing import Any
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
-_ALLOWED_TYPES = {"ASPEN_PLUS", "ASPEN_DYNAMICS", "MATLAB", "ORIGIN", "CFD", "PYTHON_REFERENCE", "CUSTOM"}
-_ALLOWED_EXECUTION = {"NOT_EXECUTED", "HISTORICAL_ONLY", "EXECUTED_UNQUALIFIED", "QUALIFIED_REFERENCE"}
+_ALLOWED_TYPES = {
+    "ASPEN_PLUS",
+    "ASPEN_DYNAMICS",
+    "MATLAB",
+    "ORIGIN",
+    "CFD",
+    "PYTHON_REFERENCE",
+    "CUSTOM",
+}
+_ALLOWED_EXECUTION = {
+    "NOT_EXECUTED",
+    "HISTORICAL_ONLY",
+    "EXECUTED_UNQUALIFIED",
+    "QUALIFIED_REFERENCE",
+}
 _ALLOWED_VALIDATION = {"NOT_EVALUATED", "HOLD", "FAIL", "PASS"}
 
 
@@ -19,7 +32,12 @@ def _safe_relative(value: object) -> bool:
 
 def validate_model_passport(record: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(record, dict):
-        return {"status": "FAIL", "pass": False, "errors": ["model passport must be an object"], "holds": []}
+        return {
+            "status": "FAIL",
+            "pass": False,
+            "errors": ["model passport must be an object"],
+            "holds": [],
+        }
     errors: list[str] = []
     holds: list[str] = []
     model_id = record.get("model_id")
@@ -39,7 +57,9 @@ def validate_model_passport(record: dict[str, Any]) -> dict[str, Any]:
     if digest is not None and not _SHA256.fullmatch(str(digest)):
         errors.append("sha256 must contain 64 lowercase hexadecimal characters")
     dependencies = record.get("dependencies")
-    if not isinstance(dependencies, list) or any(not isinstance(item, str) or not item.strip() for item in dependencies):
+    if not isinstance(dependencies, list) or any(
+        not isinstance(item, str) or not item.strip() for item in dependencies
+    ):
         errors.append("dependencies must be a string list")
     evidence_ids = record.get("evidence_ids")
     if not isinstance(evidence_ids, list) or not evidence_ids:
@@ -87,4 +107,10 @@ def validate_model_passport_registry(data: dict[str, Any]) -> dict[str, Any]:
         errors.extend(f"{model_id or index}: {item}" for item in result["errors"])
         holds.extend(f"{model_id or index}: {item}" for item in result["holds"])
     status = "FAIL" if errors else "HOLD" if holds else "PASS"
-    return {"status": status, "pass": status == "PASS", "errors": sorted(set(errors)), "holds": sorted(set(holds)), "models": len(data["models"])}
+    return {
+        "status": status,
+        "pass": status == "PASS",
+        "errors": sorted(set(errors)),
+        "holds": sorted(set(holds)),
+        "models": len(data["models"]),
+    }

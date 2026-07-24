@@ -14,7 +14,9 @@ def _finite_vector(values: Sequence[float], label: str) -> np.ndarray:
     return array
 
 
-def regression_error_metrics(observed: Sequence[float], predicted: Sequence[float]) -> dict[str, float]:
+def regression_error_metrics(
+    observed: Sequence[float], predicted: Sequence[float]
+) -> dict[str, float]:
     actual = _finite_vector(observed, "observed")
     estimate = _finite_vector(predicted, "predicted")
     if actual.shape != estimate.shape:
@@ -26,13 +28,17 @@ def regression_error_metrics(observed: Sequence[float], predicted: Sequence[floa
     mape = float(np.mean(np.abs(residual[nonzero] / actual[nonzero]))) if np.any(nonzero) else 0.0
     centered = actual - float(np.mean(actual))
     denominator = float(np.sum(centered**2))
-    r2 = 1.0 - float(np.sum(residual**2)) / denominator if denominator > 0 else 1.0 if rmse == 0 else 0.0
+    r2 = (
+        1.0 - float(np.sum(residual**2)) / denominator
+        if denominator > 0
+        else 1.0
+        if rmse == 0
+        else 0.0
+    )
     return {"mae": mae, "rmse": rmse, "mape_fraction": mape, "r2": r2}
 
 
-def power_law_viscosity(
-    shear_rate_s: float, consistency_Pa_s_n: float, flow_index: float
-) -> float:
+def power_law_viscosity(shear_rate_s: float, consistency_Pa_s_n: float, flow_index: float) -> float:
     shear = float(shear_rate_s)
     consistency = float(consistency_Pa_s_n)
     index = float(flow_index)
@@ -58,7 +64,13 @@ def heat_transfer_margin(
         raise ValueError("minimum_margin_fraction must be finite and non-negative")
     duty, area, coefficient, delta_t = values
     capacity = area * coefficient * delta_t
-    margin = float("inf") if duty == 0 and capacity > 0 else 0.0 if duty == 0 else (capacity - duty) / duty
+    margin = (
+        float("inf")
+        if duty == 0 and capacity > 0
+        else 0.0
+        if duty == 0
+        else (capacity - duty) / duty
+    )
     status = "PASS" if capacity >= duty and margin >= minimum_margin_fraction else "HOLD"
     return {
         "status": status,

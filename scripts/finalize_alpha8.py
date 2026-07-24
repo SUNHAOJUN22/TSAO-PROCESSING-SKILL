@@ -102,16 +102,12 @@ def main() -> None:
         ],
         "final manifest",
     )
-    final_sha = commit_push(
-        "feat: deliver alpha8 universal process package and EPDM flagship"
-    )
+    final_sha = commit_push("feat: deliver alpha8 universal process package and EPDM flagship")
     final_run = dispatch_and_wait(final_sha)
 
     branches = run(["git", "ls-remote", "--heads", "origin"], "branch check")
     names = sorted(
-        line.split("refs/heads/")[-1]
-        for line in branches.splitlines()
-        if "refs/heads/" in line
+        line.split("refs/heads/")[-1] for line in branches.splitlines() if "refs/heads/" in line
     )
     if names != ["main"]:
         raise SystemExit(f"remaining branches: {names}")
