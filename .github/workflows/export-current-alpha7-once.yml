@@ -35,10 +35,34 @@ jobs:
           set -Eeuo pipefail
           stage="initialization"
           run_id="none"
+          current_log=""
           report_failure() {
-            gh issue comment 37 --body "Alpha.7 final orchestration stopped fail-closed at stage **$stage**. Related CI run: \`$run_id\`. Orchestrator run: \`$GITHUB_RUN_ID\`. No unverified final state was reported." || true
+            body="Alpha.7 final orchestration stopped fail-closed at stage **$stage**. Related CI run: \`$run_id\`. Orchestrator run: \`$GITHUB_RUN_ID\`."
+            if [ -n "$current_log" ] && [ -f "$current_log" ]; then
+              tail -n 120 "$current_log" > "$RUNNER_TEMP/failure-tail.txt"
+              {
+                echo "$body"
+                echo
+                echo '```text'
+                cat "$RUNNER_TEMP/failure-tail.txt"
+                echo '```'
+              } > "$RUNNER_TEMP/failure-comment.md"
+              gh issue comment 37 --body-file "$RUNNER_TEMP/failure-comment.md" || true
+            else
+              gh issue comment 37 --body "$body No unverified final state was reported." || true
+            fi
           }
           trap report_failure ERR
+
+          run_stage() {
+            stage="$1"
+            shift
+            current_log="$RUNNER_TEMP/${stage//[^A-Za-z0-9]/_}.log"
+            echo "=== $stage ==="
+            "$@" >"$current_log" 2>&1
+            tail -n 20 "$current_log" || true
+            current_log=""
+          }
 
           wait_dispatched_ci() {
             local sha="$1"
@@ -81,17 +105,16 @@ jobs:
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
 
-          stage="local candidate qualification"
-          python -m pip install --quiet -e .[dev]
-          python -m pip check
+          run_stage "install editable package" python -m pip install --quiet -e '.[dev]'
+          run_stage "dependency integrity" python -m pip check
           clean_tree
-          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
-          python scripts/run_ci.py
-          python skills/poe/scripts/audit_p0.py --root .
-          python skills/poe/scripts/audit_p1.py --root .
-          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          run_stage "rebuild candidate manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          run_stage "complete run_ci" python scripts/run_ci.py
+          run_stage "explicit P0 audit" python skills/poe/scripts/audit_p0.py --root .
+          run_stage "explicit P1 audit" python skills/poe/scripts/audit_p1.py --root .
+          run_stage "build wheel" python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          run_stage "verify wheel contents" python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          run_stage "verify installed wheel runtime" python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
           stage="publish frozen candidate identity"
           clean_tree
@@ -111,11 +134,11 @@ jobs:
           test "$(git rev-parse origin/main)" = "$prepared_sha"
           git rm .github/workflows/export-current-alpha7-once.yml
           clean_tree
-          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
-          python scripts/run_ci.py
-          python skills/poe/scripts/audit_p0.py --root .
-          python skills/poe/scripts/audit_p1.py --root .
-          python -m tsao.cli doctor --root . --profile core
+          run_stage "final-tree manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          run_stage "final-tree run_ci" python scripts/run_ci.py
+          run_stage "final-tree P0" python skills/poe/scripts/audit_p0.py --root .
+          run_stage "final-tree P1" python skills/poe/scripts/audit_p1.py --root .
+          run_stage "final-tree doctor" python -m tsao.cli doctor --root . --profile core
 
           stage="publish final main"
           clean_tree
@@ -133,5 +156,5 @@ jobs:
           test "${#branches[@]}" -eq 1 && test "${branches[0]}" = main
 
           trap - ERR
-          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- prepared CI run: **PASS**\n- final CI run: \`$run_id\` **PASS**\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
+          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- final CI run: \`$run_id\` **PASS**\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
           gh issue close 37 --reason completed
