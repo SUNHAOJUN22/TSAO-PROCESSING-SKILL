@@ -105,23 +105,53 @@ jobs:
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
 
-          stage="materialize verified package audit"
-          current_log="$RUNNER_TEMP/materialize_package_audit.log"
+          stage="deterministically repair package audit"
+          current_log="$RUNNER_TEMP/repair_package_audit.log"
           python - <<'PY' >"$current_log" 2>&1
           from pathlib import Path
-          import base64
-          import hashlib
 
-          parts = [Path(f"reports/runtime/package_audit.b64.{index:02d}") for index in range(1, 5)]
-          encoded = "".join(path.read_text(encoding="ascii").strip() for path in parts)
-          payload = base64.b64decode(encoded, validate=True)
-          expected = "1ad841ef4603129fa9629036e443ecc90f432a86bd5a7418374f16527c1f74f6"
-          actual = hashlib.sha256(payload).hexdigest()
-          if actual != expected:
-              raise SystemExit(f"package_audit SHA-256 mismatch: {actual}")
-          target = Path("skills/poe/package_audit.py")
-          target.write_bytes(payload)
-          print({"bytes": len(payload), "sha256": actual})
+          path = Path("skills/poe/package_audit.py")
+          text = path.read_text(encoding="utf-8")
+          start = text.index("_PLACEHOLDER_PATTERNS = (")
+          end = text.index("\n\n\ndef _sha256", start)
+          replacement = r'''_PLACEHOLDER_PATTERNS = (
+              "qualified placeholder",
+              "placeholder",
+              "tbd",
+              "todo",
+              "\u5f85\u8865\u5145",
+              "\u5360\u4f4d",
+              "lorem ipsum",
+          )
+          _REQUIRED_PACKAGE_GROUPS = {
+              "design_basis": ("design_basis", "\u8bbe\u8ba1\u57fa\u7840", "\u5de5\u827a\u8bbe\u8ba1\u57fa\u7840"),
+              "pfd": ("pfd", "\u5de5\u827a\u6d41\u7a0b\u56fe", "\u6d41\u7a0b\u56fe"),
+              "material_energy_balance": (
+                  "material_energy_balance",
+                  "\u7269\u6599\u8861\u7b97",
+                  "\u80fd\u91cf\u8861\u7b97",
+                  "\u7269\u6599\u548c\u80fd\u91cf\u8861\u7b97",
+              ),
+              "equipment": ("equipment", "\u8bbe\u5907\u8868", "\u8bbe\u5907\u6570\u636e"),
+              "instrument_control": (
+                  "instrument_control",
+                  "\u4eea\u8868\u63a7\u5236",
+                  "\u63a7\u5236\u65b9\u6848",
+                  "\u63a7\u5236\u8bf4\u660e",
+              ),
+              "utilities": ("utilities", "\u516c\u7528\u5de5\u7a0b", "\u516c\u7528\u5de5\u7a0b\u6570\u636e"),
+              "model_validation": (
+                  "model_validation",
+                  "\u6a21\u578b\u9a8c\u8bc1",
+                  "\u6a21\u62df\u62a5\u544a",
+                  "\u6a21\u578b\u62a5\u544a",
+              ),
+              "acceptance": ("acceptance", "\u9a8c\u6536", "\u9a8c\u6536\u77e9\u9635", "\u9a8c\u6536\u62a5\u544a"),
+          }'''
+          text = text[:start] + replacement + text[end:]
+          text = text.replace("Draft202012Validator(schem).iter_errors", "Draft202012Validator(schema).iter_errors")
+          path.write_text(text, encoding="utf-8")
+          print({"bytes": path.stat().st_size})
           PY
           python -m py_compile skills/poe/package_audit.py >>"$current_log" 2>&1
           tail -n 20 "$current_log"
@@ -143,7 +173,7 @@ jobs:
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           git add skills/poe/package_audit.py reports/SOURCE_CORE_MANIFEST.tsv
           if ! git diff --cached --quiet; then
-            git commit -m "fix(poe): restore verified package audit source"
+            git commit -m "fix(poe): restore deterministic package audit source"
             git push origin HEAD:main
           fi
           prepared_sha=$(git rev-parse HEAD)
@@ -155,7 +185,7 @@ jobs:
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$prepared_sha"
           git rm .github/workflows/export-current-alpha7-once.yml
-          git rm reports/runtime/package_audit.b64.01 reports/runtime/package_audit.b64.02 reports/runtime/package_audit.b64.03 reports/runtime/package_audit.b64.04
+          git rm -f reports/runtime/package_audit.b64.01 reports/runtime/package_audit.b64.02 reports/runtime/package_audit.b64.03 reports/runtime/package_audit.b64.03a reports/runtime/package_audit.b64.03b reports/runtime/package_audit.b64.04
           clean_tree
           run_stage "final-tree manifest" python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           run_stage "final-tree run_ci" python scripts/run_ci.py
