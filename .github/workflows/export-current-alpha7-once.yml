@@ -127,3 +127,5 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: gh issue comment 37 --body "Alpha.7 push finalization stopped fail-closed. No cleanup commit was published. Workflow run: \`${{ github.run_id }}\`."
+
+# indexed trigger
