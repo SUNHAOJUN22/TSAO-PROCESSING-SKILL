@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import json
 from pathlib import Path
 
 ROOT = Path.cwd()
@@ -10,7 +9,10 @@ ROOT = Path.cwd()
 
 def patch_mother_files() -> None:
     parts = sorted((ROOT / "reports/runtime").glob("alpha8-capabilities.b64.*"))
-    payload = base64.b64decode("".join(p.read_text(encoding="ascii") for p in parts), validate=True)
+    payload = base64.b64decode(
+        "".join(path.read_text(encoding="ascii") for path in parts),
+        validate=True,
+    )
     expected = "0bb0d0b6be957b4d6e6ca3439dd227a3cac93a1b41ba2004e2aa7037fec76dc2"
     if hashlib.sha256(payload).hexdigest() != expected:
         raise SystemExit("capabilities SHA mismatch")
