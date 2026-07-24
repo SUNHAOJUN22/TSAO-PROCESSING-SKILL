@@ -15,6 +15,16 @@ from finalize_alpha8_runtime import (
     set_status,
 )
 
+RUFF_TARGETS = (
+    "tsao",
+    "tests",
+    "scripts",
+    "skills/process-general",
+    "skills/epdm",
+    "skills/poe",
+    "skills/polymer-general",
+)
+
 
 def main() -> None:
     run(["git", "config", "user.name", "github-actions[bot]"], "git config")
@@ -44,6 +54,11 @@ def main() -> None:
         "install",
     )
     run([sys.executable, "-m", "pip", "check"], "pip check")
+    run([sys.executable, "-m", "ruff", "format", *RUFF_TARGETS], "ruff format")
+    run(
+        [sys.executable, "-m", "ruff", "check", "--fix", *RUFF_TARGETS],
+        "ruff autofix",
+    )
     local_gates()
 
     set_status("QUALIFIED_CANDIDATE")
