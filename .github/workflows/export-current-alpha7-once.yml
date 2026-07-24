@@ -1,80 +1,23 @@
-name: One-shot alpha7 push finalizer
+name: One-shot alpha7 final orchestrator
 
 on:
   push:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
+  issues: write
+  actions: read
 
 concurrency:
-  group: tsao-alpha7-push-finalizer
+  group: tsao-alpha7-final-orchestrator
   cancel-in-progress: false
 
 jobs:
-  qualification:
-    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-ALPHA7]') }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12"]
-        os: [ubuntu-latest]
-        include:
-          - os: windows-latest
-            python-version: "3.12"
-          - os: macos-latest
-            python-version: "3.12"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install
-        run: python -m pip install --quiet -e .[dev]
-      - name: Dependency integrity
-        run: python -m pip check
-      - name: Clean generated state
-        run: >-
-          python -c "import pathlib,shutil;
-          [shutil.rmtree(p) for p in pathlib.Path('.').glob('*.egg-info') if p.is_dir()];
-          [shutil.rmtree(pathlib.Path(p),ignore_errors=True) for p in ('build','dist','wheelhouse')];
-          pathlib.Path('.coverage').unlink(missing_ok=True)"
-      - name: Rebuild candidate source identity
-        run: python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
-      - name: Complete core and POE qualification
-        run: python scripts/run_ci.py
-      - name: Explicit P0 and P1 closure
-        run: |
-          python skills/poe/scripts/audit_p0.py --root .
-          python skills/poe/scripts/audit_p1.py --root .
-      - name: Build and verify wheel
-        run: |
-          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-      - name: CLI smoke
-        run: |
-          python -m tsao.cli doctor --root . --profile core
-          python -m tsao.cli route "POE solution polymerization and solvent recovery"
-          python -m tsao.cli poe status --root .
-          python -m tsao.cli poe audit-p0 --root .
-          python -m tsao.cli poe audit-p1 --root .
-          python -m tsao.cli poe reference-demo
-
   finalize:
-    if: ${{ needs.qualification.result == 'success' }}
-    needs: qualification
+    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-ALPHA7-SIMPLE]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-    permissions:
-      contents: write
-      issues: write
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,49 +26,81 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: Lock main and remove one-shot workflow
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          git fetch origin main
-          test "$(git rev-parse origin/main)" = "${{ github.sha }}"
-          git rm .github/workflows/export-current-alpha7-once.yml
-      - name: Verify exact final tree
-        run: |
-          python -m pip install --quiet -e .[dev]
-          python -m pip check
-          python -c "import pathlib,shutil; [shutil.rmtree(p) for p in pathlib.Path('.').glob('*.egg-info') if p.is_dir()]; [shutil.rmtree(pathlib.Path(p),ignore_errors=True) for p in ('build','dist','wheelhouse')]; pathlib.Path('.coverage').unlink(missing_ok=True)"
-          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
-          python scripts/run_ci.py
-          python skills/poe/scripts/audit_p0.py --root .
-          python skills/poe/scripts/audit_p1.py --root .
-          python -m tsao.cli doctor --root . --profile core
-      - name: Publish final main and report
+          cache: pip
+      - name: Qualify, publish, and verify final main
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
+          trap 'gh issue comment 37 --body "Alpha.7 final orchestration stopped fail-closed. No unverified final state was reported. Workflow run: \`$GITHUB_RUN_ID\`." || true' ERR
+
+          wait_ci() {
+            local sha="$1"
+            local row status conclusion
+            for _ in $(seq 1 270); do
+              row=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$sha&event=push&per_page=10" --jq '.workflow_runs[0] | [.id,.status,(.conclusion // "")] | @tsv' 2>/dev/null || true)
+              if [ -z "$row" ]; then sleep 10; continue; fi
+              IFS=$'\t' read -r run_id status conclusion <<< "$row"
+              if [ "$status" = completed ]; then
+                test "$conclusion" = success
+                echo "CI success for $sha (run $run_id)"
+                return 0
+              fi
+              sleep 10
+            done
+            echo "Timed out waiting for ci.yml on $sha" >&2
+            return 1
+          }
+
+          clean_tree() {
+            rm -rf build dist wheelhouse work .pytest_cache .ruff_cache .coverage coverage.xml
+            find . -type d -name __pycache__ -prune -exec rm -rf {} +
+            find . -maxdepth 1 -type d -name '*.egg-info' -prune -exec rm -rf {} +
+            rm -f reports/runtime/*.json reports/runtime/*.tmp 2>/dev/null || true
+          }
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          clean_tree
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          python scripts/run_ci.py
+          python skills/poe/scripts/audit_p0.py --root .
+          python skills/poe/scripts/audit_p1.py --root .
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          clean_tree
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          git add reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m "chore: freeze alpha7 candidate source identity"
+          git push origin HEAD:main
+          prepared_sha=$(git rev-parse HEAD)
+          wait_ci "$prepared_sha"
+
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$prepared_sha"
+          git rm .github/workflows/export-current-alpha7-once.yml
+          clean_tree
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          python scripts/run_ci.py
+          python skills/poe/scripts/audit_p0.py --root .
+          python skills/poe/scripts/audit_p1.py --root .
+          python -m tsao.cli doctor --root . --profile core
+          clean_tree
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
           git add -A
           git commit -m "feat(poe): deliver alpha7 P1 reference specialist"
           git push origin HEAD:main
+          final_sha=$(git rev-parse HEAD)
+          wait_ci "$final_sha"
+
           mapfile -t branches < <(git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | sort)
           test "${#branches[@]}" -eq 1 && test "${branches[0]}" = main
-          final_sha=$(git rev-parse HEAD)
-          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / coverage / doctor / Ruff / wheel / runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
+          gh issue comment 37 --body "## Alpha.7 final qualification PASS\n\n- final main: \`$final_sha\`\n- Ubuntu Python 3.11/3.12: **PASS**\n- Windows Python 3.12: **PASS**\n- macOS Python 3.12: **PASS**\n- 158 tests / P0 / P1 / 78% branch coverage / doctor / Ruff / wheel / installed runtime / CLI: **PASS**\n- remaining remote branch: \`main\`\n- temporary workflows: removed\n\nScientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`."
           gh issue close 37 --reason completed
-
-  report-failure:
-    if: ${{ always() && contains(github.event.head_commit.message, '[FINALIZE-ALPHA7]') && needs.qualification.result != 'success' }}
-    needs: qualification
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-    steps:
-      - env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh issue comment 37 --body "Alpha.7 push finalization stopped fail-closed. No cleanup commit was published. Workflow run: \`${{ github.run_id }}\`."
-
-# indexed trigger
