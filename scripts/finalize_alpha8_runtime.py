@@ -15,20 +15,39 @@ REPO = os.environ["GITHUB_REPOSITORY"]
 
 
 def comment(text: str) -> None:
-    subprocess.run(["gh", "issue", "comment", ISSUE, "--body", text], check=False)
+    subprocess.run(
+        ["gh", "issue", "comment", ISSUE, "--body", text],
+        check=False,
+    )
 
 
 def run(args: list[str], stage: str, timeout: int = 1200) -> str:
-    completed = subprocess.run(args, cwd=ROOT, text=True, capture_output=True, timeout=timeout)
+    completed = subprocess.run(
+        args,
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+    )
     output = (completed.stdout + "\n" + completed.stderr).strip()
     if completed.returncode:
-        comment(f"Alpha.8 stopped fail-closed at **{stage}**.\n\n```text\n{output[-12000:]}\n```")
+        comment(
+            f"Alpha.8 stopped fail-closed at **{stage}**.\n\n"
+            f"```text\n{output[-12000:]}\n```"
+        )
         raise SystemExit(completed.returncode)
     return output
 
 
 def clean() -> None:
-    for name in ("build", "dist", "wheelhouse", "work", ".pytest_cache", ".ruff_cache"):
+    for name in (
+        "build",
+        "dist",
+        "wheelhouse",
+        "work",
+        ".pytest_cache",
+        ".ruff_cache",
+    ):
         shutil.rmtree(ROOT / name, ignore_errors=True)
     for path in ROOT.rglob("__pycache__"):
         shutil.rmtree(path, ignore_errors=True)
@@ -43,12 +62,51 @@ def clean() -> None:
 
 def local_gates() -> None:
     clean()
-    run([sys.executable, "scripts/build_source_asset_manifest.py", "--root", ".", "--out", "reports/SOURCE_CORE_MANIFEST.tsv"], "manifest")
+    run(
+        [
+            sys.executable,
+            "scripts/build_source_asset_manifest.py",
+            "--root",
+            ".",
+            "--out",
+            "reports/SOURCE_CORE_MANIFEST.tsv",
+        ],
+        "manifest",
+    )
     run([sys.executable, "scripts/run_ci.py"], "run_ci")
     run([sys.executable, "skills/epdm/scripts/audit_epdm.py"], "EPDM audit")
-    run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", ".", "-w", "wheelhouse"], "wheel")
-    run([sys.executable, "scripts/verify_wheel_contents.py", "--wheel-dir", "wheelhouse"], "wheel members")
-    run([sys.executable, "scripts/verify_wheel_runtime.py", "--wheel-dir", "wheelhouse"], "wheel runtime")
+    run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            "--no-deps",
+            "--no-build-isolation",
+            ".",
+            "-w",
+            "wheelhouse",
+        ],
+        "wheel",
+    )
+    run(
+        [
+            sys.executable,
+            "scripts/verify_wheel_contents.py",
+            "--wheel-dir",
+            "wheelhouse",
+        ],
+        "wheel members",
+    )
+    run(
+        [
+            sys.executable,
+            "scripts/verify_wheel_runtime.py",
+            "--wheel-dir",
+            "wheelhouse",
+        ],
+        "wheel runtime",
+    )
 
 
 def set_status(value: str) -> None:
@@ -62,10 +120,23 @@ def dispatch_and_wait(sha: str) -> int:
     started = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     run(["gh", "workflow", "run", "ci.yml", "--ref", "main"], "dispatch CI")
     for _ in range(300):
-        raw = run(["gh", "api", f"repos/{REPO}/actions/workflows/ci.yml/runs?event=workflow_dispatch&branch=main&per_page=20"], "query CI")
-        matches = [r for r in json.loads(raw).get("workflow_runs", []) if r.get("head_sha") == sha and r.get("created_at", "") >= started]
+        raw = run(
+            [
+                "gh",
+                "api",
+                f"repos/{REPO}/actions/workflows/ci.yml/runs?"
+                "event=workflow_dispatch&branch=main&per_page=20",
+            ],
+            "query CI",
+        )
+        matches = [
+            record
+            for record in json.loads(raw).get("workflow_runs", [])
+            if record.get("head_sha") == sha
+            and record.get("created_at", "") >= started
+        ]
         if matches:
-            latest = max(matches, key=lambda r: r["created_at"])
+            latest = max(matches, key=lambda record: record["created_at"])
             if latest["status"] == "completed":
                 if latest.get("conclusion") != "success":
                     comment(f"Alpha.8 CI run `{latest['id']}` failed for `{sha}`.")
