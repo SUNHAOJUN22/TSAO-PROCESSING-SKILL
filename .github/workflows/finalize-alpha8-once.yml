@@ -37,7 +37,7 @@ jobs:
           report_failure() {
             body="Alpha.8 stopped fail-closed at **$stage**. CI run: \`$run_id\`; finalizer: \`$GITHUB_RUN_ID\`."
             if [ -n "$current_log" ] && [ -f "$current_log" ]; then
-              { echo "$body"; echo; echo '```text'; tail -n 140 "$current_log"; echo '```'; } > "$RUNNER_TEMP/failure.md"
+              { echo "$body"; echo; echo '```text'; tail -n 160 "$current_log"; echo '```'; } > "$RUNNER_TEMP/failure.md"
               gh issue comment 39 --body-file "$RUNNER_TEMP/failure.md" || true
             else gh issue comment 39 --body "$body" || true; fi
           }
@@ -65,30 +65,97 @@ jobs:
           stage="lock main"
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main; test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
-          stage="reconstruct mother files"
-          current_log="$RUNNER_TEMP/reconstruct_mother_files.log"
+          stage="materialize mother files"; current_log="$RUNNER_TEMP/materialize.log"
           python - <<'PY' >"$current_log" 2>&1
           from pathlib import Path
           import base64, hashlib, json
-          jobs = [
-              ("capabilities", "tsao/capabilities.py", "0bb0d0b6be957b4d6e6ca3439dd227a3cac93a1b41ba2004e2aa7037fec76dc2"),
-              ("cli", "tsao/cli.py", "3228a396dfe76d91f9e049d5041cd291c704639d756b09e95619bb7f7fac111b"),
-          ]
-          for stem, target, expected in jobs:
-              parts = sorted(Path("reports/runtime").glob(f"alpha8-{stem}.b64.*"))
-              encoded = "".join(p.read_text(encoding="ascii") for p in parts)
-              record = {"stem": stem, "parts": [p.name for p in parts], "encoded_chars": len(encoded), "expected": expected}
-              try:
-                  payload = base64.b64decode(encoded, validate=True)
-              except Exception as exc:
-                  record["decode_error"] = repr(exc)
-                  print(json.dumps(record), flush=True)
-                  raise
-              actual = hashlib.sha256(payload).hexdigest()
-              record.update({"decoded_bytes": len(payload), "actual": actual})
-              print(json.dumps(record), flush=True)
-              if actual != expected: raise SystemExit(f"{target} SHA mismatch: {actual}")
-              Path(target).write_bytes(payload)
+          parts = sorted(Path("reports/runtime").glob("alpha8-capabilities.b64.*"))
+          payload = base64.b64decode("".join(p.read_text(encoding="ascii") for p in parts), validate=True)
+          actual = hashlib.sha256(payload).hexdigest(); expected = "0bb0d0b6be957b4d6e6ca3439dd227a3cac93a1b41ba2004e2aa7037fec76dc2"
+          print(json.dumps({"file":"tsao/capabilities.py","parts":len(parts),"bytes":len(payload),"actual":actual,"expected":expected}))
+          if actual != expected: raise SystemExit("capabilities SHA mismatch")
+          Path("tsao/capabilities.py").write_bytes(payload)
+
+          path = Path("tsao/cli.py"); text = path.read_text(encoding="utf-8")
+          parser_marker = '    poe_commands.add_parser("reference-demo")\n    return parser\n'
+          parser_block = '''    poe_commands.add_parser("reference-demo")
+
+    package_parser = commands.add_parser("package", help="universal process-package templates and audits")
+    package_commands = package_parser.add_subparsers(dest="package_command", required=True)
+    package_template = package_commands.add_parser("template")
+    package_template.add_argument("--family", required=True)
+    package_audit = package_commands.add_parser("audit")
+    package_audit.add_argument("--file", required=True)
+
+    epdm_parser = commands.add_parser("epdm", help="EPDM flagship status, audit and references")
+    epdm_commands = epdm_parser.add_subparsers(dest="epdm_command", required=True)
+    epdm_commands.add_parser("status")
+    epdm_audit = epdm_commands.add_parser("audit")
+    epdm_audit.add_argument("--file")
+    epdm_commands.add_parser("reference-demo")
+    return parser
+'''
+          if parser_marker not in text: raise SystemExit("CLI parser marker missing")
+          text = text.replace(parser_marker, parser_block, 1)
+          main_marker = '        if args.command == "poe":\n'
+          main_block = '''        if args.command == "package":
+            from .process_package import process_package_template, validate_process_package
+
+            if args.package_command == "template":
+                _print(process_package_template(args.family))
+                return 0
+            payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+            result = validate_process_package(payload)
+            _print(result)
+            return 0 if result["pass"] else 2
+        if args.command == "epdm":
+            if args.epdm_command == "status":
+                import yaml
+
+                manifest = yaml.safe_load(Path("manifest.yaml").read_text(encoding="utf-8"))
+                epdm = next(item for item in manifest["subskills"] if item["id"] == "epdm")
+                _print({"version": __import__("tsao").__version__, **epdm})
+                return 0
+            if args.epdm_command == "audit":
+                from skills.epdm.package_audit import audit_epdm_process_package
+
+                if args.file:
+                    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+                else:
+                    fixtures = json.loads(Path("skills/epdm/fixtures/reference_cases.json").read_text(encoding="utf-8"))
+                    payload = fixtures["valid_package"]
+                result = audit_epdm_process_package(payload)
+                _print(result)
+                return 0 if result["pass"] else 2
+            if args.epdm_command == "reference-demo":
+                from skills.epdm.core import (
+                    EpdmKineticParameters,
+                    EpdmKineticState,
+                    architecture_metrics,
+                    heat_removal_margin,
+                )
+
+                metrics = architecture_metrics(
+                    EpdmKineticState(1.2, 1.0, 0.04, 0.001, 1e-6),
+                    EpdmKineticParameters(2.0, 1.6, 0.5, 0.08, 0.02, 10.0),
+                    secondary_diene_insertion_probability=0.05,
+                    branch_efficiency=0.5,
+                    gel_critical_branch_index=1.0,
+                )
+                _print({
+                    "status": "CALCULATED_REFERENCE_ONLY",
+                    "architecture": metrics,
+                    "heat_removal_margin": heat_removal_margin(80.0, 110.0),
+                    "scientific_technical_approval": "NOT_EVALUATED",
+                })
+                return 0
+'''
+          if main_marker not in text: raise SystemExit("CLI main marker missing")
+          text = text.replace(main_marker, main_block + main_marker, 1)
+          path.write_text(text, encoding="utf-8")
+          cli_actual = hashlib.sha256(path.read_bytes()).hexdigest(); cli_expected = "3228a396dfe76d91f9e049d5041cd291c704639d756b09e95619bb7f7fac111b"
+          print(json.dumps({"file":"tsao/cli.py","bytes":path.stat().st_size,"actual":cli_actual,"expected":cli_expected}))
+          if cli_actual != cli_expected: raise SystemExit("CLI SHA mismatch")
           PY
           python -m py_compile tsao/capabilities.py tsao/cli.py tsao/process_package.py >>"$current_log" 2>&1
           tail -n 20 "$current_log"; current_log=""
