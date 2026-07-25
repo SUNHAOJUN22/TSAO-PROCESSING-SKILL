@@ -81,11 +81,66 @@ def _parser() -> argparse.ArgumentParser:
     epdm_audit = epdm_commands.add_parser("audit")
     epdm_audit.add_argument("--file")
     epdm_commands.add_parser("reference-demo")
+    epdm_model = epdm_commands.add_parser(
+        "model-suite", help="run the three-level EPDM kinetic and semibatch reference suite"
+    )
+    epdm_model.add_argument("--temperature-k", type=float, default=323.15)
+    epdm_model.add_argument("--residence-s", type=float, default=300.0)
     return parser
 
 
 def _print(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def _epdm_model_suite(temperature_K: float, residence_time_s: float) -> dict[str, object]:
+    from skills.epdm.core import (
+        EpdmActivationEnergies,
+        EpdmKineticParameters,
+        EpdmKineticState,
+        SemibatchFeed,
+        SemibatchInventory,
+        devolatilization_damkohler,
+        entropy_generation_heat_transfer_kW_K,
+        flory_huggins_stability_margin,
+        semibatch_material_energy_step,
+        three_level_kinetic_suite,
+    )
+
+    parameters = EpdmKineticParameters(2.0, 1.6, 0.5, 0.08, 0.02, 10.0)
+    state = EpdmKineticState(1.2, 1.0, 0.04, 0.001, 1e-6)
+    activation = EpdmActivationEnergies(35_000, 37_000, 42_000, 28_000, 45_000, 20_000)
+    kinetic_suite = three_level_kinetic_suite(
+        state,
+        parameters,
+        activation,
+        temperature_K=temperature_K,
+        residence_time_s=residence_time_s,
+        site_family_fractions=(0.65, 0.35),
+        site_activity_multipliers=(0.75, 1.45),
+    )
+    semibatch = semibatch_material_energy_step(
+        SemibatchInventory(100.0, 120.0, 100.0, 4.0, 0.0, temperature_K, 900.0),
+        SemibatchFeed(0.08, 0.06, 0.002, 0.01),
+        parameters,
+        active_site_mol_L=0.001,
+        poison_mol_L=1e-6,
+        step_s=min(residence_time_s, 30.0),
+        reaction_enthalpy_kJ_mol=85.0,
+        heat_removal_kW=7.0,
+    )
+    return {
+        "status": "CALCULATED_REFERENCE_ONLY",
+        "model_levels": kinetic_suite,
+        "semibatch_reference_step": semibatch,
+        "phase_stability_margin": flory_huggins_stability_margin(0.18, 1_500, 0.42),
+        "devolatilization_damkohler": devolatilization_damkohler(0.08, 25.0),
+        "heat_transfer_entropy_generation_kW_K": entropy_generation_heat_transfer_kW_K(
+            80.0, 353.15, 298.15
+        ),
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -180,6 +235,9 @@ def main(argv: list[str] | None = None) -> int:
                         "scientific_technical_approval": "NOT_EVALUATED",
                     }
                 )
+                return 0
+            if args.epdm_command == "model-suite":
+                _print(_epdm_model_suite(args.temperature_k, args.residence_s))
                 return 0
         if args.command == "poe":
             if args.poe_command == "status":
