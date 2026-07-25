@@ -39,6 +39,10 @@ jobs:
         run: python -m pip check
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+      - name: Verify deterministic README graphics
+        run: |
+          python scripts/generate_readme_assets.py
+          git diff --exit-code -- docs/assets/readme
       - name: Core, P0, P1 and coverage qualification
         run: python scripts/run_ci.py
       - name: Universal and EPDM package closure
@@ -63,6 +67,7 @@ jobs:
           python -m tsao.cli epdm status
           python -m tsao.cli epdm audit
           python -m tsao.cli epdm reference-demo
+          python -m tsao.cli epdm model-suite --temperature-k 323.15 --residence-s 300
           python -m tsao.cli poe status --root .
           python -m tsao.cli poe audit-p0 --root .
           python -m tsao.cli poe audit-p1 --root .
