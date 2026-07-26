@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +91,7 @@ def _cleanup_successful_process_group(process: subprocess.Popen[object]) -> None
 def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
     if timeout <= 0:
         raise ValueError("timeout must be positive")
+    started = time.perf_counter()
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
         process = subprocess.Popen(
             command,
@@ -117,15 +119,20 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
         "command": command,
         "returncode": returncode,
         "timed_out": timed_out,
+        "duration_s": time.perf_counter() - started,
         "output": output,
     }
+
+
+def _run_command(command: list[str], root: Path) -> dict[str, Any]:
+    return run(command, cwd=root)
 
 
 def main() -> int:
     root = ROOT
     checks = [
         run(
-            [sys.executable, "-m", "compileall", "-f", "-q", "tsao", "scripts", "skills"],
+            [sys.executable, "-m", "compileall", "-q", "-j", "0", "tsao", "scripts", "skills"],
             cwd=root,
         ),
         run([sys.executable, "-m", "coverage", "erase"], cwd=root),
@@ -159,21 +166,24 @@ def main() -> int:
             ],
             cwd=root,
         ),
-        run([sys.executable, "scripts/audit_capabilities.py"], cwd=root),
-        run([sys.executable, "skills/epdm/scripts/audit_epdm.py"], cwd=root),
-        run([sys.executable, "skills/poe/scripts/audit_p0.py", "--root", "."], cwd=root),
-        run([sys.executable, "skills/poe/scripts/audit_p1.py", "--root", "."], cwd=root),
-        run(
-            [sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"],
-            cwd=root,
-        ),
-        run([sys.executable, "-m", "ruff", "check", *RUFF_PATHS], cwd=root),
     ]
+    parallel_commands = [
+        [sys.executable, "scripts/audit_capabilities.py"],
+        [sys.executable, "skills/epdm/scripts/audit_epdm.py"],
+        [sys.executable, "skills/poe/scripts/audit_p0.py", "--root", "."],
+        [sys.executable, "skills/poe/scripts/audit_p1.py", "--root", "."],
+        [sys.executable, "-m", "tsao.cli", "doctor", "--root", ".", "--profile", "core"],
+        [sys.executable, "-m", "ruff", "check", *RUFF_PATHS],
+    ]
+    with ThreadPoolExecutor(max_workers=len(parallel_commands)) as executor:
+        checks.extend(executor.map(lambda command: _run_command(command, root), parallel_commands))
+
     passed = all(check["returncode"] == 0 for check in checks)
     report = {
         "version": __version__,
         "pass": passed,
         "checks": checks,
+        "wall_clock_sum_s": sum(float(check["duration_s"]) for check in checks),
         "artifact_software_qualification": "PASS" if passed else "FAIL",
         "universal_process_package_status": "EXECUTABLE_ALPHA" if passed else "HOLD",
         "skillpack_delivery_status": "FOUR_SKILLS_INSTALLED_VERIFIED" if passed else "HOLD",
