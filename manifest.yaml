@@ -13,6 +13,9 @@ subskills:
   path: skills/process-general
   inherited_release: 0.3.0
   implementation_status: universal-process-package-platform-alpha
+  module_registry: 14_OF_14
+  workflow_registry: 6_OF_6
+  wheel_delivery: INSTALLED_SKILLPACK_VERIFIED
 - id: epdm
   path: skills/epdm
   inherited_release: 9.1.0-tsao.2
@@ -37,6 +40,9 @@ subskills:
 - id: polymer-general
   path: skills/polymer-general
   inherited_release: 2.0.0
+  implementation_status: reusable-polymer-planning-alpha
+  script_registry: 6_OF_6
+  wheel_delivery: INSTALLED_SKILLPACK_VERIFIED
 artifact_software_qualification: NOT_EVALUATED
 scientific_technical_approval: NOT_EVALUATED
 engineering_design_approval: NOT_EVALUATED
