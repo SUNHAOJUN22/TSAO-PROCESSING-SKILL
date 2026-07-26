@@ -14,6 +14,8 @@ delivery_verification:
   installed_readme_links: VERIFIED
   wheel_install_modes: [PIP_TARGET, STANDARD_VENV]
   standard_prefix_data_resolution: VERIFIED_FROM_DISTRIBUTION_RECORD
+  standard_venv_isolation: NO_SYSTEM_SITE_PACKAGES
+  installed_import_origin: VERIFIED_INSIDE_INSTALL_ROOT
   authoritative_branch: main
 subskills:
 - id: process-general
