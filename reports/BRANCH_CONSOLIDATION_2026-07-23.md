@@ -33,4 +33,10 @@ Each reviewed branch is merged into `main` with Git history preserved while the 
 2. repository tests, integrated CI, doctor, Ruff, dependency integrity and wheel build pass;
 3. remote verification reports exactly one remaining branch named `main`.
 
+## Final exact-ref recheck — 2026-07-26
+
+The repository default branch is `main`. Every historical branch named above was queried again by its exact ref and returned `not found`, consistent with deletion after integration. No branch was created during the README, installed-Wheel or Python 3.14 convergence passes; all writes targeted the existing `main` branch.
+
+The connector's free-text branch search does not reliably enumerate even `main`, so this record does not infer branch count from an empty search result. It relies on default-branch metadata plus exact-ref deletion checks for every previously known branch.
+
 Scientific, engineering, safety, legal, customer and industrial approvals remain `NOT_EVALUATED`.
