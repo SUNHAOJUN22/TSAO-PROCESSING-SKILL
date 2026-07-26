@@ -48,9 +48,10 @@ jobs:
           python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
       - name: Apply alpha9 release identity
         run: |
-          python -m py_compile .github/apply_alpha9_release.py
+          python -m py_compile .github/apply_alpha9_release.py .github/fix_alpha9_release_residuals.py
           python .github/apply_alpha9_release.py
-          python -c "from pathlib import Path; Path('.github/apply_alpha9_release.py').unlink(); Path('.github/workflows/finalize-alpha9-release-once.yml').unlink()"
+          python .github/fix_alpha9_release_residuals.py
+          python -c "from pathlib import Path; Path('.github/apply_alpha9_release.py').unlink(); Path('.github/fix_alpha9_release_residuals.py').unlink(); Path('.github/workflows/finalize-alpha9-release-once.yml').unlink()"
           python scripts/generate_readme_assets.py
           python scripts/generate_extended_readme_assets.py
           python scripts/generate_decision_readme_assets.py
@@ -91,9 +92,10 @@ jobs:
           python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
       - name: Apply and seal alpha9 identity
         run: |
-          python -m py_compile .github/apply_alpha9_release.py
+          python -m py_compile .github/apply_alpha9_release.py .github/fix_alpha9_release_residuals.py
           python .github/apply_alpha9_release.py
-          python -c "from pathlib import Path; Path('.github/apply_alpha9_release.py').unlink(); Path('.github/workflows/finalize-alpha9-release-once.yml').unlink()"
+          python .github/fix_alpha9_release_residuals.py
+          python -c "from pathlib import Path; Path('.github/apply_alpha9_release.py').unlink(); Path('.github/fix_alpha9_release_residuals.py').unlink(); Path('.github/workflows/finalize-alpha9-release-once.yml').unlink()"
           python scripts/generate_readme_assets.py
           python scripts/generate_extended_readme_assets.py
           python scripts/generate_decision_readme_assets.py
