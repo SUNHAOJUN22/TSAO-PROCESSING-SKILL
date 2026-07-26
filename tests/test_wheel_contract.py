@@ -13,6 +13,7 @@ def test_wheel_verifier_rejects_missing_skill(tmp_path: Path) -> None:
     result = verify(wheel)
     assert result["pass"] is False
     assert any("skills/poe" in item for item in result["errors"])
+    assert any("installed skillpack member" in item for item in result["errors"])
 
 
 def test_wheel_verifier_rejects_controlled_binary(tmp_path: Path) -> None:
