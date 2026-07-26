@@ -68,12 +68,20 @@ namespaces = true
   "ARCHITECTURE.md",
   "README.md",
   "README.zh-CN.md",
+  "pyproject.toml",
   "LICENSE",
   "NOTICE.md",
   "CITATION.cff",
 ]
 "share/tsao-processing-skill/docs" = ["docs/*.md"]
 "share/tsao-processing-skill/docs/assets/readme" = ["docs/assets/readme/*.svg"]
+"share/tsao-processing-skill/reports" = [
+  "reports/QUALIFICATION_BOUNDARY.md",
+  "reports/BRANCH_CONSOLIDATION_2026-07-23.md",
+  "reports/FINAL_AUDIT_REPORT.md",
+  "reports/README.md",
+]
+"share/tsao-processing-skill/scripts" = ["scripts/*.py"]
 "share/tsao-processing-skill/schemas" = ["schemas/*.json"]
 "share/tsao-processing-skill/templates" = ["templates/*.md"]
 "share/tsao-processing-skill/examples/generic-process" = ["examples/generic-process/*.yaml"]
