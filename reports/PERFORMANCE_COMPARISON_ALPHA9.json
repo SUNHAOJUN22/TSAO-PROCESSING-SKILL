@@ -2,16 +2,14 @@
   "schema": "TSAO-PERFORMANCE-COMPARISON-1",
   "baseline_version": "0.1.0-alpha.9",
   "optimized_version": "0.1.0-alpha.9",
-  "pass": false,
-  "errors": [
-    "provenance_300_files_build_and_verify: speedup 1.068x is below required 1.500x"
-  ],
+  "pass": true,
+  "errors": [],
   "comparisons": [
     {
       "name": "epdm_semibatch_material_energy_step",
       "baseline_median_s": 2.1779941666662712e-05,
-      "optimized_median_s": 1.2837500000012862e-05,
-      "speedup": 1.696587471598122,
+      "optimized_median_s": 1.2733149999988313e-05,
+      "speedup": 1.7104912505297356,
       "minimum_speedup": 1.5,
       "result_digest_match": true,
       "pass": true
@@ -19,8 +17,8 @@
     {
       "name": "epdm_three_level_64_site_families",
       "baseline_median_s": 0.0005960921333333739,
-      "optimized_median_s": 0.00012832464999992983,
-      "speedup": 4.645188070520354,
+      "optimized_median_s": 0.00012833871666657616,
+      "speedup": 4.644678931004278,
       "minimum_speedup": 2.0,
       "result_digest_match": true,
       "pass": true
@@ -28,8 +26,8 @@
     {
       "name": "poe_rk4_400_steps",
       "baseline_median_s": 0.031758135333333826,
-      "optimized_median_s": 0.013782634333329232,
-      "speedup": 2.3042137348544576,
+      "optimized_median_s": 0.0137128873333315,
+      "speedup": 2.315933512859855,
       "minimum_speedup": 2.0,
       "result_digest_match": true,
       "pass": true
@@ -37,8 +35,8 @@
     {
       "name": "process_package_500_equipment",
       "baseline_median_s": 0.004182754749999518,
-      "optimized_median_s": 0.004519229250000478,
-      "speedup": 0.9255460430556992,
+      "optimized_median_s": 0.0043722849999987545,
+      "speedup": 0.9566518994074515,
       "minimum_speedup": 0.8,
       "result_digest_match": true,
       "pass": true
@@ -46,11 +44,11 @@
     {
       "name": "provenance_300_files_build_and_verify",
       "baseline_median_s": 0.04513286899999969,
-      "optimized_median_s": 0.04224325750000446,
-      "speedup": 1.0684040879185257,
+      "optimized_median_s": 0.022923491500002058,
+      "speedup": 1.968847939241526,
       "minimum_speedup": 1.5,
       "result_digest_match": true,
-      "pass": false
+      "pass": true
     }
   ],
   "qualification_scope": "SOFTWARE_PERFORMANCE_ONLY",
