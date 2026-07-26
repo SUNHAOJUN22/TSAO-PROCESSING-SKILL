@@ -42,6 +42,8 @@ from pathlib import Path
 from urllib.parse import unquote
 {path_setup}from importlib.resources import files
 import numpy as np
+import skills.epdm
+import skills.poe
 import tsao
 from tsao.process_package import validate_process_package
 from tsao.skillpacks import skillpack_inventory
@@ -84,6 +86,8 @@ for readme_name in ('README.md', 'README.zh-CN.md'):
             link_failures.append(f"{{readme_name}} -> missing: {{raw_target}}")
 print(json.dumps({{
     'tsao_module_path': str(Path(tsao.__file__).resolve()),
+    'epdm_module_path': str(Path(skills.epdm.__file__).resolve()),
+    'poe_module_path': str(Path(skills.poe.__file__).resolve()),
     'python_prefix': sys.prefix,
     'pfr': pfr,
     'fit': fit['rate_constant_s'],
@@ -99,7 +103,22 @@ print(json.dumps({{
 """
 
 
-def _evaluate_payload(payload: dict[str, object], label: str) -> list[str]:
+def _path_is_within(raw_path: object, expected_root: Path) -> bool:
+    if not isinstance(raw_path, str) or not raw_path:
+        return False
+    try:
+        Path(raw_path).resolve(strict=False).relative_to(expected_root.resolve(strict=False))
+    except ValueError:
+        return False
+    return True
+
+
+def _evaluate_payload(
+    payload: dict[str, object],
+    label: str,
+    *,
+    expected_root: Path,
+) -> list[str]:
     errors: list[str] = []
     if abs(float(payload.get("pfr", 0.0)) - (1.0 - math.exp(-1.0))) > 1e-12:
         errors.append(f"{label} PFR known solution mismatch")
@@ -109,17 +128,26 @@ def _evaluate_payload(payload: dict[str, object], label: str) -> list[str]:
         errors.append(f"{label} EPDM reference validation failed")
     if payload.get("package_status") != "PASS":
         errors.append(f"{label} universal package validation failed")
+
+    for field in ("tsao_module_path", "epdm_module_path", "poe_module_path"):
+        if not _path_is_within(payload.get(field), expected_root):
+            errors.append(f"{label} imported {field} outside the installed root")
+
     skillpacks = payload.get("skillpacks")
     if not isinstance(skillpacks, dict) or not skillpacks.get("pass"):
         errors.append(f"{label} skillpack inventory failed")
-    elif skillpacks.get("delivery") != "INSTALLED_SKILLPACK":
-        errors.append(f"{label} did not resolve the installed skillpack data root")
-    elif skillpacks.get("readme_svg_assets", 0) < 16:
-        errors.append(f"{label} does not contain all sixteen README assets")
-    elif skillpacks.get("process_general_modules_present") != 14:
-        errors.append(f"{label} process-general module registry is incomplete")
-    elif skillpacks.get("process_general_workflows_present") != 6:
-        errors.append(f"{label} process-general workflow registry is incomplete")
+    else:
+        if skillpacks.get("delivery") != "INSTALLED_SKILLPACK":
+            errors.append(f"{label} did not resolve the installed skillpack data root")
+        if not _path_is_within(skillpacks.get("root"), expected_root):
+            errors.append(f"{label} resolved Skillpack data outside the installed root")
+        if skillpacks.get("readme_svg_assets", 0) < 16:
+            errors.append(f"{label} does not contain all sixteen README assets")
+        if skillpacks.get("process_general_modules_present") != 14:
+            errors.append(f"{label} process-general module registry is incomplete")
+        if skillpacks.get("process_general_workflows_present") != 6:
+            errors.append(f"{label} process-general workflow registry is incomplete")
+
     if payload.get("installed_readme_link_failures"):
         errors.extend(
             f"{label} README link failure: {failure}"
@@ -133,6 +161,7 @@ def _execute_runtime(
     *,
     cwd: Path,
     label: str,
+    expected_root: Path,
     extra_sys_path: Path | None = None,
 ) -> tuple[dict[str, object], list[str]]:
     completed = _run(
@@ -146,7 +175,7 @@ def _execute_runtime(
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError as exc:
         return {}, [f"{label} returned invalid JSON: {exc}"]
-    return payload, _evaluate_payload(payload, label)
+    return payload, _evaluate_payload(payload, label, expected_root=expected_root)
 
 
 def _verify_target_install(wheel: Path, directory: Path) -> tuple[dict[str, object], list[str]]:
@@ -172,6 +201,7 @@ def _verify_target_install(wheel: Path, directory: Path) -> tuple[dict[str, obje
         Path(sys.executable),
         cwd=directory,
         label="PIP_TARGET",
+        expected_root=target,
         extra_sys_path=target,
     )
 
@@ -179,7 +209,7 @@ def _verify_target_install(wheel: Path, directory: Path) -> tuple[dict[str, obje
 def _verify_standard_venv(wheel: Path, directory: Path) -> tuple[dict[str, object], list[str]]:
     venv_root = directory / "standard-venv"
     create = _run(
-        [sys.executable, "-m", "venv", "--system-site-packages", str(venv_root)],
+        [sys.executable, "-m", "venv", str(venv_root)],
         cwd=directory,
     )
     if create.returncode != 0:
@@ -193,7 +223,6 @@ def _verify_standard_venv(wheel: Path, directory: Path) -> tuple[dict[str, objec
             "pip",
             "install",
             "--quiet",
-            "--no-deps",
             str(wheel.resolve()),
         ],
         cwd=directory,
@@ -209,6 +238,7 @@ def _verify_standard_venv(wheel: Path, directory: Path) -> tuple[dict[str, objec
         python_executable,
         cwd=directory,
         label="STANDARD_VENV",
+        expected_root=venv_root,
     )
 
 
@@ -231,6 +261,8 @@ def verify(wheel: Path) -> dict[str, object]:
         "errors": errors,
         "runtimes": runtimes,
         "install_modes": ["PIP_TARGET", "STANDARD_VENV"],
+        "import_origin_check": "ENFORCED",
+        "standard_venv_isolation": "NO_SYSTEM_SITE_PACKAGES",
     }
 
 
