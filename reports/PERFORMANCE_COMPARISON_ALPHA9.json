@@ -1,0 +1,60 @@
+{
+  "schema": "TSAO-PERFORMANCE-COMPARISON-1",
+  "baseline_version": "0.1.0-alpha.9",
+  "optimized_version": "0.1.0-alpha.9",
+  "pass": false,
+  "errors": [
+    "provenance_300_files_build_and_verify: speedup 1.309x is below required 1.500x"
+  ],
+  "comparisons": [
+    {
+      "name": "epdm_semibatch_material_energy_step",
+      "baseline_median_s": 2.1779941666662712e-05,
+      "optimized_median_s": 1.2878366666673931e-05,
+      "speedup": 1.6912037240734794,
+      "minimum_speedup": 1.5,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "epdm_three_level_64_site_families",
+      "baseline_median_s": 0.0005960921333333739,
+      "optimized_median_s": 0.00012686759166662397,
+      "speedup": 4.698537471253917,
+      "minimum_speedup": 2.0,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "poe_rk4_400_steps",
+      "baseline_median_s": 0.031758135333333826,
+      "optimized_median_s": 0.013866735666667296,
+      "speedup": 2.2902387480907764,
+      "minimum_speedup": 2.0,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "process_package_500_equipment",
+      "baseline_median_s": 0.004182754749999518,
+      "optimized_median_s": 0.00435546025000022,
+      "speedup": 0.9603473593862568,
+      "minimum_speedup": 0.8,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "provenance_300_files_build_and_verify",
+      "baseline_median_s": 0.04513286899999969,
+      "optimized_median_s": 0.03447883449999978,
+      "speedup": 1.3090021647918515,
+      "minimum_speedup": 1.5,
+      "result_digest_match": true,
+      "pass": false
+    }
+  ],
+  "qualification_scope": "SOFTWARE_PERFORMANCE_ONLY",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}

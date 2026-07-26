@@ -1,0 +1,1145 @@
+
+== install ==
+exit=0
+
+== pip_check ==
+No broken requirements found.
+exit=0
+
+== refresh_manifest ==
+{
+  "version": "0.1.0-alpha.9",
+  "profile": "core",
+  "pass": true,
+  "strict_source_clean": false,
+  "checks": {
+    "repository": {
+      "pass": true,
+      "issues": []
+    },
+    "version": {
+      "pass": true,
+      "issues": []
+    },
+    "schemas": {
+      "pass": true,
+      "issues": []
+    },
+    "capabilities": {
+      "pass": true,
+      "issues": []
+    },
+    "provenance": {
+      "pass": true,
+      "issues": []
+    },
+    "release_identity": {
+      "pass": true,
+      "issues": []
+    }
+  },
+  "issues": [],
+  "warnings": [],
+  "metrics": {
+    "schemas": 9,
+    "specialists": 4
+  },
+  "artifact_software_qualification": "PASS",
+  "technical_approval_status": "NOT_EVALUATED",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "customer_qualification": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
+exit=0
+
+== run_ci ==
+{
+  "version": "0.1.0-alpha.9",
+  "pass": false,
+  "checks": [
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "compileall",
+        "-f",
+        "-q",
+        "tsao",
+        "scripts",
+        "skills"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": ""
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "coverage",
+        "erase"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": ""
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "coverage",
+        "run",
+        "--branch",
+        "--source=skills.poe,skills.epdm,tsao.process_package,tsao.skillpacks",
+        "--omit=skills/poe/scripts/*,skills/epdm/scripts/*",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests",
+        "skills/process-general/tests",
+        "skills/epdm/tests",
+        "skills/poe/tests",
+        "skills/polymer-general/tests"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "........................................................................ [ 34%]\n........................................................................ [ 68%]\n...................................................................      [100%]\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "coverage",
+        "report",
+        "--fail-under=75"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "Name                           Stmts   Miss Branch BrPart  Cover\n----------------------------------------------------------------\nskills/epdm/__init__.py            2      0      0      0   100%\nskills/epdm/core.py                6      0      0      0   100%\nskills/epdm/kinetics.py          177     35     38     14    75%\nskills/epdm/package_audit.py      34      0     16      4    92%\nskills/epdm/process.py           138     19     36     17    79%\nskills/epdm/qualification.py      85     21     44     15    72%\nskills/poe/__init__.py             2      0      0      0   100%\nskills/poe/core.py                12      0      0      0   100%\nskills/poe/dynamics.py            67     11     26     11    76%\nskills/poe/estimation.py          94     19     36     11    72%\nskills/poe/governance.py         200     29    132     29    82%\nskills/poe/kinetics.py           113      7     24      7    90%\nskills/poe/model_passport.py      75      3     44      4    94%\nskills/poe/package_audit.py      285     65    164     37    75%\nskills/poe/properties.py          44      5     12      5    82%\nskills/poe/qualification.py      218     56    160     49    72%\nskills/poe/reactors.py            40      3      8      3    88%\nskills/poe/scaleup.py             43      5     10      3    85%\ntsao/process_package.py          249     67    148     44    72%\ntsao/skillpacks.py               123     29     40      9    73%\n----------------------------------------------------------------\nTOTAL                           2007    374    938    262    77%\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-c",
+        "from pathlib import Path; Path('.coverage').unlink(missing_ok=True); Path('coverage.xml').unlink(missing_ok=True)"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": ""
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "scripts/audit_capabilities.py"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "{\n  \"pass\": true,\n  \"issues\": [],\n  \"gates\": 19,\n  \"workstreams\": 14,\n  \"maturity_levels\": 10,\n  \"subskills\": {\n    \"epdm\": {\n      \"files\": 32,\n      \"tests\": 3\n    },\n    \"poe\": {\n      \"files\": 115,\n      \"tests\": 8\n    },\n    \"polymer-general\": {\n      \"files\": 20,\n      \"tests\": 2\n    },\n    \"process-general\": {\n      \"files\": 30,\n      \"tests\": 2\n    }\n  },\n  \"universal_package_status\": \"EXECUTABLE_ALPHA\",\n  \"epdm_status\": \"EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE\",\n  \"poe_status\": \"EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE\",\n  \"technical_approval_status\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "skills/epdm/scripts/audit_epdm.py"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "{\n  \"status\": \"PASS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"module_registration\": \"14/14\",\n  \"requirement_registration\": \"20/20\",\n  \"reference_case\": \"PASS\",\n  \"reference_package\": \"PASS\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "skills/poe/scripts/audit_p0.py",
+        "--root",
+        "."
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "{\n  \"pass\": true,\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"asset_registry_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"requirement_trace_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"conflict_ledger_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"asset_registry\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"requirement_trace\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"conflict_ledger\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"open_blockers\": 7\n    },\n    \"modules\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"specialist_schemas\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"fixtures\": {\n      \"pass\": true,\n      \"errors\": []\n    }\n  },\n  \"asset_coverage\": \"139/139\",\n  \"requirement_registration_coverage\": \"18/18\",\n  \"conflict_registration\": \"7/7\",\n  \"module_count\": 12,\n  \"fixture_domain_count\": 11,\n  \"scientific_approval\": \"NOT_EVALUATED\",\n  \"engineering_approval\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "skills/poe/scripts/audit_p1.py",
+        "--root",
+        "."
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "{\n  \"status\": \"PASS_WITH_EXTERNAL_HOLDS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"holds\": [\n    \"model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment\"\n  ],\n  \"reference_level\": \"P1_REFERENCE_KERNEL_ALPHA\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "tsao.cli",
+        "doctor",
+        "--root",
+        ".",
+        "--profile",
+        "core"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "output": "{\n  \"version\": \"0.1.0-alpha.9\",\n  \"profile\": \"core\",\n  \"pass\": true,\n  \"strict_source_clean\": false,\n  \"checks\": {\n    \"repository\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"version\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"schemas\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"capabilities\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"provenance\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"release_identity\": {\n      \"pass\": true,\n      \"issues\": []\n    }\n  },\n  \"issues\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"schemas\": 9,\n    \"specialists\": 4\n  },\n  \"artifact_software_qualification\": \"PASS\",\n  \"technical_approval_status\": \"NOT_EVALUATED\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "tsao",
+        "tests",
+        "scripts",
+        "skills/process-general",
+        "skills/epdm",
+        "skills/poe",
+        "skills/polymer-general"
+      ],
+      "returncode": 1,
+      "timed_out": false,
+      "output": "F401 [*] `math` imported but unused\n --> scripts/benchmark_performance.py:7:8\n  |\n5 | import hashlib\n6 | import json\n7 | import math\n  |        ^^^^\n8 | import platform\n9 | import pstats\n  |\nhelp: Remove unused import: `math`\n  |\n6 | import json\n  - import math\n7 | import platform\n  |\n\nF401 [*] `typing.Any` imported but unused\n  --> scripts/benchmark_performance.py:16:20\n   |\n14 | from collections.abc import Callable\n15 | from pathlib import Path\n16 | from typing import Any\n   |                    ^^^\n17 |\n18 | ROOT = Path(__file__).resolve().parents[1]\n   |\nhelp: Remove unused import: `typing.Any`\n   |\n15 | from pathlib import Path\n   - from typing import Any\n16 |\n   |\n\nFound 2 errors.\n[*] 2 fixable with the `--fix` option.\n"
+    }
+  ],
+  "artifact_software_qualification": "FAIL",
+  "universal_process_package_status": "HOLD",
+  "skillpack_delivery_status": "HOLD",
+  "epdm_software_status": "HOLD",
+  "poe_software_status": "HOLD",
+  "poe_scientific_execution": "UNDER_DISTILLATION",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "customer_qualification": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
+exit=1
+
+== skillpacks ==
+{
+  "pass": true,
+  "root": "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL",
+  "delivery": "SOURCE_CHECKOUT",
+  "version": "0.1.0-alpha.9",
+  "subskills": [
+    "epdm",
+    "poe",
+    "polymer-general",
+    "process-general"
+  ],
+  "process_general_modules_present": 14,
+  "process_general_modules_expected": 14,
+  "process_general_workflows_present": 6,
+  "process_general_workflows_expected": 6,
+  "polymer_general_scripts_present": 6,
+  "polymer_general_scripts_expected": 6,
+  "readme_svg_assets": 16,
+  "readme_svg_assets_expected_minimum": 16,
+  "errors": [],
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
+exit=0
+
+== epdm_audit ==
+{
+  "status": "PASS",
+  "pass": true,
+  "errors": [],
+  "module_registration": "14/14",
+  "requirement_registration": "20/20",
+  "reference_case": "PASS",
+  "reference_package": "PASS",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "customer_qualification": "NOT_EVALUATED"
+}
+exit=0
+
+== poe_p0 ==
+{
+  "pass": true,
+  "status": "PASS",
+  "checks": {
+    "asset_registry_schema": {
+      "pass": true,
+      "errors": []
+    },
+    "requirement_trace_schema": {
+      "pass": true,
+      "errors": []
+    },
+    "conflict_ledger_schema": {
+      "pass": true,
+      "errors": []
+    },
+    "asset_registry": {
+      "status": "PASS",
+      "pass": true,
+      "errors": [],
+      "coverage": 1.0
+    },
+    "requirement_trace": {
+      "status": "PASS",
+      "pass": true,
+      "errors": [],
+      "coverage": 1.0
+    },
+    "conflict_ledger": {
+      "status": "PASS",
+      "pass": true,
+      "errors": [],
+      "open_blockers": 7
+    },
+    "modules": {
+      "pass": true,
+      "errors": []
+    },
+    "specialist_schemas": {
+      "pass": true,
+      "errors": []
+    },
+    "fixtures": {
+      "pass": true,
+      "errors": []
+    }
+  },
+  "asset_coverage": "139/139",
+  "requirement_registration_coverage": "18/18",
+  "conflict_registration": "7/7",
+  "module_count": 12,
+  "fixture_domain_count": 11,
+  "scientific_approval": "NOT_EVALUATED",
+  "engineering_approval": "NOT_EVALUATED"
+}
+exit=0
+
+== poe_p1 ==
+{
+  "status": "PASS_WITH_EXTERNAL_HOLDS",
+  "pass": true,
+  "errors": [],
+  "holds": [
+    "model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment",
+    "model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment",
+    "model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment"
+  ],
+  "reference_level": "P1_REFERENCE_KERNEL_ALPHA",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
+exit=0
+
+== wheel_build ==
+Processing ./.
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: tsao-processing-skill
+  Building wheel for tsao-processing-skill (pyproject.toml): started
+  Building wheel for tsao-processing-skill (pyproject.toml): finished with status 'done'
+  Created wheel for tsao-processing-skill: filename=tsao_processing_skill-0.1.0a9-py3-none-any.whl size=480062 sha256=ca0024f38f5741e72cd9f6a32115cccebc83a81e31cded912ef1fc64595d94ae
+  Stored in directory: /home/runner/.cache/pip/wheels/4c/01/48/b3d13d995607b5b8e41ce2c652da12bae8e84ed0d83d133ae1
+Successfully built tsao-processing-skill
+exit=0
+
+== wheel_contents ==
+{
+  "wheel": "wheelhouse/tsao_processing_skill-0.1.0a9-py3-none-any.whl",
+  "pass": true,
+  "errors": [],
+  "identity": {
+    "expected_name": "tsao-processing-skill",
+    "expected_version": "0.1.0a9",
+    "console_scripts": {
+      "tsao": "tsao.cli:main",
+      "tsao-skillpacks": "tsao.skillpacks:main"
+    },
+    "metadata_name": "tsao-processing-skill",
+    "metadata_version": "0.1.0a9"
+  },
+  "poe_members": 72,
+  "epdm_members": 19,
+  "poe_module_count": 12,
+  "process_general_module_count": 14,
+  "process_general_workflow_count": 6,
+  "readme_asset_count": 16,
+  "maintenance_script_count": 6,
+  "installed_skillpack_members": 188
+}
+exit=0
+
+== wheel_runtime ==
+{
+  "wheel": "wheelhouse/tsao_processing_skill-0.1.0a9-py3-none-any.whl",
+  "pass": true,
+  "errors": [],
+  "runtimes": {
+    "PIP_TARGET": {
+      "tsao_module_path": "/tmp/tsao-wheel-runtime-klwysbyr/target-site/tsao/__init__.py",
+      "epdm_module_path": "/tmp/tsao-wheel-runtime-klwysbyr/target-site/skills/epdm/__init__.py",
+      "poe_module_path": "/tmp/tsao-wheel-runtime-klwysbyr/target-site/skills/poe/__init__.py",
+      "python_prefix": "/opt/hostedtoolcache/Python/3.14.6/x64",
+      "pfr": 0.6321205588285577,
+      "fit": 0.2,
+      "response": [
+        0.0,
+        0.3934693402873666,
+        0.9932620530009145
+      ],
+      "passport_status": "HOLD",
+      "active_site": 0.6,
+      "heat_margin": 0.2,
+      "epdm_status": "PASS",
+      "package_status": "PASS",
+      "skillpacks": {
+        "pass": true,
+        "root": "/tmp/tsao-wheel-runtime-klwysbyr/target-site/share/tsao-processing-skill",
+        "delivery": "INSTALLED_SKILLPACK",
+        "version": "0.1.0-alpha.9",
+        "subskills": [
+          "epdm",
+          "poe",
+          "polymer-general",
+          "process-general"
+        ],
+        "process_general_modules_present": 14,
+        "process_general_modules_expected": 14,
+        "process_general_workflows_present": 6,
+        "process_general_workflows_expected": 6,
+        "polymer_general_scripts_present": 6,
+        "polymer_general_scripts_expected": 6,
+        "readme_svg_assets": 16,
+        "readme_svg_assets_expected_minimum": 16,
+        "errors": [],
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+        "industrial_performance_guarantee": "NOT_EVALUATED"
+      },
+      "installed_readme_link_failures": []
+    },
+    "STANDARD_VENV": {
+      "tsao_module_path": "/tmp/tsao-wheel-runtime-klwysbyr/standard-venv/lib/python3.14/site-packages/tsao/__init__.py",
+      "epdm_module_path": "/tmp/tsao-wheel-runtime-klwysbyr/standard-venv/lib/python3.14/site-packages/skills/epdm/__init__.py",
+      "poe_module_path": "/tmp/tsao-wheel-runtime-klwysbyr/standard-venv/lib/python3.14/site-packages/skills/poe/__init__.py",
+      "python_prefix": "/tmp/tsao-wheel-runtime-klwysbyr/standard-venv",
+      "pfr": 0.6321205588285577,
+      "fit": 0.2,
+      "response": [
+        0.0,
+        0.3934693402873666,
+        0.9932620530009145
+      ],
+      "passport_status": "HOLD",
+      "active_site": 0.6,
+      "heat_margin": 0.2,
+      "epdm_status": "PASS",
+      "package_status": "PASS",
+      "skillpacks": {
+        "pass": true,
+        "root": "/tmp/tsao-wheel-runtime-klwysbyr/standard-venv/share/tsao-processing-skill",
+        "delivery": "INSTALLED_SKILLPACK",
+        "version": "0.1.0-alpha.9",
+        "subskills": [
+          "epdm",
+          "poe",
+          "polymer-general",
+          "process-general"
+        ],
+        "process_general_modules_present": 14,
+        "process_general_modules_expected": 14,
+        "process_general_workflows_present": 6,
+        "process_general_workflows_expected": 6,
+        "polymer_general_scripts_present": 6,
+        "polymer_general_scripts_expected": 6,
+        "readme_svg_assets": 16,
+        "readme_svg_assets_expected_minimum": 16,
+        "errors": [],
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+        "industrial_performance_guarantee": "NOT_EVALUATED"
+      },
+      "installed_readme_link_failures": []
+    }
+  },
+  "install_modes": [
+    "PIP_TARGET",
+    "STANDARD_VENV"
+  ],
+  "import_origin_check": "ENFORCED",
+  "standard_venv_isolation": "NO_SYSTEM_SITE_PACKAGES"
+}
+exit=0
+
+== benchmark ==
+{
+  "schema": "TSAO-PERFORMANCE-1",
+  "version": "0.1.0-alpha.9",
+  "python": "3.14.6 (main, Jun 10 2026, 14:29:35) [GCC 13.3.0]",
+  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
+  "implementation": "CPython",
+  "repeats": 7,
+  "benchmarks": [
+    {
+      "name": "epdm_three_level_64_site_families",
+      "number_per_repeat": 120,
+      "repeats": 7,
+      "median_s_per_call": 0.00012686759166662397,
+      "minimum_s_per_call": 0.0001257047499999923,
+      "maximum_s_per_call": 0.00012888703333331365,
+      "stdev_s_per_call": 9.261114088714828e-07,
+      "result_sha256": "b7e48a748bcc6b81e892ecc80a43d81c3315b59e5fe899ca44257cda2bbabc94",
+      "profile_loops": 20,
+      "profile_top_cumulative": [
+        {
+          "function": "benchmark_performance.py:96:_epdm_suite_case",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 0.00038198700000000003,
+          "cumulative_time_s": 0.006661689
+        },
+        {
+          "function": "kinetics.py:294:three_level_kinetic_suite",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 0.001989994,
+          "cumulative_time_s": 0.005886047
+        },
+        {
+          "function": "kinetics.py:10:_finite",
+          "primitive_calls": 2940,
+          "total_calls": 2940,
+          "total_time_s": 0.001258826,
+          "cumulative_time_s": 0.0018977830000000001
+        },
+        {
+          "function": "kinetics.py:316:<genexpr>",
+          "primitive_calls": 1300,
+          "total_calls": 1300,
+          "total_time_s": 0.00031492900000000003,
+          "cumulative_time_s": 0.001139924
+        },
+        {
+          "function": "kinetics.py:317:<genexpr>",
+          "primitive_calls": 1300,
+          "total_calls": 1300,
+          "total_time_s": 0.00030529600000000004,
+          "cumulative_time_s": 0.00110336
+        },
+        {
+          "function": "~:0:<built-in method builtins.sum>",
+          "primitive_calls": 60,
+          "total_calls": 60,
+          "total_time_s": 0.00031711200000000004,
+          "cumulative_time_s": 0.000685073
+        },
+        {
+          "function": "~:0:<built-in method builtins.isinstance>",
+          "primitive_calls": 2940,
+          "total_calls": 2940,
+          "total_time_s": 0.00038096800000000003,
+          "cumulative_time_s": 0.00038096800000000003
+        },
+        {
+          "function": "~:0:<built-in method math.isfinite>",
+          "primitive_calls": 2940,
+          "total_calls": 2940,
+          "total_time_s": 0.000257989,
+          "cumulative_time_s": 0.000257989
+        },
+        {
+          "function": "kinetics.py:346:<genexpr>",
+          "primitive_calls": 1300,
+          "total_calls": 1300,
+          "total_time_s": 0.000241768,
+          "cumulative_time_s": 0.000241768
+        },
+        {
+          "function": "~:0:<method 'append' of 'list' objects>",
+          "primitive_calls": 1280,
+          "total_calls": 1280,
+          "total_time_s": 0.00019303200000000002,
+          "cumulative_time_s": 0.00019303200000000002
+        },
+        {
+          "function": "benchmark_performance.py:99:<genexpr>",
+          "primitive_calls": 1300,
+          "total_calls": 1300,
+          "total_time_s": 0.000191219,
+          "cumulative_time_s": 0.000191219
+        },
+        {
+          "function": "kinetics.py:38:validated",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 4.0506e-05,
+          "cumulative_time_s": 0.000150282
+        },
+        {
+          "function": "kinetics.py:83:validated",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 4.1346e-05,
+          "cumulative_time_s": 0.00014682600000000002
+        },
+        {
+          "function": "kinetics.py:61:validated",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 3.6849e-05,
+          "cumulative_time_s": 0.000146173
+        },
+        {
+          "function": "kinetics.py:128:_temperature_adjusted_validated",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 4.7837e-05,
+          "cumulative_time_s": 0.00013047200000000002
+        }
+      ]
+    },
+    {
+      "name": "epdm_semibatch_material_energy_step",
+      "number_per_repeat": 600,
+      "repeats": 7,
+      "median_s_per_call": 1.2878366666673931e-05,
+      "minimum_s_per_call": 1.2839844999987804e-05,
+      "maximum_s_per_call": 1.29892916666563e-05,
+      "stdev_s_per_call": 5.6174475909230285e-08,
+      "result_sha256": "aec440641c2b9c2de5572e7df51e9258d6f30344e22dde0c63ef5a020ca142f7",
+      "profile_loops": 80,
+      "profile_top_cumulative": [
+        {
+          "function": "benchmark_performance.py:111:_epdm_semibatch_case",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 0.00017923600000000002,
+          "cumulative_time_s": 0.0030895650000000003
+        },
+        {
+          "function": "process.py:170:semibatch_material_energy_step",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 0.000497138,
+          "cumulative_time_s": 0.002641692
+        },
+        {
+          "function": "process.py:9:_finite",
+          "primitive_calls": 1280,
+          "total_calls": 1280,
+          "total_time_s": 0.000547515,
+          "cumulative_time_s": 0.0008232490000000001
+        },
+        {
+          "function": "process.py:31:validated",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 0.000193064,
+          "cumulative_time_s": 0.000717635
+        },
+        {
+          "function": "kinetics.py:38:validated",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 0.00014862800000000001,
+          "cumulative_time_s": 0.000569266
+        },
+        {
+          "function": "process.py:57:validated",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 0.00011301200000000001,
+          "cumulative_time_s": 0.00039878300000000005
+        },
+        {
+          "function": "kinetics.py:10:_finite",
+          "primitive_calls": 480,
+          "total_calls": 480,
+          "total_time_s": 0.00019820500000000002,
+          "cumulative_time_s": 0.000300037
+        },
+        {
+          "function": "~:0:<built-in method builtins.isinstance>",
+          "primitive_calls": 1760,
+          "total_calls": 1760,
+          "total_time_s": 0.000228146,
+          "cumulative_time_s": 0.000228146
+        },
+        {
+          "function": "~:0:<built-in method math.isfinite>",
+          "primitive_calls": 1760,
+          "total_calls": 1760,
+          "total_time_s": 0.00014942000000000002,
+          "cumulative_time_s": 0.00014942000000000002
+        },
+        {
+          "function": "<string>:2:__init__",
+          "primitive_calls": 160,
+          "total_calls": 160,
+          "total_time_s": 0.00013047000000000002,
+          "cumulative_time_s": 0.00013047000000000002
+        },
+        {
+          "function": "~:0:<built-in method builtins.min>",
+          "primitive_calls": 560,
+          "total_calls": 560,
+          "total_time_s": 0.000111513,
+          "cumulative_time_s": 0.000111513
+        },
+        {
+          "function": "kinetics.py:164:_insertion_rates_validated",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 3.7894e-05,
+          "cumulative_time_s": 3.7894e-05
+        },
+        {
+          "function": "~:0:<built-in method builtins.sum>",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 2.7635000000000002e-05,
+          "cumulative_time_s": 2.7635000000000002e-05
+        },
+        {
+          "function": "~:0:<method 'values' of 'dict' objects>",
+          "primitive_calls": 80,
+          "total_calls": 80,
+          "total_time_s": 1.6261000000000002e-05,
+          "cumulative_time_s": 1.6261000000000002e-05
+        },
+        {
+          "function": "~:0:<method 'disable' of '_lsprof.Profiler' objects>",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 1.5449e-05,
+          "cumulative_time_s": 1.5449e-05
+        }
+      ]
+    },
+    {
+      "name": "poe_rk4_400_steps",
+      "number_per_repeat": 3,
+      "repeats": 7,
+      "median_s_per_call": 0.013866735666667296,
+      "minimum_s_per_call": 0.013818144666667346,
+      "maximum_s_per_call": 0.01396584433333222,
+      "stdev_s_per_call": 4.596264238122715e-05,
+      "result_sha256": "5a158478b8fd13c6c7ab77c6255a650f4025d8a5732a947ff2eaed47caf5acf5",
+      "profile_loops": 1,
+      "profile_top_cumulative": [
+        {
+          "function": "benchmark_performance.py:124:_poe_rk4_case",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 1.1382e-05,
+          "cumulative_time_s": 0.04004018
+        },
+        {
+          "function": "kinetics.py:143:simulate_kinetics",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 0.002324145,
+          "cumulative_time_s": 0.040022897
+        },
+        {
+          "function": "kinetics.py:116:_state_add",
+          "primitive_calls": 1600,
+          "total_calls": 1600,
+          "total_time_s": 0.011164523,
+          "cumulative_time_s": 0.022731192
+        },
+        {
+          "function": "kinetics.py:60:_kinetic_derivative_validated",
+          "primitive_calls": 1600,
+          "total_calls": 1600,
+          "total_time_s": 0.0032169750000000004,
+          "cumulative_time_s": 0.006778928
+        },
+        {
+          "function": "kinetics.py:126:_rk4_combined",
+          "primitive_calls": 400,
+          "total_calls": 400,
+          "total_time_s": 0.0010455780000000001,
+          "cumulative_time_s": 0.006759892000000001
+        },
+        {
+          "function": "~:0:<built-in method builtins.getattr>",
+          "primitive_calls": 57240,
+          "total_calls": 57240,
+          "total_time_s": 0.006134758000000001,
+          "cumulative_time_s": 0.006134758000000001
+        },
+        {
+          "function": "kinetics.py:130:<genexpr>",
+          "primitive_calls": 4800,
+          "total_calls": 4800,
+          "total_time_s": 0.00298086,
+          "cumulative_time_s": 0.004805928
+        },
+        {
+          "function": "~:0:<method 'append' of 'list' objects>",
+          "primitive_calls": 18000,
+          "total_calls": 18000,
+          "total_time_s": 0.0023712520000000003,
+          "cumulative_time_s": 0.0023712520000000003
+        },
+        {
+          "function": "~:0:<built-in method builtins.max>",
+          "primitive_calls": 17600,
+          "total_calls": 17600,
+          "total_time_s": 0.0019027480000000001,
+          "cumulative_time_s": 0.0019027480000000001
+        },
+        {
+          "function": "kinetics.py:56:_state_dict",
+          "primitive_calls": 402,
+          "total_calls": 402,
+          "total_time_s": 0.000781931,
+          "cumulative_time_s": 0.001261439
+        },
+        {
+          "function": "~:0:<built-in method builtins.min>",
+          "primitive_calls": 400,
+          "total_calls": 400,
+          "total_time_s": 6.576700000000001e-05,
+          "cumulative_time_s": 6.576700000000001e-05
+        },
+        {
+          "function": "~:0:<method 'disable' of '_lsprof.Profiler' objects>",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 2.3604000000000003e-05,
+          "cumulative_time_s": 2.3604000000000003e-05
+        },
+        {
+          "function": "kinetics.py:43:validate",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 1.4037000000000001e-05,
+          "cumulative_time_s": 1.9236e-05
+        },
+        {
+          "function": "kinetics.py:18:validate",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 4.419e-06,
+          "cumulative_time_s": 6.673e-06
+        },
+        {
+          "function": "~:0:<built-in method builtins.isinstance>",
+          "primitive_calls": 18,
+          "total_calls": 18,
+          "total_time_s": 3.0550000000000004e-06,
+          "cumulative_time_s": 3.0550000000000004e-06
+        }
+      ]
+    },
+    {
+      "name": "process_package_500_equipment",
+      "number_per_repeat": 4,
+      "repeats": 7,
+      "median_s_per_call": 0.00435546025000022,
+      "minimum_s_per_call": 0.004331157250000217,
+      "maximum_s_per_call": 0.004407018999998513,
+      "stdev_s_per_call": 2.7657421487801224e-05,
+      "result_sha256": "fce84786d96cb3bfe636e9298e35514e33538c64942670fb5628db7b26369a53",
+      "profile_loops": 1,
+      "profile_top_cumulative": [
+        {
+          "function": "benchmark_performance.py:256:<lambda>",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 1.3630000000000001e-06,
+          "cumulative_time_s": 0.019443622
+        },
+        {
+          "function": "benchmark_performance.py:227:_process_package_case",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 5.6505e-05,
+          "cumulative_time_s": 0.019442259
+        },
+        {
+          "function": "process_package.py:77:validate_process_package",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 0.008530994,
+          "cumulative_time_s": 0.019385754
+        },
+        {
+          "function": "process_package.py:12:_finite",
+          "primitive_calls": 4506,
+          "total_calls": 4506,
+          "total_time_s": 0.0019467630000000002,
+          "cumulative_time_s": 0.0029874840000000003
+        },
+        {
+          "function": "~:0:<built-in method builtins.sum>",
+          "primitive_calls": 2000,
+          "total_calls": 2000,
+          "total_time_s": 0.001140001,
+          "cumulative_time_s": 0.0018437770000000002
+        },
+        {
+          "function": "process_package.py:37:_unique_ids",
+          "primitive_calls": 7,
+          "total_calls": 7,
+          "total_time_s": 0.001012061,
+          "cumulative_time_s": 0.001737969
+        },
+        {
+          "function": "~:0:<method 'get' of 'dict' objects>",
+          "primitive_calls": 11048,
+          "total_calls": 11048,
+          "total_time_s": 0.0016511280000000002,
+          "cumulative_time_s": 0.0016511280000000002
+        },
+        {
+          "function": "~:0:<built-in method builtins.isinstance>",
+          "primitive_calls": 14043,
+          "total_calls": 14043,
+          "total_time_s": 0.0016034830000000002,
+          "cumulative_time_s": 0.0016034830000000002
+        },
+        {
+          "function": "process_package.py:24:_records",
+          "primitive_calls": 7,
+          "total_calls": 7,
+          "total_time_s": 0.00042143400000000004,
+          "cumulative_time_s": 0.0007137560000000001
+        },
+        {
+          "function": "~:0:<built-in method builtins.abs>",
+          "primitive_calls": 4500,
+          "total_calls": 4500,
+          "total_time_s": 0.000544483,
+          "cumulative_time_s": 0.000544483
+        },
+        {
+          "function": "~:0:<method 'strip' of 'str' objects>",
+          "primitive_calls": 3517,
+          "total_calls": 3517,
+          "total_time_s": 0.000464156,
+          "cumulative_time_s": 0.000464156
+        },
+        {
+          "function": "~:0:<built-in method math.isfinite>",
+          "primitive_calls": 4506,
+          "total_calls": 4506,
+          "total_time_s": 0.000405071,
+          "cumulative_time_s": 0.000405071
+        },
+        {
+          "function": "~:0:<method 'add' of 'set' objects>",
+          "primitive_calls": 1507,
+          "total_calls": 1507,
+          "total_time_s": 0.00023614500000000002,
+          "cumulative_time_s": 0.00023614500000000002
+        },
+        {
+          "function": "process_package.py:231:<genexpr>",
+          "primitive_calls": 1500,
+          "total_calls": 1500,
+          "total_time_s": 0.00020410300000000002,
+          "cumulative_time_s": 0.00020410300000000002
+        },
+        {
+          "function": "~:0:<method 'items' of 'dict' objects>",
+          "primitive_calls": 1000,
+          "total_calls": 1000,
+          "total_time_s": 0.00018085,
+          "cumulative_time_s": 0.00018085
+        }
+      ]
+    },
+    {
+      "name": "provenance_300_files_build_and_verify",
+      "number_per_repeat": 2,
+      "repeats": 7,
+      "median_s_per_call": 0.03447883449999978,
+      "minimum_s_per_call": 0.03412636550000059,
+      "maximum_s_per_call": 0.03463117949999628,
+      "stdev_s_per_call": 0.00016461098196663413,
+      "result_sha256": "70bfad20ba5bc1f2f55b6d405a395acd8574dbd3e0fae79cc8e6bfd73cbe7c28",
+      "profile_loops": 1,
+      "profile_top_cumulative": [
+        {
+          "function": "benchmark_performance.py:238:exercise",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 6.7746e-05,
+          "cumulative_time_s": 0.079461312
+        },
+        {
+          "function": "provenance.py:109:iter_source_files",
+          "primitive_calls": 602,
+          "total_calls": 602,
+          "total_time_s": 0.000220045,
+          "cumulative_time_s": 0.043064674000000004
+        },
+        {
+          "function": "provenance.py:90:_walk_source_entries",
+          "primitive_calls": 602,
+          "total_calls": 1826,
+          "total_time_s": 0.002656031,
+          "cumulative_time_s": 0.042841092000000004
+        },
+        {
+          "function": "provenance.py:153:verify_manifest",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 0.0015982350000000002,
+          "cumulative_time_s": 0.042101335000000004
+        },
+        {
+          "function": "provenance.py:114:build_manifest",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "total_time_s": 0.0006555900000000001,
+          "cumulative_time_s": 0.037292231
+        },
+        {
+          "function": "__init__.py:476:relative_to",
+          "primitive_calls": 626,
+          "total_calls": 626,
+          "total_time_s": 0.002532192,
+          "cumulative_time_s": 0.036028786
+        },
+        {
+          "function": "provenance.py:46:canonical_identity",
+          "primitive_calls": 600,
+          "total_calls": 600,
+          "total_time_s": 0.000933235,
+          "cumulative_time_s": 0.021279903000000003
+        },
+        {
+          "function": "<frozen _collections_abc>:1025:__contains__",
+          "primitive_calls": 626,
+          "total_calls": 626,
+          "total_time_s": 0.0017030480000000002,
+          "cumulative_time_s": 0.021196265000000002
+        },
+        {
+          "function": "provenance.py:36:canonical_bytes",
+          "primitive_calls": 600,
+          "total_calls": 600,
+          "total_time_s": 0.0017869300000000002,
+          "cumulative_time_s": 0.018313928
+        },
+        {
+          "function": "<frozen _collections_abc>:1015:__iter__",
+          "primitive_calls": 2474,
+          "total_calls": 2474,
+          "total_time_s": 0.0011371320000000001,
+          "cumulative_time_s": 0.014920181000000001
+        },
+        {
+          "function": "__init__.py:773:read_bytes",
+          "primitive_calls": 600,
+          "total_calls": 600,
+          "total_time_s": 0.001000208,
+          "cumulative_time_s": 0.014337392000000001
+        },
+        {
+          "function": "__init__.py:63:__getitem__",
+          "primitive_calls": 1848,
+          "total_calls": 1848,
+          "total_time_s": 0.0022048040000000003,
+          "cumulative_time_s": 0.013783049
+        },
+        {
+          "function": "__init__.py:251:__str__",
+          "primitive_calls": 4033,
+          "total_calls": 4033,
+          "total_time_s": 0.0036824690000000003,
+          "cumulative_time_s": 0.013326468000000001
+        },
+        {
+          "function": "__init__.py:269:_from_parsed_parts",
+          "primitive_calls": 2475,
+          "total_calls": 2475,
+          "total_time_s": 0.001589595,
+          "cumulative_time_s": 0.012391238
+        },
+        {
+          "function": "__init__.py:217:__eq__",
+          "primitive_calls": 2474,
+          "total_calls": 2474,
+          "total_time_s": 0.00172455,
+          "cumulative_time_s": 0.010829262000000001
+        }
+      ]
+    }
+  ],
+  "qualification_scope": "SOFTWARE_PERFORMANCE_ONLY",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
+exit=0
+
+== compare ==
+{
+  "schema": "TSAO-PERFORMANCE-COMPARISON-1",
+  "baseline_version": "0.1.0-alpha.9",
+  "optimized_version": "0.1.0-alpha.9",
+  "pass": false,
+  "errors": [
+    "provenance_300_files_build_and_verify: speedup 1.309x is below required 1.500x"
+  ],
+  "comparisons": [
+    {
+      "name": "epdm_semibatch_material_energy_step",
+      "baseline_median_s": 2.1779941666662712e-05,
+      "optimized_median_s": 1.2878366666673931e-05,
+      "speedup": 1.6912037240734794,
+      "minimum_speedup": 1.5,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "epdm_three_level_64_site_families",
+      "baseline_median_s": 0.0005960921333333739,
+      "optimized_median_s": 0.00012686759166662397,
+      "speedup": 4.698537471253917,
+      "minimum_speedup": 2.0,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "poe_rk4_400_steps",
+      "baseline_median_s": 0.031758135333333826,
+      "optimized_median_s": 0.013866735666667296,
+      "speedup": 2.2902387480907764,
+      "minimum_speedup": 2.0,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "process_package_500_equipment",
+      "baseline_median_s": 0.004182754749999518,
+      "optimized_median_s": 0.00435546025000022,
+      "speedup": 0.9603473593862568,
+      "minimum_speedup": 0.8,
+      "result_digest_match": true,
+      "pass": true
+    },
+    {
+      "name": "provenance_300_files_build_and_verify",
+      "baseline_median_s": 0.04513286899999969,
+      "optimized_median_s": 0.03447883449999978,
+      "speedup": 1.3090021647918515,
+      "minimum_speedup": 1.5,
+      "result_digest_match": true,
+      "pass": false
+    }
+  ],
+  "qualification_scope": "SOFTWARE_PERFORMANCE_ONLY",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
+exit=2
