@@ -36,6 +36,8 @@ _SELF_MANIFESTS = {
 def canonical_bytes(path: Path) -> bytes:
     """Return a platform-stable identity for text and exact bytes for binaries."""
     data = Path(path).read_bytes()
+    if b"\r" not in data:
+        return data
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
@@ -87,28 +89,32 @@ def _excluded_relative(relative: str) -> bool:
     )
 
 
-def _walk_source_entries(root: Path, directory: Path):
-    with os.scandir(directory) as entries:
-        ordered = sorted(entries, key=lambda entry: entry.name)
-    for entry in ordered:
-        path = Path(entry.path)
-        if entry.is_symlink():
-            continue
-        relative_path = path.relative_to(root)
-        relative = relative_path.as_posix()
-        if entry.is_dir(follow_symlinks=False):
-            if _generated_part(entry.name) or any(
-                (relative + "/").startswith(prefix) for prefix in _EXCLUDED_PREFIXES
-            ):
-                continue
-            yield from _walk_source_entries(root, path)
-        elif entry.is_file(follow_symlinks=False) and not _excluded_relative(relative):
-            yield path, relative
-
-
 def iter_source_files(root: Path):
     root = Path(root)
-    yield from _walk_source_entries(root, root)
+    for directory, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
+        directory_path = Path(directory)
+        relative_directory = directory_path.relative_to(root).as_posix()
+        directory_names[:] = sorted(
+            name
+            for name in directory_names
+            if not _generated_part(name)
+            and not any(
+                (
+                    f"{relative_directory}/{name}/"
+                    if relative_directory != "."
+                    else f"{name}/"
+                ).startswith(prefix)
+                for prefix in _EXCLUDED_PREFIXES
+            )
+            and not (directory_path / name).is_symlink()
+        )
+        for file_name in sorted(file_names):
+            path = directory_path / file_name
+            if path.is_symlink() or not path.is_file():
+                continue
+            relative = path.relative_to(root).as_posix()
+            if not _excluded_relative(relative):
+                yield path, relative
 
 
 def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None = None) -> int:
