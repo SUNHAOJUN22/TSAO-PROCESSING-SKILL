@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -16,8 +16,8 @@ class KineticParameters:
     molar_mass_b: float = 112.22
 
     def validate(self) -> None:
-        values = asdict(self)
-        for name, value in values.items():
+        for name in _PARAMETER_FIELDS:
+            value = getattr(self, name)
             if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
                 raise ValueError(f"{name} must be finite")
             if value < 0:
@@ -41,29 +41,25 @@ class KineticState:
     dead_second_moment: float = 0.0
 
     def validate(self) -> None:
-        for name, value in asdict(self).items():
+        for name in _STATE_FIELDS:
+            value = getattr(self, name)
             if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
                 raise ValueError(f"{name} must be finite")
             if value < 0:
                 raise ValueError(f"{name} must be non-negative")
 
 
+_PARAMETER_FIELDS = tuple(KineticParameters.__dataclass_fields__)
 _STATE_FIELDS = tuple(KineticState.__dataclass_fields__)
 
 
-def kinetic_derivative(state: KineticState, params: KineticParameters) -> KineticState:
-    """Reference moment model, independent of the historical MATLAB program.
+def _state_dict(state: KineticState) -> dict[str, float]:
+    return {name: getattr(state, name) for name in _STATE_FIELDS}
 
-    Units contract:
-    - concentrations and chain moments use mol/L equivalents;
-    - time uses seconds;
-    - bimolecular constants use L/(mol s);
-    - first-order transfer/deactivation constants use 1/s.
 
-    It is a transparent qualification fixture, not a fitted industrial model.
-    """
-    state.validate()
-    params.validate()
+def _kinetic_derivative_validated(
+    state: KineticState, params: KineticParameters
+) -> KineticState:
     a = state.monomer_a
     b = state.monomer_b
     dormant = state.dormant_sites
@@ -101,14 +97,47 @@ def kinetic_derivative(state: KineticState, params: KineticParameters) -> Kineti
     )
 
 
+def kinetic_derivative(state: KineticState, params: KineticParameters) -> KineticState:
+    """Reference moment model, independent of the historical MATLAB program.
+
+    Units contract:
+    - concentrations and chain moments use mol/L equivalents;
+    - time uses seconds;
+    - bimolecular constants use L/(mol s);
+    - first-order transfer/deactivation constants use 1/s.
+
+    It is a transparent qualification fixture, not a fitted industrial model.
+    """
+    state.validate()
+    params.validate()
+    return _kinetic_derivative_validated(state, params)
+
+
 def _state_add(state: KineticState, derivative: KineticState, factor: float) -> KineticState:
-    values = {}
+    values: list[float] = []
     for name in _STATE_FIELDS:
         value = getattr(state, name) + factor * getattr(derivative, name)
         if value < -1e-10:
             raise ValueError(f"integration produced materially negative {name}: {value}")
-        values[name] = max(0.0, value)
-    return KineticState(**values)
+        values.append(max(0.0, value))
+    return KineticState(*values)
+
+
+def _rk4_combined(
+    k1: KineticState, k2: KineticState, k3: KineticState, k4: KineticState
+) -> KineticState:
+    return KineticState(
+        *(
+            (
+                getattr(k1, name)
+                + 2.0 * getattr(k2, name)
+                + 2.0 * getattr(k3, name)
+                + getattr(k4, name)
+            )
+            / 6.0
+            for name in _STATE_FIELDS
+        )
+    )
 
 
 def simulate_kinetics(
@@ -125,31 +154,19 @@ def simulate_kinetics(
         raise ValueError("step_s must be finite and positive")
     state = initial
     time_s = 0.0
-    history = [{"time_s": 0.0, **asdict(state)}]
+    history = [{"time_s": 0.0, **_state_dict(state)}]
     while time_s < duration_s - 1e-15:
         h = min(step_s, duration_s - time_s)
-        k1 = kinetic_derivative(state, params)
-        k2 = kinetic_derivative(_state_add(state, k1, h / 2.0), params)
-        k3 = kinetic_derivative(_state_add(state, k2, h / 2.0), params)
-        k4 = kinetic_derivative(_state_add(state, k3, h), params)
-        combined = KineticState(
-            **{
-                name: (
-                    getattr(k1, name)
-                    + 2.0 * getattr(k2, name)
-                    + 2.0 * getattr(k3, name)
-                    + getattr(k4, name)
-                )
-                / 6.0
-                for name in _STATE_FIELDS
-            }
-        )
-        state = _state_add(state, combined, h)
+        k1 = _kinetic_derivative_validated(state, params)
+        k2 = _kinetic_derivative_validated(_state_add(state, k1, h / 2.0), params)
+        k3 = _kinetic_derivative_validated(_state_add(state, k2, h / 2.0), params)
+        k4 = _kinetic_derivative_validated(_state_add(state, k3, h), params)
+        state = _state_add(state, _rk4_combined(k1, k2, k3, k4), h)
         time_s += h
-        history.append({"time_s": time_s, **asdict(state)})
+        history.append({"time_s": time_s, **_state_dict(state)})
     return {
         "status": "CALCULATED_REFERENCE_ONLY",
-        "final": asdict(state),
+        "final": _state_dict(state),
         "metrics": kinetic_metrics(initial, state, params),
         "history": history,
         "historical_matlab_reused": False,
