@@ -8,14 +8,34 @@ Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`
 
 The repository is a non-empty, executable alpha platform for universal chemical-process packages. The universal process layer, EPDM flagship route, POE specialist, polymer-general tools, provenance controls, deterministic archives and cross-platform CI are preserved.
 
-This final pass resolved two documentation-assurance gaps:
+This pass resolved a release-delivery gap that remained after the twelve-diagram README closure:
 
-1. the README asset test did not prove that every generated asset was actually referenced by both README files;
-2. the visual system did not yet show the universal data model, EPDM catalyst/kinetic network, reactor-mode choice and recovery/recycle risk loop.
+1. the Wheel contained the executable `tsao`, EPDM and POE Python packages, but did not carry the canonical `process-general` and `polymer-general` Skill trees;
+2. the former `verify_wheel_runtime.py` used zipimport by inserting the Wheel archive into `sys.path`, so it did not prove that a real installation delivered the complete Skill platform;
+3. CI did not publish its structured qualification report for each operating-system/Python matrix entry.
 
 ## Branch state
 
-No branch was created during this work. `main` remains the default and sole authoritative branch. Every historical branch named in the consolidation record was queried by exact ref and returned not found, consistent with deletion after integration.
+No branch was created during this work. `main` remains the default and sole authoritative branch. Historical branch names in the consolidation record remain outside the authoritative release path.
+
+## Complete Skillpack delivery
+
+The source checkout and installed Wheel now expose the same four-Skill inventory:
+
+- `process-general`;
+- `epdm`;
+- `poe`;
+- `polymer-general`.
+
+The fail-closed inventory requires:
+
+- four valid subskill manifest entries and four `SKILL.md` files;
+- fourteen process-general modules;
+- six process-general workflows;
+- six polymer-general executable scripts;
+- at least twelve deterministic README SVG assets.
+
+The Wheel data tree also carries the master Skill, bilingual READMEs, architecture, documentation, schemas, templates, generic-process example, specialist contracts, fixtures and controlled open data required for portable Skill use.
 
 ## Universal process-package scope
 
@@ -38,7 +58,7 @@ All example calculations remain `CALCULATED_REFERENCE_ONLY`; scientific, enginee
 
 ## README graphics and integrity
 
-The bilingual README now references twelve deterministic, repository-owned SVG diagrams:
+The bilingual README retains twelve deterministic, repository-owned SVG diagrams:
 
 1. TSAO system overview;
 2. universal process-package lifecycle;
@@ -53,20 +73,20 @@ The bilingual README now references twelve deterministic, repository-owned SVG d
 11. evidence and qualification gates;
 12. verification pipeline.
 
-Two deterministic generators produce the complete set. Automated tests require all declared assets to exist, parse as SVG, be committed and be referenced by both README files. Unreferenced generated diagrams now fail CI.
+Automated tests require all declared assets to exist, parse as SVG, be committed and be referenced by both README files. The complete diagram set is also required inside the installed Wheel Skill tree.
 
-## Verification performed for this pass
+## Wheel and installation qualification
 
-- new Python files compiled successfully;
-- both asset-generator contracts passed local pytest execution;
-- both README files reference exactly twelve unique local SVG assets;
-- all four new SVG files parse as XML;
-- GitHub Actions YAML parses successfully;
-- all third-party Actions remain pinned to full commit SHAs;
-- the CI badge is scoped to `main` and the `push` event;
-- the final source manifest was regenerated for every changed and added file.
+Wheel verification now uses two independent gates:
 
-The execution container could not resolve `github.com`, so a clean network clone and direct inspection of push-triggered Actions logs were unavailable from that container. The committed workflow remains the authoritative cross-platform full-repository run for coverage, Ruff, Wheel and unchanged-module integration.
+1. `verify_wheel_contents.py` checks executable package members and the complete installed Skill data tree;
+2. `verify_wheel_runtime.py` performs a real `pip install --target`, imports only from the installed target, resolves the installed Skillpack root, validates the four-Skill inventory and runs universal, EPDM and POE known-solution checks.
+
+The release no longer labels direct zipimport as installed-runtime verification.
+
+## CI transparency
+
+Every supported operating-system/Python matrix entry runs the Skillpack inventory. GitHub Actions uploads `reports/runtime/CI_RESULTS.json` with `if: always()` so a structured qualification report remains available for both successful and failed runs. Third-party Actions remain pinned to full commit SHAs and normal qualification jobs retain read-only repository permissions.
 
 ## Responsibility boundary
 
