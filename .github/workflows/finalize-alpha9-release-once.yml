@@ -1,4 +1,5 @@
 name: Finalize alpha9 release identity once
+# Clean rerun after diagnostic artifact removal.
 
 on:
   push:
