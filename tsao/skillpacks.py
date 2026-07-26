@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from importlib.metadata import PackageNotFoundError, distribution
+import sysconfig
+from importlib.metadata import Distribution, PackageNotFoundError, distribution
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +51,32 @@ def _valid_root(candidate: Path) -> bool:
     return (candidate / "manifest.yaml").is_file() and (candidate / "SKILL.md").is_file()
 
 
+def _deduplicate_paths(candidates: list[Path]) -> list[Path]:
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve(strict=False)
+        key = str(resolved)
+        if key not in seen:
+            unique.append(resolved)
+            seen.add(key)
+    return unique
+
+
+def _distribution_skillpack_candidates(installed: Distribution) -> list[Path]:
+    candidates: list[Path] = []
+    skill_marker = (INSTALLED_SHARE / "SKILL.md").as_posix()
+    for member in installed.files or ():
+        if Path(member).as_posix().endswith(skill_marker):
+            candidates.append(Path(installed.locate_file(member)).resolve(strict=False).parent)
+
+    candidates.append(Path(installed.locate_file(INSTALLED_SHARE)))
+    data_path = sysconfig.get_path("data")
+    if data_path:
+        candidates.append(Path(data_path) / INSTALLED_SHARE)
+    return _deduplicate_paths(candidates)
+
+
 def resolve_skillpack_root(root: str | Path | None = None) -> Path:
     if root is not None:
         candidate = Path(root).expanduser().resolve()
@@ -62,12 +89,16 @@ def resolve_skillpack_root(root: str | Path | None = None) -> Path:
         return source_root
 
     try:
-        installed_root = Path(distribution(DISTRIBUTION_NAME).locate_file(INSTALLED_SHARE))
+        installed = distribution(DISTRIBUTION_NAME)
     except PackageNotFoundError as exc:
         raise FileNotFoundError("TSAO skillpack distribution is not installed") from exc
-    if not _valid_root(installed_root):
-        raise FileNotFoundError(f"installed TSAO skillpack root is incomplete: {installed_root}")
-    return installed_root.resolve()
+
+    candidates = _distribution_skillpack_candidates(installed)
+    for candidate in candidates:
+        if _valid_root(candidate):
+            return candidate
+    checked = ", ".join(str(candidate) for candidate in candidates) or "no candidates"
+    raise FileNotFoundError(f"installed TSAO skillpack root is incomplete; checked: {checked}")
 
 
 def _present_count(root: Path, relative_paths: tuple[str, ...]) -> int:
