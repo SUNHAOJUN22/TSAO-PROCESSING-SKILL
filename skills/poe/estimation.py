@@ -14,13 +14,17 @@ def _finite_vector(values: Sequence[float], label: str) -> np.ndarray:
     return array
 
 
+def _first_order_conversion_validated(times: np.ndarray, rate_constant: float) -> np.ndarray:
+    return 1.0 - np.exp(-rate_constant * times)
+
+
 def first_order_conversion(times_s: Sequence[float], rate_constant_s: float) -> np.ndarray:
     times = _finite_vector(times_s, "times_s")
     if np.any(times < 0):
         raise ValueError("times_s must be non-negative")
     if not math.isfinite(rate_constant_s) or rate_constant_s < 0:
         raise ValueError("rate_constant_s must be finite and non-negative")
-    return 1.0 - np.exp(-rate_constant_s * times)
+    return _first_order_conversion_validated(times, rate_constant_s)
 
 
 def fit_first_order_rate(
@@ -59,7 +63,7 @@ def fit_first_order_rate(
             raise ValueError("weights must match observations and be positive")
 
     def objective(rate: float) -> float:
-        residual = first_order_conversion(times, rate) - observed
+        residual = _first_order_conversion_validated(times, rate) - observed
         return float(np.sum(weight_array * residual * residual))
 
     ratio = (math.sqrt(5.0) - 1.0) / 2.0
@@ -77,7 +81,7 @@ def fit_first_order_rate(
             x2 = left + ratio * (right - left)
             f2 = objective(x2)
     fitted = (left + right) / 2.0
-    predicted = first_order_conversion(times, fitted)
+    predicted = _first_order_conversion_validated(times, fitted)
     residual = predicted - observed
     rmse = float(np.sqrt(np.mean(residual**2)))
     sensitivity = times * np.exp(-fitted * times)
