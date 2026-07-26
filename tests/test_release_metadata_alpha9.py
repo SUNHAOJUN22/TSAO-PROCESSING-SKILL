@@ -35,7 +35,7 @@ def test_alpha9_release_identity_is_consistent() -> None:
     assert pyproject["project"]["version"] == PEP440_VERSION
     assert manifest["version"] == PUBLIC_VERSION
     assert citation["version"] == PUBLIC_VERSION
-    assert citation["date-released"] == "2026-07-26"
+    assert str(citation["date-released"]) == "2026-07-26"
     assert identity["version"] == PUBLIC_VERSION
     assert identity["source_core"]["status"] == "reports/ALPHA9_SOURCE_CORE_STATUS.json"
     assert complete["version"] == PUBLIC_VERSION
