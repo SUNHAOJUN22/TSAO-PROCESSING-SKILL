@@ -1,0 +1,41 @@
+name: Refresh final alpha9 source manifest once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: ${{ contains(github.event.head_commit.message, '[REFRESH-ALPHA9-MANIFEST]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install source environment
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+      - name: Refresh manifest without the one-time workflow
+        run: |
+          rm .github/workflows/refresh-alpha9-source-manifest-once.yml
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          python -m tsao.cli doctor --root . --profile core
+          git checkout -- .github/workflows/refresh-alpha9-source-manifest-once.yml
+      - name: Commit manifest only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m "release: stage final alpha9 source manifest [FINALIZE-ALPHA9]"
+          git push origin HEAD:main
