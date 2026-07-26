@@ -1,0 +1,99 @@
+name: Diagnose alpha9 Ubuntu versions once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: ${{ contains(github.event.head_commit.message, '[DIAG-UBUNTU-ALPHA9]') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    outputs:
+      report-311: ${{ steps.output-311.outputs.report }}
+      report-312: ${{ steps.output-312.outputs.report }}
+      report-313: ${{ steps.output-313.outputs.report }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install development environment
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+      - id: diagnose
+        name: Run complete version diagnostic
+        run: python .github/diagnose_alpha9_ubuntu_versions.py
+      - id: output-311
+        if: ${{ matrix.python-version == '3.11' }}
+        run: echo "report=${{ steps.diagnose.outputs.report }}" >> "$GITHUB_OUTPUT"
+      - id: output-312
+        if: ${{ matrix.python-version == '3.12' }}
+        run: echo "report=${{ steps.diagnose.outputs.report }}" >> "$GITHUB_OUTPUT"
+      - id: output-313
+        if: ${{ matrix.python-version == '3.13' }}
+        run: echo "report=${{ steps.diagnose.outputs.report }}" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: qualify
+    if: ${{ always() && contains(github.event.head_commit.message, '[DIAG-UBUNTU-ALPHA9]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      REPORT_311: ${{ needs.qualify.outputs.report-311 }}
+      REPORT_312: ${{ needs.qualify.outputs.report-312 }}
+      REPORT_313: ${{ needs.qualify.outputs.report-313 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Write Ubuntu version evidence
+        run: |
+          python - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+
+          def decode(name):
+              value = os.environ.get(name, "")
+              if not value:
+                  return {"pass": False, "error": f"missing {name}"}
+              try:
+                  return json.loads(base64.b64decode(value).decode("utf-8"))
+              except Exception as exc:
+                  return {"pass": False, "error": str(exc)}
+
+          report = {
+              "3.11": decode("REPORT_311"),
+              "3.12": decode("REPORT_312"),
+              "3.13": decode("REPORT_313"),
+          }
+          report["pass"] = all(item.get("pass") for item in report.values())
+          Path("reports/ALPHA9_UBUNTU_VERSION_DIAGNOSTIC.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Commit evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/ALPHA9_UBUNTU_VERSION_DIAGNOSTIC.json
+          git commit -m "diagnostic: capture alpha9 Ubuntu 3.11-3.13 results [skip ci]"
+          git push origin HEAD:main
