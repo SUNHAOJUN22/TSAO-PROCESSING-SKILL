@@ -17,9 +17,12 @@ def test_source_checkout_skillpack_inventory_is_complete():
     assert inventory["pass"] is True
     assert inventory["delivery"] == "SOURCE_CHECKOUT"
     assert inventory["subskills"] == ["epdm", "poe", "polymer-general", "process-general"]
-    assert inventory["process_general_modules"] == 14
-    assert inventory["process_general_workflows"] == 6
-    assert inventory["polymer_general_scripts"] == 6
+    assert inventory["process_general_modules_present"] == 14
+    assert inventory["process_general_modules_expected"] == 14
+    assert inventory["process_general_workflows_present"] == 6
+    assert inventory["process_general_workflows_expected"] == 6
+    assert inventory["polymer_general_scripts_present"] == 6
+    assert inventory["polymer_general_scripts_expected"] == 6
     assert inventory["readme_svg_assets"] >= 12
     assert inventory["scientific_technical_approval"] == "NOT_EVALUATED"
 
