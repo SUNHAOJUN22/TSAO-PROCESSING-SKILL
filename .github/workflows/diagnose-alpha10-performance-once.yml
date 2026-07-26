@@ -1,4 +1,4 @@
-name: Diagnose alpha10 performance finalizer once
+name: Promote verified alpha10 performance worktree once
 
 on:
   push:
@@ -8,8 +8,8 @@ permissions:
   contents: write
 
 jobs:
-  diagnose:
-    if: ${{ contains(github.event.head_commit.message, '[DIAG-PERFORMANCE-ALPHA10]') }}
+  promote:
+    if: ${{ contains(github.event.head_commit.message, '[PROMOTE-PERFORMANCE-ALPHA10]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -24,25 +24,16 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             requirements.txt
-      - name: Run exact diagnostic chain
-        shell: bash
+      - name: Install development environment
         run: |
-          set +e
-          LOG=/tmp/alpha10-performance-diagnostic.txt
-          : > "$LOG"
-          step() {
-            echo "" >> "$LOG"
-            echo "== $1 ==" >> "$LOG"
-            shift
-            "$@" >> "$LOG" 2>&1
-            echo "exit=$?" >> "$LOG"
-          }
-          step install python -m pip install --quiet -e '.[dev]'
-          step pip_check python -m pip check
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
           python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
-          step compile_release python -m py_compile scripts/apply_alpha10_performance_release.py
-          step apply_release python scripts/apply_alpha10_performance_release.py
-          step final_audit_fix python - <<'PY'
+      - name: Apply verified alpha10 source transformation
+        run: |
+          python -m py_compile scripts/apply_alpha10_performance_release.py
+          python scripts/apply_alpha10_performance_release.py
+          python - <<'PY'
           from pathlib import Path
           path = Path('reports/FINAL_AUDIT_REPORT.md')
           text = path.read_text(encoding='utf-8')
@@ -52,35 +43,54 @@ jobs:
               raise SystemExit('alpha9 release-identity paragraph was not found exactly once')
           path.write_text(text.replace(old, new, 1), encoding='utf-8')
           PY
-          step benchmark python scripts/benchmark_performance.py --repeats 9 --output reports/PERFORMANCE_OPTIMIZED_ALPHA10.json
-          step compare python scripts/compare_performance.py --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json --current reports/PERFORMANCE_OPTIMIZED_ALPHA10.json --output reports/PERFORMANCE_COMPARISON_ALPHA10.json
-          step render_readme python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json
-          step check_readme python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+      - name: Measure and publish alpha10 performance evidence
+        run: |
+          python scripts/benchmark_performance.py --repeats 9 --output reports/PERFORMANCE_OPTIMIZED_ALPHA10.json
+          python scripts/compare_performance.py \
+            --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
+            --current reports/PERFORMANCE_OPTIMIZED_ALPHA10.json \
+            --output reports/PERFORMANCE_COMPARISON_ALPHA10.json
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+      - name: Build exact non-workflow source identity
+        run: |
           rm scripts/apply_alpha10_performance_release.py
+          rm -f reports/ALPHA10_PERFORMANCE_FINALIZER_DIAGNOSTIC.txt
           rm .github/workflows/performance-baseline-once.yml
           rm .github/workflows/performance-qualification-once.yml
           rm .github/workflows/performance-diagnostic-once.yml
           rm .github/workflows/performance-probe-once.yml
           rm .github/workflows/finalize-alpha10-performance-once.yml
           rm .github/workflows/diagnose-alpha10-performance-once.yml
-          step graphics_base python scripts/generate_readme_assets.py
-          step graphics_extended python scripts/generate_extended_readme_assets.py
-          step graphics_decision python scripts/generate_decision_readme_assets.py
-          step graphics_diff git diff --exit-code -- docs/assets/readme
-          step refresh_manifest python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
-          step run_ci python scripts/run_ci.py
-          step skillpacks python -m tsao.skillpacks --root .
-          step readme_recheck python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+          python scripts/generate_readme_assets.py
+          python scripts/generate_extended_readme_assets.py
+          python scripts/generate_decision_readme_assets.py
+          git diff --exit-code -- docs/assets/readme
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+      - name: Re-run complete qualification
+        run: |
+          python scripts/run_ci.py
+          python -m tsao.skillpacks --root .
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+          python -m tsao.cli doctor --root . --profile core
+      - name: Rebuild and verify alpha10 Wheel
+        run: |
           rm -rf wheelhouse build dist
-          step wheel_build python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-          step wheel_contents python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-          step wheel_runtime python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-          step final_doctor python -m tsao.cli doctor --root . --profile core
-          step final_version python -c "import tsao; assert tsao.__version__ == '0.1.0-alpha.10'"
-          git reset --hard HEAD
-          cp "$LOG" reports/ALPHA10_PERFORMANCE_FINALIZER_DIAGNOSTIC.txt
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python -c "import tsao; assert tsao.__version__ == '0.1.0-alpha.10'"
+      - name: Commit verified non-workflow source
+        run: |
+          git checkout -- .github/workflows
+          rm -rf wheelhouse build dist
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/ALPHA10_PERFORMANCE_FINALIZER_DIAGNOSTIC.txt
-          git commit -m "diagnostic: capture alpha10 performance finalizer [skip ci]"
+          git add -A
+          git reset -- .github/workflows
+          git commit -m "release: stage 0.1.0-alpha.10 performance convergence [FINALIZE-ALPHA10]"
           git push origin HEAD:main
