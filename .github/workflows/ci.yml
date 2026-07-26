@@ -1,4 +1,4 @@
-name: TSAO alpha8 qualification
+name: TSAO alpha9 qualification
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   qualification:
-    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[FINALIZE-ALPHA8]') }}
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[FINALIZE-ALPHA9]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -99,12 +99,12 @@ jobs:
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
       - name: Build deterministic public-source snapshot
-        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.8.zip
+        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.9.zip
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tsao-source-alpha8-${{ github.sha }}
+          name: tsao-source-alpha9-${{ github.sha }}
           path: |
-            TSAO-PROCESSING-SKILL-source-alpha.8.zip
-            TSAO-PROCESSING-SKILL-source-alpha.8.zip.sha256
+            TSAO-PROCESSING-SKILL-source-alpha.9.zip
+            TSAO-PROCESSING-SKILL-source-alpha.9.zip.sha256
           if-no-files-found: error
           retention-days: 14
