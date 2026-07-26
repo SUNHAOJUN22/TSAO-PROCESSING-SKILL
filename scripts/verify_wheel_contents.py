@@ -99,18 +99,30 @@ _POLYMER_SCRIPTS = (
     "scaleup_numbers.py",
 )
 _README_ASSETS = (
+    "control-safety-cause-effect.svg",
     "epdm-catalyst-kinetics-network.svg",
+    "epdm-identifiability-uncertainty.svg",
     "epdm-multiscale-chain.svg",
     "epdm-process-flowsheet.svg",
+    "epdm-product-customer-bridge.svg",
     "epdm-reactor-mode-map.svg",
     "epdm-three-level-models.svg",
     "evidence-gate-system.svg",
     "process-package-architecture.svg",
     "process-package-data-model.svg",
     "recovery-recycle-risk-loop.svg",
+    "simulation-integration-contract.svg",
     "tsao-process-intelligence-os.svg",
     "universal-process-package.svg",
     "verification-pipeline.svg",
+)
+_MAINTENANCE_SCRIPTS = (
+    "generate_readme_assets.py",
+    "generate_extended_readme_assets.py",
+    "generate_decision_readme_assets.py",
+    "run_ci.py",
+    "verify_wheel_contents.py",
+    "verify_wheel_runtime.py",
 )
 _SHARE_ROOT = "share/tsao-processing-skill"
 
@@ -154,7 +166,11 @@ def verify(wheel: Path) -> dict[str, object]:
         f"{_SHARE_ROOT}/manifest.yaml",
         f"{_SHARE_ROOT}/README.md",
         f"{_SHARE_ROOT}/README.zh-CN.md",
+        f"{_SHARE_ROOT}/pyproject.toml",
         f"{_SHARE_ROOT}/docs/CAPABILITY_MATRIX.md",
+        f"{_SHARE_ROOT}/reports/QUALIFICATION_BOUNDARY.md",
+        f"{_SHARE_ROOT}/reports/BRANCH_CONSOLIDATION_2026-07-23.md",
+        f"{_SHARE_ROOT}/reports/FINAL_AUDIT_REPORT.md",
         f"{_SHARE_ROOT}/schemas/project.schema.json",
         f"{_SHARE_ROOT}/templates/README.md",
         f"{_SHARE_ROOT}/examples/generic-process/brief.yaml",
@@ -177,6 +193,7 @@ def verify(wheel: Path) -> dict[str, object]:
     share_required.update(
         f"{_SHARE_ROOT}/docs/assets/readme/{name}" for name in _README_ASSETS
     )
+    share_required.update(f"{_SHARE_ROOT}/scripts/{name}" for name in _MAINTENANCE_SCRIPTS)
     errors.extend(
         f"missing installed skillpack member: {suffix}"
         for suffix in sorted(share_required)
@@ -197,6 +214,7 @@ def verify(wheel: Path) -> dict[str, object]:
         "process_general_module_count": len(_PROCESS_MODULES),
         "process_general_workflow_count": len(_PROCESS_WORKFLOWS),
         "readme_asset_count": len(_README_ASSETS),
+        "maintenance_script_count": len(_MAINTENANCE_SCRIPTS),
         "installed_skillpack_members": len(
             [name for name in names if f"/{_SHARE_ROOT}/" in f"/{name}"]
         ),
