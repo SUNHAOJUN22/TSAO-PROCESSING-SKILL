@@ -59,18 +59,19 @@ def response_metrics(
     normalized = (values - initial) / change
 
     def first_cross(level: float) -> float | None:
-        indices = np.where(normalized >= level)[0]
+        indices = np.flatnonzero(normalized >= level)
         return float(times[indices[0]]) if indices.size else None
 
     t10 = first_cross(0.1)
     t90 = first_cross(0.9)
     rise = None if t10 is None or t90 is None else t90 - t10
     band = 0.02 * abs(change)
-    settling = None
-    for index in range(values.size):
-        if np.all(np.abs(values[index:] - target) <= band):
-            settling = float(times[index])
-            break
+    violations = np.flatnonzero(np.abs(values - target) > band)
+    if not violations.size:
+        settling = float(times[0])
+    else:
+        candidate = int(violations[-1]) + 1
+        settling = float(times[candidate]) if candidate < values.size else None
     overshoot = max(0.0, float(np.max(normalized) - 1.0))
     iae = float(np.trapezoid(np.abs(values - target), times))
     return {
