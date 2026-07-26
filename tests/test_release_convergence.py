@@ -41,18 +41,29 @@ def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
         assert token in matrix
     assert "pip install --target" in matrix
     assert "standard virtual environment" in matrix
+    assert "isolated import origin" in matrix
     assert "3.11–3.14" in matrix
     assert "16 deterministic svg" in matrix
 
 
-def test_runtime_verifier_covers_both_install_schemes() -> None:
+def test_runtime_verifier_covers_isolated_install_schemes() -> None:
     verifier = (ROOT / "scripts/verify_wheel_runtime.py").read_text(encoding="utf-8")
     skillpacks = (ROOT / "tsao/skillpacks.py").read_text(encoding="utf-8")
+    manifest = yaml.safe_load((ROOT / "manifest.yaml").read_text(encoding="utf-8"))
+
     assert "PIP_TARGET" in verifier
     assert "STANDARD_VENV" in verifier
-    assert "--system-site-packages" in verifier
+    assert "--system-site-packages" not in verifier
+    assert "expected_root" in verifier
+    assert "tsao_module_path" in verifier
+    assert "epdm_module_path" in verifier
+    assert "poe_module_path" in verifier
+    assert "NO_SYSTEM_SITE_PACKAGES" in verifier
     assert "installed.files" in skillpacks
     assert "sysconfig.get_path" in skillpacks
+    delivery = manifest["delivery_verification"]
+    assert delivery["standard_venv_isolation"] == "NO_SYSTEM_SITE_PACKAGES"
+    assert delivery["installed_import_origin"] == "VERIFIED_INSIDE_INSTALL_ROOT"
 
 
 def test_installed_readme_support_files_are_packaged() -> None:
