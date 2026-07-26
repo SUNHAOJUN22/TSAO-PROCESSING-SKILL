@@ -27,6 +27,35 @@ def test_wheel_verifier_rejects_controlled_binary(tmp_path: Path) -> None:
     assert any("controlled historical binary" in item for item in result["errors"])
 
 
+def test_wheel_verifier_rejects_metadata_version_mismatch(tmp_path: Path) -> None:
+    wheel = tmp_path / "tsao_processing_skill-9.9-py3-none-any.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr(
+            "tsao_processing_skill-9.9.dist-info/METADATA",
+            "Metadata-Version: 2.4\nName: tsao-processing-skill\nVersion: 9.9\n",
+        )
+        archive.writestr(
+            "tsao_processing_skill-9.9.dist-info/entry_points.txt",
+            "[console_scripts]\ntsao = tsao.cli:main\ntsao-skillpacks = tsao.skillpacks:main\n",
+        )
+    result = verify(wheel)
+    assert result["pass"] is False
+    assert any("wheel metadata version mismatch" in item for item in result["errors"])
+
+
+def test_wheel_verifier_rejects_missing_console_scripts(tmp_path: Path) -> None:
+    wheel = tmp_path / "missing-entrypoints.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr(
+            "tsao_processing_skill-0.dist-info/METADATA",
+            "Metadata-Version: 2.4\nName: tsao-processing-skill\nVersion: 0\n",
+        )
+    result = verify(wheel)
+    assert result["pass"] is False
+    assert any("missing wheel console script: tsao" in item for item in result["errors"])
+    assert any("missing wheel console script: tsao-skillpacks" in item for item in result["errors"])
+
+
 def _valid_runtime_payload(install_root: Path) -> dict[str, object]:
     return {
         "tsao_module_path": str(install_root / "site-packages/tsao/__init__.py"),
