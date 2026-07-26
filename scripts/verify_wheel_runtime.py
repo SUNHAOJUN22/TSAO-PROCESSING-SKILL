@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import subprocess
 import sys
 import tempfile
@@ -27,46 +28,21 @@ def _run(command: list[str], *, cwd: Path | None = None) -> subprocess.Completed
     )
 
 
-def verify(wheel: Path) -> dict[str, object]:
-    errors: list[str] = []
-    payload: dict[str, object] = {}
-    with tempfile.TemporaryDirectory(prefix="tsao-wheel-runtime-") as directory:
-        target = Path(directory) / "site"
-        install = _run(
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--quiet",
-                "--no-deps",
-                "--target",
-                str(target),
-                str(wheel.resolve()),
-            ],
-            cwd=Path(directory),
-        )
-        if install.returncode != 0:
-            errors.append(
-                install.stderr.strip() or install.stdout.strip() or "wheel installation failed"
-            )
-            return {
-                "wheel": str(wheel),
-                "pass": False,
-                "errors": errors,
-                "runtime": payload,
-                "install_mode": "PIP_TARGET",
-            }
+def _venv_python(venv_root: Path) -> Path:
+    return venv_root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
-        code = f"""
+
+def _runtime_code(extra_sys_path: Path | None = None) -> str:
+    path_setup = f"sys.path.insert(0, {str(extra_sys_path)!r})\n" if extra_sys_path else ""
+    return f"""
 import json
 import re
 import sys
 from pathlib import Path
 from urllib.parse import unquote
-sys.path.insert(0, {str(target)!r})
-from importlib.resources import files
+{path_setup}from importlib.resources import files
 import numpy as np
+import tsao
 from tsao.process_package import validate_process_package
 from tsao.skillpacks import skillpack_inventory
 from skills.epdm.core import active_site_fraction, heat_removal_margin, validate_epdm_case
@@ -107,6 +83,8 @@ for readme_name in ('README.md', 'README.zh-CN.md'):
         if not resolved.exists():
             link_failures.append(f"{{readme_name}} -> missing: {{raw_target}}")
 print(json.dumps({{
+    'tsao_module_path': str(Path(tsao.__file__).resolve()),
+    'python_prefix': sys.prefix,
     'pfr': pfr,
     'fit': fit['rate_constant_s'],
     'response': response.tolist(),
@@ -119,48 +97,140 @@ print(json.dumps({{
     'installed_readme_link_failures': link_failures,
 }}))
 """
-        completed = _run([sys.executable, "-I", "-c", code], cwd=Path(directory))
-        if completed.returncode != 0:
-            errors.append(
-                completed.stderr.strip()
-                or completed.stdout.strip()
-                or "installed wheel runtime failed"
-            )
-        else:
-            try:
-                payload = json.loads(completed.stdout)
-            except json.JSONDecodeError as exc:
-                errors.append(f"invalid installed wheel runtime output: {exc}")
-            if payload and abs(float(payload.get("pfr", 0.0)) - (1.0 - math.exp(-1.0))) > 1e-12:
-                errors.append("installed wheel PFR known solution mismatch")
-            if payload and abs(float(payload.get("fit", 0.0)) - 0.2) > 1e-5:
-                errors.append("installed wheel parameter-fit known solution mismatch")
-            if payload and payload.get("epdm_status") != "PASS":
-                errors.append("installed wheel EPDM reference validation failed")
-            if payload and payload.get("package_status") != "PASS":
-                errors.append("installed wheel universal package validation failed")
-            skillpacks = payload.get("skillpacks") if payload else None
-            if not isinstance(skillpacks, dict) or not skillpacks.get("pass"):
-                errors.append("installed wheel skillpack inventory failed")
-            elif skillpacks.get("delivery") != "INSTALLED_SKILLPACK":
-                errors.append("wheel runtime did not resolve the installed skillpack data root")
-            elif skillpacks.get("readme_svg_assets", 0) < 16:
-                errors.append("installed wheel does not contain all sixteen README assets")
-            elif skillpacks.get("process_general_modules_present") != 14:
-                errors.append("installed wheel process-general module registry is incomplete")
-            elif skillpacks.get("process_general_workflows_present") != 6:
-                errors.append("installed wheel process-general workflow registry is incomplete")
-            if payload and payload.get("installed_readme_link_failures"):
-                errors.extend(
-                    f"installed README link failure: {failure}"
-                    for failure in payload["installed_readme_link_failures"]
-                )
+
+
+def _evaluate_payload(payload: dict[str, object], label: str) -> list[str]:
+    errors: list[str] = []
+    if abs(float(payload.get("pfr", 0.0)) - (1.0 - math.exp(-1.0))) > 1e-12:
+        errors.append(f"{label} PFR known solution mismatch")
+    if abs(float(payload.get("fit", 0.0)) - 0.2) > 1e-5:
+        errors.append(f"{label} parameter-fit known solution mismatch")
+    if payload.get("epdm_status") != "PASS":
+        errors.append(f"{label} EPDM reference validation failed")
+    if payload.get("package_status") != "PASS":
+        errors.append(f"{label} universal package validation failed")
+    skillpacks = payload.get("skillpacks")
+    if not isinstance(skillpacks, dict) or not skillpacks.get("pass"):
+        errors.append(f"{label} skillpack inventory failed")
+    elif skillpacks.get("delivery") != "INSTALLED_SKILLPACK":
+        errors.append(f"{label} did not resolve the installed skillpack data root")
+    elif skillpacks.get("readme_svg_assets", 0) < 16:
+        errors.append(f"{label} does not contain all sixteen README assets")
+    elif skillpacks.get("process_general_modules_present") != 14:
+        errors.append(f"{label} process-general module registry is incomplete")
+    elif skillpacks.get("process_general_workflows_present") != 6:
+        errors.append(f"{label} process-general workflow registry is incomplete")
+    if payload.get("installed_readme_link_failures"):
+        errors.extend(
+            f"{label} README link failure: {failure}"
+            for failure in payload["installed_readme_link_failures"]
+        )
+    return errors
+
+
+def _execute_runtime(
+    python_executable: Path,
+    *,
+    cwd: Path,
+    label: str,
+    extra_sys_path: Path | None = None,
+) -> tuple[dict[str, object], list[str]]:
+    completed = _run(
+        [str(python_executable), "-I", "-c", _runtime_code(extra_sys_path)],
+        cwd=cwd,
+    )
+    if completed.returncode != 0:
+        message = completed.stderr.strip() or completed.stdout.strip() or "runtime failed"
+        return {}, [f"{label}: {message}"]
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        return {}, [f"{label} returned invalid JSON: {exc}"]
+    return payload, _evaluate_payload(payload, label)
+
+
+def _verify_target_install(wheel: Path, directory: Path) -> tuple[dict[str, object], list[str]]:
+    target = directory / "target-site"
+    install = _run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--quiet",
+            "--no-deps",
+            "--target",
+            str(target),
+            str(wheel.resolve()),
+        ],
+        cwd=directory,
+    )
+    if install.returncode != 0:
+        message = install.stderr.strip() or install.stdout.strip() or "installation failed"
+        return {}, [f"PIP_TARGET: {message}"]
+    return _execute_runtime(
+        Path(sys.executable),
+        cwd=directory,
+        label="PIP_TARGET",
+        extra_sys_path=target,
+    )
+
+
+def _verify_standard_venv(wheel: Path, directory: Path) -> tuple[dict[str, object], list[str]]:
+    venv_root = directory / "standard-venv"
+    create = _run(
+        [sys.executable, "-m", "venv", "--system-site-packages", str(venv_root)],
+        cwd=directory,
+    )
+    if create.returncode != 0:
+        message = create.stderr.strip() or create.stdout.strip() or "venv creation failed"
+        return {}, [f"STANDARD_VENV: {message}"]
+    python_executable = _venv_python(venv_root)
+    install = _run(
+        [
+            str(python_executable),
+            "-m",
+            "pip",
+            "install",
+            "--quiet",
+            "--no-deps",
+            str(wheel.resolve()),
+        ],
+        cwd=directory,
+    )
+    if install.returncode != 0:
+        message = install.stderr.strip() or install.stdout.strip() or "installation failed"
+        return {}, [f"STANDARD_VENV: {message}"]
+    dependency_check = _run([str(python_executable), "-m", "pip", "check"], cwd=directory)
+    if dependency_check.returncode != 0:
+        message = dependency_check.stderr.strip() or dependency_check.stdout.strip()
+        return {}, [f"STANDARD_VENV dependency check failed: {message}"]
+    return _execute_runtime(
+        python_executable,
+        cwd=directory,
+        label="STANDARD_VENV",
+    )
+
+
+def verify(wheel: Path) -> dict[str, object]:
+    errors: list[str] = []
+    runtimes: dict[str, dict[str, object]] = {}
+    with tempfile.TemporaryDirectory(prefix="tsao-wheel-runtime-") as temporary:
+        directory = Path(temporary)
+        target_payload, target_errors = _verify_target_install(wheel, directory)
+        runtimes["PIP_TARGET"] = target_payload
+        errors.extend(target_errors)
+
+        venv_payload, venv_errors = _verify_standard_venv(wheel, directory)
+        runtimes["STANDARD_VENV"] = venv_payload
+        errors.extend(venv_errors)
+
     return {
         "wheel": str(wheel),
         "pass": not errors,
         "errors": errors,
-        "runtime": payload,
-        "install_mode": "PIP_TARGET",
+        "runtimes": runtimes,
+        "install_modes": ["PIP_TARGET", "STANDARD_VENV"],
     }
 
 
