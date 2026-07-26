@@ -71,7 +71,7 @@ def line(
         f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
         f'stroke="{stroke}" stroke-width="{width}" stroke-linecap="round"'
         f"{extra}{marker_end}/>"
-    ).replace('/>"', '/>')
+    )[:-1]
 
 
 def circle(
