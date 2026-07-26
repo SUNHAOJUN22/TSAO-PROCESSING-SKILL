@@ -5,25 +5,36 @@
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
 [![Status](https://img.shields.io/badge/status-alpha.8-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
-**A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the flagship specialist route; POE is the evidence-rich specialist route.**
+**A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
 
 [简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md)
 
 ![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)
 
-## One platform, three executable routes
+## One platform, four delivered Skills
 
-| Route | What is executable now | Truthful boundary |
+| Skill | Executable or delivered scope | Truthful boundary |
 |---|---|---|
-| `tsao package` | design basis, streams, equipment, material/energy closure, controls, HSE, evidence, acceptance and approval audit | project data and qualified engineering remain external |
-| `tsao epdm` | active sites, E/P/diene kinetics, three model levels, architecture/gel risk, semibatch closure, heat/mixing, phase stability, recycle poison and devolatilization | transparent reference calculations, not industrial parameter certification |
-| `tsao poe` | P0/P1 scientific references and controlled lineage for 139 historical assets | specialist alpha with explicit evidence boundaries |
+| `process-general` | universal process-package contracts, 14 modules and 6 workflows | project engineering data and approvals remain external |
+| `epdm` | active sites, E/P/diene kinetics, three model levels, semibatch closure, phase/mixing/heat, recycle poison and devolatilization | reference calculations, not industrial parameter certification |
+| `poe` | P0/P1 reference kernels and controlled lineage for 139 historical assets | specialist alpha with explicit evidence boundaries |
+| `polymer-general` | reusable evidence, balance, DoE, planning and scale-up utilities | generic planning tools, not a qualified product recipe |
+
+The source checkout and the installed Wheel expose the same four-Skill inventory. Run:
+
+```bash
+python -m tsao.skillpacks --root .
+# after Wheel installation:
+tsao-skillpacks
+```
+
+The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and at least 12 README diagrams are present.
 
 ![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
 
 ## Universal process-package platform
 
-The general route models a process package as a connected engineering system rather than a document bundle. Fourteen process modules and six workflows cover chemistry, measurements, thermodynamics, reactors, transport, separation, recycle, utilities, equipment, control, abnormal cases, HSE, scale-up, TEA/LCA and acceptance.
+The general route models a process package as a connected engineering system rather than a document bundle. It covers chemistry, measurements, thermodynamics, reactors, transport, separation, recycle, utilities, equipment, control, abnormal cases, HSE, scale-up, TEA/LCA and acceptance. Domain overlays extend the same contract to polymer, bioprocess, electrochemical, solids/crystallization, fine-batch and petrochemical work.
 
 ![Layered process-package architecture](docs/assets/readme/process-package-architecture.svg)
 
@@ -54,8 +65,6 @@ EPDM adds a deeper mechanism-to-package chain on top of the universal platform.
 
 ![EPDM catalyst-to-architecture network](docs/assets/readme/epdm-catalyst-kinetics-network.svg)
 
-The mandatory chain is:
-
 ```text
 application / CQA
 → catalyst benchmark and active-site evidence
@@ -73,7 +82,7 @@ application / CQA
 
 | Level | Implemented reference calculations | Use |
 |---|---|---|
-| 1 — screening | active-site normalization, ternary propagation/transfer/deactivation, insertion fractions, rapid conversions | ranking and input checks |
+| 1 — screening | active-site normalization, ternary propagation/transfer/deactivation, insertion fractions and rapid conversions | ranking and input checks |
 | 2 — engineering | Arrhenius adjustment, residence-time conversion, conservative semibatch material/energy step, heat/mixing, recycle poison and devolatilization Damköhler number | flowsheet studies and experiment planning |
 | 3 — detailed reference | heterogeneous site families, chain moments/dispersity, branching/gel, Flory–Huggins stability and heat-transfer entropy generation | deciding whether PBM/CFD/EOS work is justified |
 
@@ -96,6 +105,7 @@ git clone https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL.git
 cd TSAO-PROCESSING-SKILL
 python -m pip install -e .[dev]
 python -m tsao.cli doctor --root . --profile core
+python -m tsao.skillpacks --root .
 ```
 
 ### Generic process package
@@ -130,7 +140,7 @@ python -m tsao.cli poe reference-demo
 
 Decision-facing results retain source IDs, conditions, units, method boundaries, assumptions, uncertainty, conflicts and the current Gate. Software tests establish software behavior only; they do not approve chemistry, equipment, safety, customer performance or plant economics.
 
-## Verification
+## Verification and Wheel delivery
 
 ![Verification pipeline](docs/assets/readme/verification-pipeline.svg)
 
@@ -146,15 +156,20 @@ python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
 python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 ```
 
-CI covers Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, installed runtime and CLI smoke.
+Wheel verification now has two independent gates:
+
+1. **content gate:** requires the executable core plus the complete installed four-Skill tree, contracts, schemas, examples and all 12 diagrams;
+2. **installation gate:** performs a real `pip install --target`, imports from that installed target, resolves the installed Skillpack data root and runs known-solution EPDM/POE/universal checks.
+
+CI covers Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke.
 
 The source manifest is part of release identity: a source change without the matching `reports/SOURCE_CORE_MANIFEST.tsv` update is designed to fail the repository doctor.
 
 ## Repository map
 
 ```text
-tsao/                       universal executable core and CLI
-skills/process-general/     general process modules and workflows
+tsao/                       universal executable core, CLI and Skillpack inventory
+skills/process-general/     14 general-process modules and 6 workflows
 skills/epdm/                flagship EPDM calculations, contracts and audits
 skills/poe/                 POE specialist and controlled evidence lineage
 skills/polymer-general/     reusable polymer planning and balance tools
