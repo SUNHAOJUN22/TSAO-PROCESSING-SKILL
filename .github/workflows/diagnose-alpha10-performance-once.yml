@@ -1,0 +1,86 @@
+name: Diagnose alpha10 performance finalizer once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[DIAG-PERFORMANCE-ALPHA10]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Run exact diagnostic chain
+        shell: bash
+        run: |
+          set +e
+          LOG=/tmp/alpha10-performance-diagnostic.txt
+          : > "$LOG"
+          step() {
+            echo "" >> "$LOG"
+            echo "== $1 ==" >> "$LOG"
+            shift
+            "$@" >> "$LOG" 2>&1
+            echo "exit=$?" >> "$LOG"
+          }
+          step install python -m pip install --quiet -e '.[dev]'
+          step pip_check python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+          step compile_release python -m py_compile scripts/apply_alpha10_performance_release.py
+          step apply_release python scripts/apply_alpha10_performance_release.py
+          step final_audit_fix python - <<'PY'
+          from pathlib import Path
+          path = Path('reports/FINAL_AUDIT_REPORT.md')
+          text = path.read_text(encoding='utf-8')
+          old = 'The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.9` (`0.1.0a9` in PEP 440 form).'
+          new = 'The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.10` (`0.1.0a10` in PEP 440 form).'
+          if text.count(old) != 1:
+              raise SystemExit('alpha9 release-identity paragraph was not found exactly once')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          step benchmark python scripts/benchmark_performance.py --repeats 9 --output reports/PERFORMANCE_OPTIMIZED_ALPHA10.json
+          step compare python scripts/compare_performance.py --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json --current reports/PERFORMANCE_OPTIMIZED_ALPHA10.json --output reports/PERFORMANCE_COMPARISON_ALPHA10.json
+          step render_readme python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json
+          step check_readme python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+          rm scripts/apply_alpha10_performance_release.py
+          rm .github/workflows/performance-baseline-once.yml
+          rm .github/workflows/performance-qualification-once.yml
+          rm .github/workflows/performance-diagnostic-once.yml
+          rm .github/workflows/performance-probe-once.yml
+          rm .github/workflows/finalize-alpha10-performance-once.yml
+          rm .github/workflows/diagnose-alpha10-performance-once.yml
+          step graphics_base python scripts/generate_readme_assets.py
+          step graphics_extended python scripts/generate_extended_readme_assets.py
+          step graphics_decision python scripts/generate_decision_readme_assets.py
+          step graphics_diff git diff --exit-code -- docs/assets/readme
+          step refresh_manifest python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          step run_ci python scripts/run_ci.py
+          step skillpacks python -m tsao.skillpacks --root .
+          step readme_recheck python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+          rm -rf wheelhouse build dist
+          step wheel_build python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          step wheel_contents python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          step wheel_runtime python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          step final_doctor python -m tsao.cli doctor --root . --profile core
+          step final_version python -c "import tsao; assert tsao.__version__ == '0.1.0-alpha.10'"
+          git reset --hard HEAD
+          cp "$LOG" reports/ALPHA10_PERFORMANCE_FINALIZER_DIAGNOSTIC.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/ALPHA10_PERFORMANCE_FINALIZER_DIAGNOSTIC.txt
+          git commit -m "diagnostic: capture alpha10 performance finalizer [skip ci]"
+          git push origin HEAD:main
