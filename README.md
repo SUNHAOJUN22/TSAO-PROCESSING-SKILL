@@ -1,7 +1,7 @@
 # TSAO Process Intelligence OS
 
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.11%2B-2563eb)](pyproject.toml)
+[![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
 [![Status](https://img.shields.io/badge/status-alpha.8-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
@@ -20,7 +20,7 @@
 | `poe` | P0/P1 reference kernels and controlled lineage for 139 historical assets | specialist alpha with explicit evidence boundaries |
 | `polymer-general` | reusable evidence, balance, DoE, planning and scale-up utilities | generic planning tools, not a qualified product recipe |
 
-The source checkout and the installed Wheel expose the same four-Skill inventory. Run:
+The source checkout and installed Wheel expose the same inventory:
 
 ```bash
 python -m tsao.skillpacks --root .
@@ -28,13 +28,13 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and at least 12 README diagrams are present.
+The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and at least 16 README diagrams are present.
 
 ![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
 
 ## Universal process-package platform
 
-The general route models a process package as a connected engineering system rather than a document bundle. It covers chemistry, measurements, thermodynamics, reactors, transport, separation, recycle, utilities, equipment, control, abnormal cases, HSE, scale-up, TEA/LCA and acceptance. Domain overlays extend the same contract to polymer, bioprocess, electrochemical, solids/crystallization, fine-batch and petrochemical work.
+The general route treats a process package as a connected engineering system. It covers chemistry, measurements, thermodynamics, reactors, transport, separation, recycle, utilities, equipment, control, abnormal cases, HSE, scale-up, TEA/LCA and acceptance. The same contract extends to polymer, bioprocess, electrochemical, solids/crystallization, fine-batch and petrochemical work.
 
 ![Layered process-package architecture](docs/assets/readme/process-package-architecture.svg)
 
@@ -54,6 +54,14 @@ design basis
 ```
 
 Unknown or unsupported claims produce `HOLD` or `FAIL`; they are never silently promoted to `PASS`.
+
+### Control, safety and simulator-neutral interfaces
+
+![Control, interlock and process-safety chain](docs/assets/readme/control-safety-cause-effect.svg)
+
+![Simulator-neutral integration contract](docs/assets/readme/simulation-integration-contract.svg)
+
+The platform structures alarms, interlocks, Cause & Effect, abnormal response and HAZID/HAZOP/LOPA/SIL interfaces. Aspen Plus, Aspen HYSYS, DWSIM, custom models and DCS/PLC exchanges remain governed by the same design basis, evidence ledger and model passport; simulator convergence is not qualification.
 
 ## EPDM flagship specialist
 
@@ -89,6 +97,14 @@ application / CQA
 ![EPDM reactor-mode decision map](docs/assets/readme/epdm-reactor-mode-map.svg)
 
 Every level returns `CALCULATED_REFERENCE_ONLY`. It does not claim fitted kinetics, licensed thermodynamics, qualified CFD, equipment design, HAZOP/LOPA/SIL approval, customer qualification or an industrial guarantee.
+
+### Identifiability, uncertainty and product evidence
+
+![EPDM parameter identifiability and uncertainty ladder](docs/assets/readme/epdm-identifiability-uncertainty.svg)
+
+![EPDM raw-polymer-to-customer evidence bridge](docs/assets/readme/epdm-product-customer-bridge.svg)
+
+Parameters remain classified as measured, estimated, literature-prior, nuisance, fixed or non-identifiable. A reactor result cannot become a durability or customer claim without controlled compound, cure, part and line evidence.
 
 ### Process, finishing and recycle
 
@@ -147,6 +163,7 @@ Decision-facing results retain source IDs, conditions, units, method boundaries,
 ```bash
 python scripts/generate_readme_assets.py
 python scripts/generate_extended_readme_assets.py
+python scripts/generate_decision_readme_assets.py
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
@@ -156,12 +173,12 @@ python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
 python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 ```
 
-Wheel verification now has two independent gates:
+Wheel verification has two independent gates:
 
-1. **content gate:** requires the executable core plus the complete installed four-Skill tree, contracts, schemas, examples and all 12 diagrams;
-2. **installation gate:** performs a real `pip install --target`, imports from that installed target, resolves the installed Skillpack data root and runs known-solution EPDM/POE/universal checks.
+1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 16 diagrams;
+2. **installation gate:** performs a real `pip install --target`, imports only from that target, resolves the installed Skillpack root, audits both installed READMEs and runs known-solution universal/EPDM/POE checks.
 
-CI covers Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke.
+CI covers Ubuntu/Python 3.11–3.14 plus Windows and macOS on Python 3.14. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke.
 
 The source manifest is part of release identity: a source change without the matching `reports/SOURCE_CORE_MANIFEST.tsv` update is designed to fail the repository doctor.
 
