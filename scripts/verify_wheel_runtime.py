@@ -60,7 +60,10 @@ def verify(wheel: Path) -> dict[str, object]:
 
         code = f"""
 import json
+import re
 import sys
+from pathlib import Path
+from urllib.parse import unquote
 sys.path.insert(0, {str(target)!r})
 from importlib.resources import files
 import numpy as np
@@ -83,6 +86,26 @@ epdm = json.loads(files('skills.epdm').joinpath('fixtures/reference_cases.json')
 case = validate_epdm_case(epdm['valid_case'])
 package = validate_process_package(epdm['valid_package'])
 skillpacks = skillpack_inventory()
+skillpack_root = Path(skillpacks['root'])
+link_pattern = re.compile(r"\\[[^\\]]*\\]\\(([^)]+)\\)")
+link_failures = []
+for readme_name in ('README.md', 'README.zh-CN.md'):
+    readme_path = skillpack_root / readme_name
+    for raw_target in link_pattern.findall(readme_path.read_text(encoding='utf-8')):
+        link_target = raw_target.strip().strip('<>')
+        if not link_target or link_target.startswith(('#', 'http://', 'https://', 'mailto:')):
+            continue
+        link_target = unquote(link_target.split('#', 1)[0].split('?', 1)[0])
+        if not link_target or any(character in link_target for character in '{{}}*|'):
+            continue
+        resolved = (readme_path.parent / link_target).resolve(strict=False)
+        try:
+            resolved.relative_to(skillpack_root.resolve())
+        except ValueError:
+            link_failures.append(f"{{readme_name}} -> escapes root: {{raw_target}}")
+            continue
+        if not resolved.exists():
+            link_failures.append(f"{{readme_name}} -> missing: {{raw_target}}")
 print(json.dumps({{
     'pfr': pfr,
     'fit': fit['rate_constant_s'],
@@ -93,6 +116,7 @@ print(json.dumps({{
     'epdm_status': case['status'],
     'package_status': package['status'],
     'skillpacks': skillpacks,
+    'installed_readme_link_failures': link_failures,
 }}))
 """
         completed = _run([sys.executable, "-I", "-c", code], cwd=Path(directory))
@@ -120,6 +144,17 @@ print(json.dumps({{
                 errors.append("installed wheel skillpack inventory failed")
             elif skillpacks.get("delivery") != "INSTALLED_SKILLPACK":
                 errors.append("wheel runtime did not resolve the installed skillpack data root")
+            elif skillpacks.get("readme_svg_assets", 0) < 16:
+                errors.append("installed wheel does not contain all sixteen README assets")
+            elif skillpacks.get("process_general_modules_present") != 14:
+                errors.append("installed wheel process-general module registry is incomplete")
+            elif skillpacks.get("process_general_workflows_present") != 6:
+                errors.append("installed wheel process-general workflow registry is incomplete")
+            if payload and payload.get("installed_readme_link_failures"):
+                errors.extend(
+                    f"installed README link failure: {failure}"
+                    for failure in payload["installed_readme_link_failures"]
+                )
     return {
         "wheel": str(wheel),
         "pass": not errors,
