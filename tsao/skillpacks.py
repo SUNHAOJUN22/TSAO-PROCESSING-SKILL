@@ -69,8 +69,21 @@ def resolve_skillpack_root(root: str | Path | None = None) -> Path:
     return installed_root.resolve()
 
 
+def _present_count(root: Path, relative_paths: tuple[str, ...]) -> int:
+    return sum((root / relative).is_file() for relative in relative_paths)
+
+
 def _missing_files(root: Path, relative_paths: tuple[str, ...]) -> list[str]:
     return [relative for relative in relative_paths if not (root / relative).is_file()]
+
+
+def _subskill_root(root: Path, path: str) -> Path:
+    candidate = (root / path).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"subskill path escapes Skillpack root: {path}") from exc
+    return candidate
 
 
 def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
@@ -88,7 +101,11 @@ def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
         if not isinstance(row, dict) or not isinstance(row.get("id"), str):
             errors.append(f"invalid subskill row {index}")
             continue
-        subskills[row["id"]] = row
+        subskill_id = row["id"]
+        if subskill_id in subskills:
+            errors.append(f"duplicate subskill id: {subskill_id}")
+            continue
+        subskills[subskill_id] = row
 
     missing_subskills = sorted(EXPECTED_SUBSKILLS - set(subskills))
     errors.extend(f"missing subskill manifest entry: {item}" for item in missing_subskills)
@@ -97,20 +114,28 @@ def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
         if not isinstance(path, str) or not path.strip():
             errors.append(f"subskill {subskill_id} has no path")
             continue
-        if not (resolved / path / "SKILL.md").is_file():
+        try:
+            subskill_root = _subskill_root(resolved, path)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+        if not (subskill_root / "SKILL.md").is_file():
             errors.append(f"subskill {subskill_id} is missing SKILL.md at {path}")
 
+    module_root = resolved / "skills/process-general/modules"
+    workflow_root = resolved / "skills/process-general/workflows"
+    polymer_script_root = resolved / "skills/polymer-general/scripts"
     errors.extend(
         f"missing process-general module: {item}"
-        for item in _missing_files(resolved / "skills/process-general/modules", PROCESS_MODULES)
+        for item in _missing_files(module_root, PROCESS_MODULES)
     )
     errors.extend(
         f"missing process-general workflow: {item}"
-        for item in _missing_files(resolved / "skills/process-general/workflows", PROCESS_WORKFLOWS)
+        for item in _missing_files(workflow_root, PROCESS_WORKFLOWS)
     )
     errors.extend(
         f"missing polymer-general script: {item}"
-        for item in _missing_files(resolved / "skills/polymer-general/scripts", POLYMER_SCRIPTS)
+        for item in _missing_files(polymer_script_root, POLYMER_SCRIPTS)
     )
 
     readme_assets = sorted((resolved / "docs/assets/readme").glob("*.svg"))
@@ -125,9 +150,12 @@ def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
         else "INSTALLED_SKILLPACK",
         "version": manifest.get("version"),
         "subskills": sorted(subskills),
-        "process_general_modules": len(PROCESS_MODULES),
-        "process_general_workflows": len(PROCESS_WORKFLOWS),
-        "polymer_general_scripts": len(POLYMER_SCRIPTS),
+        "process_general_modules_present": _present_count(module_root, PROCESS_MODULES),
+        "process_general_modules_expected": len(PROCESS_MODULES),
+        "process_general_workflows_present": _present_count(workflow_root, PROCESS_WORKFLOWS),
+        "process_general_workflows_expected": len(PROCESS_WORKFLOWS),
+        "polymer_general_scripts_present": _present_count(polymer_script_root, POLYMER_SCRIPTS),
+        "polymer_general_scripts_expected": len(POLYMER_SCRIPTS),
         "readme_svg_assets": len(readme_assets),
         "errors": errors,
         "scientific_technical_approval": "NOT_EVALUATED",
