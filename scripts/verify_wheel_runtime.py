@@ -6,6 +6,7 @@ import json
 import math
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -16,12 +17,55 @@ def _choose_wheel(wheel_dir: Path) -> Path:
     return wheels[0]
 
 
+def _run(command: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def verify(wheel: Path) -> dict[str, object]:
-    code = """
+    errors: list[str] = []
+    payload: dict[str, object] = {}
+    with tempfile.TemporaryDirectory(prefix="tsao-wheel-runtime-") as directory:
+        target = Path(directory) / "site"
+        install = _run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                "--no-deps",
+                "--target",
+                str(target),
+                str(wheel.resolve()),
+            ],
+            cwd=Path(directory),
+        )
+        if install.returncode != 0:
+            errors.append(
+                install.stderr.strip() or install.stdout.strip() or "wheel installation failed"
+            )
+            return {
+                "wheel": str(wheel),
+                "pass": False,
+                "errors": errors,
+                "runtime": payload,
+                "install_mode": "PIP_TARGET",
+            }
+
+        code = f"""
 import json
+import sys
+sys.path.insert(0, {str(target)!r})
 from importlib.resources import files
 import numpy as np
 from tsao.process_package import validate_process_package
+from tsao.skillpacks import skillpack_inventory
 from skills.epdm.core import active_site_fraction, heat_removal_margin, validate_epdm_case
 from skills.poe.core import (
     first_order_pfr_conversion,
@@ -38,39 +82,51 @@ validated = validate_model_passport_registry(passport)
 epdm = json.loads(files('skills.epdm').joinpath('fixtures/reference_cases.json').read_text(encoding='utf-8'))
 case = validate_epdm_case(epdm['valid_case'])
 package = validate_process_package(epdm['valid_package'])
-print(json.dumps({'pfr': pfr, 'fit': fit['rate_constant_s'], 'response': response.tolist(), 'passport_status': validated['status'], 'active_site': active_site_fraction(10,6), 'heat_margin': heat_removal_margin(80,100), 'epdm_status': case['status'], 'package_status': package['status']}))
+skillpacks = skillpack_inventory()
+print(json.dumps({{
+    'pfr': pfr,
+    'fit': fit['rate_constant_s'],
+    'response': response.tolist(),
+    'passport_status': validated['status'],
+    'active_site': active_site_fraction(10, 6),
+    'heat_margin': heat_removal_margin(80, 100),
+    'epdm_status': case['status'],
+    'package_status': package['status'],
+    'skillpacks': skillpacks,
+}}))
 """
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "-I",
-            "-c",
-            f"import sys; sys.path.insert(0, {str(wheel)!r});{code}",
-        ],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    errors: list[str] = []
-    payload: dict[str, object] = {}
-    if completed.returncode != 0:
-        errors.append(
-            completed.stderr.strip() or completed.stdout.strip() or "wheel runtime failed"
-        )
-    else:
-        try:
-            payload = json.loads(completed.stdout)
-        except json.JSONDecodeError as exc:
-            errors.append(f"invalid wheel runtime output: {exc}")
-        if payload and abs(float(payload.get("pfr", 0.0)) - (1.0 - math.exp(-1.0))) > 1e-12:
-            errors.append("installed wheel PFR known solution mismatch")
-        if payload and abs(float(payload.get("fit", 0.0)) - 0.2) > 1e-5:
-            errors.append("installed wheel parameter-fit known solution mismatch")
-        if payload and payload.get("epdm_status") != "PASS":
-            errors.append("installed wheel EPDM reference validation failed")
-        if payload and payload.get("package_status") != "PASS":
-            errors.append("installed wheel universal package validation failed")
-    return {"wheel": str(wheel), "pass": not errors, "errors": errors, "runtime": payload}
+        completed = _run([sys.executable, "-I", "-c", code], cwd=Path(directory))
+        if completed.returncode != 0:
+            errors.append(
+                completed.stderr.strip()
+                or completed.stdout.strip()
+                or "installed wheel runtime failed"
+            )
+        else:
+            try:
+                payload = json.loads(completed.stdout)
+            except json.JSONDecodeError as exc:
+                errors.append(f"invalid installed wheel runtime output: {exc}")
+            if payload and abs(float(payload.get("pfr", 0.0)) - (1.0 - math.exp(-1.0))) > 1e-12:
+                errors.append("installed wheel PFR known solution mismatch")
+            if payload and abs(float(payload.get("fit", 0.0)) - 0.2) > 1e-5:
+                errors.append("installed wheel parameter-fit known solution mismatch")
+            if payload and payload.get("epdm_status") != "PASS":
+                errors.append("installed wheel EPDM reference validation failed")
+            if payload and payload.get("package_status") != "PASS":
+                errors.append("installed wheel universal package validation failed")
+            skillpacks = payload.get("skillpacks") if payload else None
+            if not isinstance(skillpacks, dict) or not skillpacks.get("pass"):
+                errors.append("installed wheel skillpack inventory failed")
+            elif skillpacks.get("delivery") != "INSTALLED_SKILLPACK":
+                errors.append("wheel runtime did not resolve the installed skillpack data root")
+    return {
+        "wheel": str(wheel),
+        "pass": not errors,
+        "errors": errors,
+        "runtime": payload,
+        "install_mode": "PIP_TARGET",
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
