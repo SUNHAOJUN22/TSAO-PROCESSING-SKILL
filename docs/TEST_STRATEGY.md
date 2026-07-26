@@ -15,7 +15,9 @@ TSAO uses layered tests rather than a single happy-path demo:
 - deterministic-build and cleanroom-extraction tests;
 - bilingual parity, XML parsing and deterministic regeneration for sixteen README SVGs;
 - complete four-Skill Wheel-member verification;
-- real `pip install --target` and standard virtual-environment installations with installed-root, known-solution and README-link checks;
+- target-directory installation and a clean standard virtual-environment installation;
+- import-origin checks for TSAO, EPDM, POE and Skillpack data;
+- installed-root, known-solution and bilingual README-link checks in both installation modes;
 - Ubuntu qualification on Python 3.11–3.14 and Windows/macOS qualification on Python 3.14.
 
 A failing test must be fixed at its root cause. Assertions are not weakened and tests are not removed merely to achieve a green status. Software qualification never substitutes for scientific, engineering, HSE, customer or industrial approval.
