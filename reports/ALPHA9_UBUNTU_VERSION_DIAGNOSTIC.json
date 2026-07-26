@@ -1,0 +1,204 @@
+{
+  "3.11": {
+    "platform": "linux",
+    "python": "3.11.15 (main, Jun 16 2026, 21:41:52) [GCC 13.3.0]",
+    "pass": true,
+    "checks": [
+      {
+        "label": "generate_base_graphics",
+        "returncode": 0,
+        "tail": "generated 8 README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "generate_extended_graphics",
+        "returncode": 0,
+        "tail": "generated 4 extended README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "generate_decision_graphics",
+        "returncode": 0,
+        "tail": "generated 4 decision README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "refresh_source_manifest",
+        "returncode": 0,
+        "tail": "{\n  \"version\": \"0.1.0-alpha.9\",\n  \"profile\": \"core\",\n  \"pass\": true,\n  \"strict_source_clean\": false,\n  \"checks\": {\n    \"repository\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"version\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"schemas\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"capabilities\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"provenance\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"release_identity\": {\n      \"pass\": true,\n      \"issues\": []\n    }\n  },\n  \"issues\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"schemas\": 9,\n    \"specialists\": 4\n  },\n  \"artifact_software_qualification\": \"PASS\",\n  \"technical_approval_status\": \"NOT_EVALUATED\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "run_ci",
+        "returncode": 0,
+        "tail": "n  \\\"scientific_technical_approval\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"engineering_design_approval\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"customer_qualification\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"industrial_performance_guarantee\\\": \\\"NOT_EVALUATED\\\"\\n}\\n\"\n    },\n    {\n      \"command\": [\n        \"/opt/hostedtoolcache/Python/3.11.15/x64/bin/python\",\n        \"-m\",\n        \"ruff\",\n        \"check\",\n        \"tsao\",\n        \"tests\",\n        \"scripts\",\n        \"skills/process-general\",\n        \"skills/epdm\",\n        \"skills/poe\",\n        \"skills/polymer-general\"\n      ],\n      \"returncode\": 0,\n      \"timed_out\": false,\n      \"output\": \"All checks passed!\\n\"\n    }\n  ],\n  \"artifact_software_qualification\": \"PASS\",\n  \"universal_process_package_status\": \"EXECUTABLE_ALPHA\",\n  \"skillpack_delivery_status\": \"FOUR_SKILLS_INSTALLED_VERIFIED\",\n  \"epdm_software_status\": \"EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE\",\n  \"poe_software_status\": \"EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE\",\n  \"poe_scientific_execution\": \"UNDER_DISTILLATION\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "skillpacks",
+        "returncode": 0,
+        "tail": "{\n  \"pass\": true,\n  \"root\": \"/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL\",\n  \"delivery\": \"SOURCE_CHECKOUT\",\n  \"version\": \"0.1.0-alpha.9\",\n  \"subskills\": [\n    \"epdm\",\n    \"poe\",\n    \"polymer-general\",\n    \"process-general\"\n  ],\n  \"process_general_modules_present\": 14,\n  \"process_general_modules_expected\": 14,\n  \"process_general_workflows_present\": 6,\n  \"process_general_workflows_expected\": 6,\n  \"polymer_general_scripts_present\": 6,\n  \"polymer_general_scripts_expected\": 6,\n  \"readme_svg_assets\": 16,\n  \"readme_svg_assets_expected_minimum\": 16,\n  \"errors\": [],\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "epdm_audit",
+        "returncode": 0,
+        "tail": "{\n  \"status\": \"PASS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"module_registration\": \"14/14\",\n  \"requirement_registration\": \"20/20\",\n  \"reference_case\": \"PASS\",\n  \"reference_package\": \"PASS\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "poe_p0",
+        "returncode": 0,
+        "tail": "{\n  \"pass\": true,\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"asset_registry_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"requirement_trace_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"conflict_ledger_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"asset_registry\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"requirement_trace\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"conflict_ledger\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"open_blockers\": 7\n    },\n    \"modules\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"specialist_schemas\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"fixtures\": {\n      \"pass\": true,\n      \"errors\": []\n    }\n  },\n  \"asset_coverage\": \"139/139\",\n  \"requirement_registration_coverage\": \"18/18\",\n  \"conflict_registration\": \"7/7\",\n  \"module_count\": 12,\n  \"fixture_domain_count\": 11,\n  \"scientific_approval\": \"NOT_EVALUATED\",\n  \"engineering_approval\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "poe_p1",
+        "returncode": 0,
+        "tail": "{\n  \"status\": \"PASS_WITH_EXTERNAL_HOLDS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"holds\": [\n    \"model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment\"\n  ],\n  \"reference_level\": \"P1_REFERENCE_KERNEL_ALPHA\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "wheel_build",
+        "returncode": 0,
+        "tail": "Processing ./.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: tsao-processing-skill\n  Building wheel for tsao-processing-skill (pyproject.toml): started\n  Building wheel for tsao-processing-skill (pyproject.toml): finished with status 'done'\n  Created wheel for tsao-processing-skill: filename=tsao_processing_skill-0.1.0a9-py3-none-any.whl size=473556 sha256=056f6139a6e5b37a5c2600f33262e999749f39a9ce2ee5bacd0a8c9c81b8ec45\n  Stored in directory: /home/runner/.cache/pip/wheels/8d/16/ac/2edfabe8a6f222c7ab95a60949ac2a16b0efd8b0eb176341e6\nSuccessfully built tsao-processing-skill\n"
+      },
+      {
+        "label": "wheel_contents",
+        "returncode": 0,
+        "tail": "{\n  \"wheel\": \"wheelhouse/tsao_processing_skill-0.1.0a9-py3-none-any.whl\",\n  \"pass\": true,\n  \"errors\": [],\n  \"identity\": {\n    \"expected_name\": \"tsao-processing-skill\",\n    \"expected_version\": \"0.1.0a9\",\n    \"console_scripts\": {\n      \"tsao\": \"tsao.cli:main\",\n      \"tsao-skillpacks\": \"tsao.skillpacks:main\"\n    },\n    \"metadata_name\": \"tsao-processing-skill\",\n    \"metadata_version\": \"0.1.0a9\"\n  },\n  \"poe_members\": 72,\n  \"epdm_members\": 19,\n  \"poe_module_count\": 12,\n  \"process_general_module_count\": 14,\n  \"process_general_workflow_count\": 6,\n  \"readme_asset_count\": 16,\n  \"maintenance_script_count\": 6,\n  \"installed_skillpack_members\": 186\n}\n"
+      },
+      {
+        "label": "wheel_runtime",
+        "returncode": 0,
+        "tail": "gin\": 0.2,\n      \"epdm_status\": \"PASS\",\n      \"package_status\": \"PASS\",\n      \"skillpacks\": {\n        \"pass\": true,\n        \"root\": \"/tmp/tsao-wheel-runtime-f2efyf_v/standard-venv/share/tsao-processing-skill\",\n        \"delivery\": \"INSTALLED_SKILLPACK\",\n        \"version\": \"0.1.0-alpha.9\",\n        \"subskills\": [\n          \"epdm\",\n          \"poe\",\n          \"polymer-general\",\n          \"process-general\"\n        ],\n        \"process_general_modules_present\": 14,\n        \"process_general_modules_expected\": 14,\n        \"process_general_workflows_present\": 6,\n        \"process_general_workflows_expected\": 6,\n        \"polymer_general_scripts_present\": 6,\n        \"polymer_general_scripts_expected\": 6,\n        \"readme_svg_assets\": 16,\n        \"readme_svg_assets_expected_minimum\": 16,\n        \"errors\": [],\n        \"scientific_technical_approval\": \"NOT_EVALUATED\",\n        \"engineering_design_approval\": \"NOT_EVALUATED\",\n        \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n      },\n      \"installed_readme_link_failures\": []\n    }\n  },\n  \"install_modes\": [\n    \"PIP_TARGET\",\n    \"STANDARD_VENV\"\n  ],\n  \"import_origin_check\": \"ENFORCED\",\n  \"standard_venv_isolation\": \"NO_SYSTEM_SITE_PACKAGES\"\n}\n"
+      }
+    ]
+  },
+  "3.12": {
+    "platform": "linux",
+    "python": "3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]",
+    "pass": true,
+    "checks": [
+      {
+        "label": "generate_base_graphics",
+        "returncode": 0,
+        "tail": "generated 8 README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "generate_extended_graphics",
+        "returncode": 0,
+        "tail": "generated 4 extended README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "generate_decision_graphics",
+        "returncode": 0,
+        "tail": "generated 4 decision README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "refresh_source_manifest",
+        "returncode": 0,
+        "tail": "{\n  \"version\": \"0.1.0-alpha.9\",\n  \"profile\": \"core\",\n  \"pass\": true,\n  \"strict_source_clean\": false,\n  \"checks\": {\n    \"repository\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"version\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"schemas\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"capabilities\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"provenance\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"release_identity\": {\n      \"pass\": true,\n      \"issues\": []\n    }\n  },\n  \"issues\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"schemas\": 9,\n    \"specialists\": 4\n  },\n  \"artifact_software_qualification\": \"PASS\",\n  \"technical_approval_status\": \"NOT_EVALUATED\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "run_ci",
+        "returncode": 0,
+        "tail": "n  \\\"scientific_technical_approval\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"engineering_design_approval\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"customer_qualification\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"industrial_performance_guarantee\\\": \\\"NOT_EVALUATED\\\"\\n}\\n\"\n    },\n    {\n      \"command\": [\n        \"/opt/hostedtoolcache/Python/3.12.13/x64/bin/python\",\n        \"-m\",\n        \"ruff\",\n        \"check\",\n        \"tsao\",\n        \"tests\",\n        \"scripts\",\n        \"skills/process-general\",\n        \"skills/epdm\",\n        \"skills/poe\",\n        \"skills/polymer-general\"\n      ],\n      \"returncode\": 0,\n      \"timed_out\": false,\n      \"output\": \"All checks passed!\\n\"\n    }\n  ],\n  \"artifact_software_qualification\": \"PASS\",\n  \"universal_process_package_status\": \"EXECUTABLE_ALPHA\",\n  \"skillpack_delivery_status\": \"FOUR_SKILLS_INSTALLED_VERIFIED\",\n  \"epdm_software_status\": \"EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE\",\n  \"poe_software_status\": \"EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE\",\n  \"poe_scientific_execution\": \"UNDER_DISTILLATION\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "skillpacks",
+        "returncode": 0,
+        "tail": "{\n  \"pass\": true,\n  \"root\": \"/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL\",\n  \"delivery\": \"SOURCE_CHECKOUT\",\n  \"version\": \"0.1.0-alpha.9\",\n  \"subskills\": [\n    \"epdm\",\n    \"poe\",\n    \"polymer-general\",\n    \"process-general\"\n  ],\n  \"process_general_modules_present\": 14,\n  \"process_general_modules_expected\": 14,\n  \"process_general_workflows_present\": 6,\n  \"process_general_workflows_expected\": 6,\n  \"polymer_general_scripts_present\": 6,\n  \"polymer_general_scripts_expected\": 6,\n  \"readme_svg_assets\": 16,\n  \"readme_svg_assets_expected_minimum\": 16,\n  \"errors\": [],\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "epdm_audit",
+        "returncode": 0,
+        "tail": "{\n  \"status\": \"PASS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"module_registration\": \"14/14\",\n  \"requirement_registration\": \"20/20\",\n  \"reference_case\": \"PASS\",\n  \"reference_package\": \"PASS\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "poe_p0",
+        "returncode": 0,
+        "tail": "{\n  \"pass\": true,\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"asset_registry_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"requirement_trace_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"conflict_ledger_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"asset_registry\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"requirement_trace\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"conflict_ledger\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"open_blockers\": 7\n    },\n    \"modules\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"specialist_schemas\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"fixtures\": {\n      \"pass\": true,\n      \"errors\": []\n    }\n  },\n  \"asset_coverage\": \"139/139\",\n  \"requirement_registration_coverage\": \"18/18\",\n  \"conflict_registration\": \"7/7\",\n  \"module_count\": 12,\n  \"fixture_domain_count\": 11,\n  \"scientific_approval\": \"NOT_EVALUATED\",\n  \"engineering_approval\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "poe_p1",
+        "returncode": 0,
+        "tail": "{\n  \"status\": \"PASS_WITH_EXTERNAL_HOLDS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"holds\": [\n    \"model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment\"\n  ],\n  \"reference_level\": \"P1_REFERENCE_KERNEL_ALPHA\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "wheel_build",
+        "returncode": 0,
+        "tail": "Processing ./.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: tsao-processing-skill\n  Building wheel for tsao-processing-skill (pyproject.toml): started\n  Building wheel for tsao-processing-skill (pyproject.toml): finished with status 'done'\n  Created wheel for tsao-processing-skill: filename=tsao_processing_skill-0.1.0a9-py3-none-any.whl size=473555 sha256=f7bbc1550bdec2d7ca5e8f1e30205a60ecf25f71495a26b89ecb9143462ccddb\n  Stored in directory: /home/runner/.cache/pip/wheels/09/2c/11/1d144b404b74f23f6f55ce359bfae1342b3ad9d769fe63f9d7\nSuccessfully built tsao-processing-skill\n"
+      },
+      {
+        "label": "wheel_contents",
+        "returncode": 0,
+        "tail": "{\n  \"wheel\": \"wheelhouse/tsao_processing_skill-0.1.0a9-py3-none-any.whl\",\n  \"pass\": true,\n  \"errors\": [],\n  \"identity\": {\n    \"expected_name\": \"tsao-processing-skill\",\n    \"expected_version\": \"0.1.0a9\",\n    \"console_scripts\": {\n      \"tsao\": \"tsao.cli:main\",\n      \"tsao-skillpacks\": \"tsao.skillpacks:main\"\n    },\n    \"metadata_name\": \"tsao-processing-skill\",\n    \"metadata_version\": \"0.1.0a9\"\n  },\n  \"poe_members\": 72,\n  \"epdm_members\": 19,\n  \"poe_module_count\": 12,\n  \"process_general_module_count\": 14,\n  \"process_general_workflow_count\": 6,\n  \"readme_asset_count\": 16,\n  \"maintenance_script_count\": 6,\n  \"installed_skillpack_members\": 186\n}\n"
+      },
+      {
+        "label": "wheel_runtime",
+        "returncode": 0,
+        "tail": "gin\": 0.2,\n      \"epdm_status\": \"PASS\",\n      \"package_status\": \"PASS\",\n      \"skillpacks\": {\n        \"pass\": true,\n        \"root\": \"/tmp/tsao-wheel-runtime-jgl2evhe/standard-venv/share/tsao-processing-skill\",\n        \"delivery\": \"INSTALLED_SKILLPACK\",\n        \"version\": \"0.1.0-alpha.9\",\n        \"subskills\": [\n          \"epdm\",\n          \"poe\",\n          \"polymer-general\",\n          \"process-general\"\n        ],\n        \"process_general_modules_present\": 14,\n        \"process_general_modules_expected\": 14,\n        \"process_general_workflows_present\": 6,\n        \"process_general_workflows_expected\": 6,\n        \"polymer_general_scripts_present\": 6,\n        \"polymer_general_scripts_expected\": 6,\n        \"readme_svg_assets\": 16,\n        \"readme_svg_assets_expected_minimum\": 16,\n        \"errors\": [],\n        \"scientific_technical_approval\": \"NOT_EVALUATED\",\n        \"engineering_design_approval\": \"NOT_EVALUATED\",\n        \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n      },\n      \"installed_readme_link_failures\": []\n    }\n  },\n  \"install_modes\": [\n    \"PIP_TARGET\",\n    \"STANDARD_VENV\"\n  ],\n  \"import_origin_check\": \"ENFORCED\",\n  \"standard_venv_isolation\": \"NO_SYSTEM_SITE_PACKAGES\"\n}\n"
+      }
+    ]
+  },
+  "3.13": {
+    "platform": "linux",
+    "python": "3.13.14 (main, Jun 11 2026, 03:02:07) [GCC 13.3.0]",
+    "pass": true,
+    "checks": [
+      {
+        "label": "generate_base_graphics",
+        "returncode": 0,
+        "tail": "generated 8 README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "generate_extended_graphics",
+        "returncode": 0,
+        "tail": "generated 4 extended README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "generate_decision_graphics",
+        "returncode": 0,
+        "tail": "generated 4 decision README assets in /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/docs/assets/readme\n"
+      },
+      {
+        "label": "refresh_source_manifest",
+        "returncode": 0,
+        "tail": "{\n  \"version\": \"0.1.0-alpha.9\",\n  \"profile\": \"core\",\n  \"pass\": true,\n  \"strict_source_clean\": false,\n  \"checks\": {\n    \"repository\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"version\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"schemas\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"capabilities\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"provenance\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"release_identity\": {\n      \"pass\": true,\n      \"issues\": []\n    }\n  },\n  \"issues\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"schemas\": 9,\n    \"specialists\": 4\n  },\n  \"artifact_software_qualification\": \"PASS\",\n  \"technical_approval_status\": \"NOT_EVALUATED\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "run_ci",
+        "returncode": 0,
+        "tail": "n  \\\"scientific_technical_approval\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"engineering_design_approval\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"customer_qualification\\\": \\\"NOT_EVALUATED\\\",\\n  \\\"industrial_performance_guarantee\\\": \\\"NOT_EVALUATED\\\"\\n}\\n\"\n    },\n    {\n      \"command\": [\n        \"/opt/hostedtoolcache/Python/3.13.14/x64/bin/python\",\n        \"-m\",\n        \"ruff\",\n        \"check\",\n        \"tsao\",\n        \"tests\",\n        \"scripts\",\n        \"skills/process-general\",\n        \"skills/epdm\",\n        \"skills/poe\",\n        \"skills/polymer-general\"\n      ],\n      \"returncode\": 0,\n      \"timed_out\": false,\n      \"output\": \"All checks passed!\\n\"\n    }\n  ],\n  \"artifact_software_qualification\": \"PASS\",\n  \"universal_process_package_status\": \"EXECUTABLE_ALPHA\",\n  \"skillpack_delivery_status\": \"FOUR_SKILLS_INSTALLED_VERIFIED\",\n  \"epdm_software_status\": \"EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE\",\n  \"poe_software_status\": \"EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE\",\n  \"poe_scientific_execution\": \"UNDER_DISTILLATION\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "skillpacks",
+        "returncode": 0,
+        "tail": "{\n  \"pass\": true,\n  \"root\": \"/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL\",\n  \"delivery\": \"SOURCE_CHECKOUT\",\n  \"version\": \"0.1.0-alpha.9\",\n  \"subskills\": [\n    \"epdm\",\n    \"poe\",\n    \"polymer-general\",\n    \"process-general\"\n  ],\n  \"process_general_modules_present\": 14,\n  \"process_general_modules_expected\": 14,\n  \"process_general_workflows_present\": 6,\n  \"process_general_workflows_expected\": 6,\n  \"polymer_general_scripts_present\": 6,\n  \"polymer_general_scripts_expected\": 6,\n  \"readme_svg_assets\": 16,\n  \"readme_svg_assets_expected_minimum\": 16,\n  \"errors\": [],\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "epdm_audit",
+        "returncode": 0,
+        "tail": "{\n  \"status\": \"PASS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"module_registration\": \"14/14\",\n  \"requirement_registration\": \"20/20\",\n  \"reference_case\": \"PASS\",\n  \"reference_package\": \"PASS\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "poe_p0",
+        "returncode": 0,
+        "tail": "{\n  \"pass\": true,\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"asset_registry_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"requirement_trace_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"conflict_ledger_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"asset_registry\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"requirement_trace\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"conflict_ledger\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"open_blockers\": 7\n    },\n    \"modules\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"specialist_schemas\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"fixtures\": {\n      \"pass\": true,\n      \"errors\": []\n    }\n  },\n  \"asset_coverage\": \"139/139\",\n  \"requirement_registration_coverage\": \"18/18\",\n  \"conflict_registration\": \"7/7\",\n  \"module_count\": 12,\n  \"fixture_domain_count\": 11,\n  \"scientific_approval\": \"NOT_EVALUATED\",\n  \"engineering_approval\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "poe_p1",
+        "returncode": 0,
+        "tail": "{\n  \"status\": \"PASS_WITH_EXTERNAL_HOLDS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"holds\": [\n    \"model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment\"\n  ],\n  \"reference_level\": \"P1_REFERENCE_KERNEL_ALPHA\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+      },
+      {
+        "label": "wheel_build",
+        "returncode": 0,
+        "tail": "Processing ./.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: tsao-processing-skill\n  Building wheel for tsao-processing-skill (pyproject.toml): started\n  Building wheel for tsao-processing-skill (pyproject.toml): finished with status 'done'\n  Created wheel for tsao-processing-skill: filename=tsao_processing_skill-0.1.0a9-py3-none-any.whl size=473555 sha256=8379d29224c1fad5d3e68d50920a9be97930b9e3c19de5b5b09371bfdfc0ef1e\n  Stored in directory: /home/runner/.cache/pip/wheels/c7/0f/10/114c167aa13a6d3452d24dfbdccd3a8ff3aa06d25d26b0e4e2\nSuccessfully built tsao-processing-skill\n"
+      },
+      {
+        "label": "wheel_contents",
+        "returncode": 0,
+        "tail": "{\n  \"wheel\": \"wheelhouse/tsao_processing_skill-0.1.0a9-py3-none-any.whl\",\n  \"pass\": true,\n  \"errors\": [],\n  \"identity\": {\n    \"expected_name\": \"tsao-processing-skill\",\n    \"expected_version\": \"0.1.0a9\",\n    \"console_scripts\": {\n      \"tsao\": \"tsao.cli:main\",\n      \"tsao-skillpacks\": \"tsao.skillpacks:main\"\n    },\n    \"metadata_name\": \"tsao-processing-skill\",\n    \"metadata_version\": \"0.1.0a9\"\n  },\n  \"poe_members\": 72,\n  \"epdm_members\": 19,\n  \"poe_module_count\": 12,\n  \"process_general_module_count\": 14,\n  \"process_general_workflow_count\": 6,\n  \"readme_asset_count\": 16,\n  \"maintenance_script_count\": 6,\n  \"installed_skillpack_members\": 186\n}\n"
+      },
+      {
+        "label": "wheel_runtime",
+        "returncode": 0,
+        "tail": "gin\": 0.2,\n      \"epdm_status\": \"PASS\",\n      \"package_status\": \"PASS\",\n      \"skillpacks\": {\n        \"pass\": true,\n        \"root\": \"/tmp/tsao-wheel-runtime-25fpykk3/standard-venv/share/tsao-processing-skill\",\n        \"delivery\": \"INSTALLED_SKILLPACK\",\n        \"version\": \"0.1.0-alpha.9\",\n        \"subskills\": [\n          \"epdm\",\n          \"poe\",\n          \"polymer-general\",\n          \"process-general\"\n        ],\n        \"process_general_modules_present\": 14,\n        \"process_general_modules_expected\": 14,\n        \"process_general_workflows_present\": 6,\n        \"process_general_workflows_expected\": 6,\n        \"polymer_general_scripts_present\": 6,\n        \"polymer_general_scripts_expected\": 6,\n        \"readme_svg_assets\": 16,\n        \"readme_svg_assets_expected_minimum\": 16,\n        \"errors\": [],\n        \"scientific_technical_approval\": \"NOT_EVALUATED\",\n        \"engineering_design_approval\": \"NOT_EVALUATED\",\n        \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n      },\n      \"installed_readme_link_failures\": []\n    }\n  },\n  \"install_modes\": [\n    \"PIP_TARGET\",\n    \"STANDARD_VENV\"\n  ],\n  \"import_origin_check\": \"ENFORCED\",\n  \"standard_venv_isolation\": \"NO_SYSTEM_SITE_PACKAGES\"\n}\n"
+      }
+    ]
+  },
+  "pass": true
+}
