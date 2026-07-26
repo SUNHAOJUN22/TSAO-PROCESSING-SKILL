@@ -12,7 +12,8 @@ delivery_verification:
   python_versions: ["3.11", "3.12", "3.13", "3.14"]
   readme_assets: 16_OF_16
   installed_readme_links: VERIFIED
-  wheel_install_mode: PIP_TARGET
+  wheel_install_modes: [PIP_TARGET, STANDARD_VENV]
+  standard_prefix_data_resolution: VERIFIED_FROM_DISTRIBUTION_RECORD
   authoritative_branch: main
 subskills:
 - id: process-general
