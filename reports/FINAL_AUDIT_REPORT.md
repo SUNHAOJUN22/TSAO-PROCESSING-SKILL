@@ -90,7 +90,7 @@ Automated tests require every declared asset to exist, parse as SVG, be committe
 Wheel verification uses two independent gates:
 
 1. `verify_wheel_contents.py` checks executable members plus the complete installed Skill data tree, reports, maintenance scripts and sixteen diagrams;
-2. `verify_wheel_runtime.py` performs a real `pip install --target`, imports only from the installed target, resolves the installed Skillpack root, audits installed README links, validates the four-Skill inventory and runs universal, EPDM and POE known-solution checks.
+2. `verify_wheel_runtime.py` independently verifies `pip install --target` and a standard virtual-environment installation, resolves the correct data root for both installation schemes, audits installed README links, validates the four-Skill inventory and runs universal, EPDM and POE known-solution checks.
 
 The release does not label direct zipimport as installed-runtime verification.
 
