@@ -1,4 +1,5 @@
 name: Diagnose performance qualification once
+# Second diagnostic after source-identity fast path and Ruff cleanup.
 
 on:
   push:
@@ -61,5 +62,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add reports/PERFORMANCE_QUALIFICATION_DIAGNOSTIC.txt reports/PERFORMANCE_OPTIMIZED_ALPHA9.json reports/PERFORMANCE_COMPARISON_ALPHA9.json
-          git commit -m "diagnostic: capture performance qualification results [skip ci]"
+          git commit -m "diagnostic: capture second performance qualification [skip ci]"
           git push origin HEAD:main
