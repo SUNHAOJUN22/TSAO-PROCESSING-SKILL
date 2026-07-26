@@ -3,11 +3,14 @@
 ## Unreleased hardening — 2026-07-26
 
 - Added a fail-closed source/installed Skillpack inventory for all four delivered Skills.
-- Packaged the master Skill, process-general, polymer-general, specialist contracts, schemas, examples, documentation and twelve deterministic diagrams into the Wheel data tree.
+- Packaged the master Skill, process-general, polymer-general, specialist contracts, schemas, examples, documentation, qualification reports, maintenance scripts and sixteen deterministic diagrams into the Wheel data tree.
 - Replaced the former Wheel zipimport smoke test with a real `pip install --target` installation test.
+- Added installed bilingual-README relative-link auditing so packaged documentation cannot silently reference missing files.
 - Expanded the Wheel content contract to require fourteen process-general modules, six workflows, six polymer-general scripts and the complete installed Skill tree.
+- Extended the permanent CI matrix through Python 3.14 and kept current-stable Windows/macOS coverage on Python 3.14.
+- Added four functional diagrams for control/safety, simulator-neutral integration, EPDM identifiability/uncertainty and the raw-polymer-to-customer bridge.
+- Rebuilt the capability matrix around all four Skills and truthful executable/framework/approval boundaries.
 - Added cross-platform Skillpack smoke checks and downloadable structured qualification reports to GitHub Actions.
-- Updated both READMEs without reducing the twelve-diagram functional visual system.
 
 ## 0.1.0-alpha.8 — 2026-07-24
 
