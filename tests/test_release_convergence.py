@@ -40,8 +40,19 @@ def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
     for token in ("process-general", "epdm", "poe", "polymer-general"):
         assert token in matrix
     assert "pip install --target" in matrix
+    assert "standard virtual environment" in matrix
     assert "3.11–3.14" in matrix
     assert "16 deterministic svg" in matrix
+
+
+def test_runtime_verifier_covers_both_install_schemes() -> None:
+    verifier = (ROOT / "scripts/verify_wheel_runtime.py").read_text(encoding="utf-8")
+    skillpacks = (ROOT / "tsao/skillpacks.py").read_text(encoding="utf-8")
+    assert "PIP_TARGET" in verifier
+    assert "STANDARD_VENV" in verifier
+    assert "--system-site-packages" in verifier
+    assert "installed.files" in skillpacks
+    assert "sysconfig.get_path" in skillpacks
 
 
 def test_installed_readme_support_files_are_packaged() -> None:
