@@ -56,9 +56,8 @@ def _version_issues(root: Path) -> list[str]:
     return issues
 
 
-def _schema_issues(root: Path) -> list[str]:
+def _schema_issues(schemas: tuple[Path, ...]) -> list[str]:
     issues: list[str] = []
-    schemas = sorted((root / "schemas").glob("*.schema.json"))
     if not schemas:
         return ["repository contains no JSON Schemas"]
     for path in schemas:
@@ -69,12 +68,10 @@ def _schema_issues(root: Path) -> list[str]:
     return issues
 
 
-def _link_issues(root: Path) -> list[str]:
+def _link_issues(root: Path, markdown_paths: tuple[Path, ...]) -> list[str]:
     issues: list[str] = []
     root_resolved = root.resolve()
-    for path in sorted(root.rglob("*.md")):
-        if any(part in _CACHE_PARTS or part == ".git" for part in path.relative_to(root).parts):
-            continue
+    for path in markdown_paths:
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as exc:
@@ -100,9 +97,15 @@ def _link_issues(root: Path) -> list[str]:
     return issues
 
 
-def _repository_issues(root: Path, *, strict_source_clean: bool) -> list[str]:
+def _repository_issues(
+    root: Path,
+    *,
+    strict_source_clean: bool,
+    entries: tuple[Path, ...],
+    markdown_paths: tuple[Path, ...],
+) -> list[str]:
     issues = [f"missing required path: {item}" for item in _REQUIRED if not (root / item).exists()]
-    for path in root.rglob("*"):
+    for path in entries:
         relative_parts = path.relative_to(root).parts
         cache_hit = next((part for part in relative_parts if part in _CACHE_PARTS), None)
         if cache_hit:
@@ -119,7 +122,7 @@ def _repository_issues(root: Path, *, strict_source_clean: bool) -> list[str]:
         for command in ("tsao.cli doctor", "tsao.cli init", "tsao.cli audit"):
             if command not in text:
                 issues.append(f"README missing canonical command: {command}")
-    issues.extend(_link_issues(root))
+    issues.extend(_link_issues(root, markdown_paths))
     return sorted(set(issues))
 
 
@@ -170,10 +173,25 @@ def diagnose(
     active_profile = profile
     if active_profile == "auto":
         active_profile = "full" if _has_full_distribution_markers(root) else "core"
+
+    entries = tuple(sorted(root.rglob("*")))
+    markdown_paths = tuple(
+        path
+        for path in entries
+        if path.is_file()
+        and path.suffix.casefold() == ".md"
+        and not any(part in _CACHE_PARTS or part == ".git" for part in path.relative_to(root).parts)
+    )
+    schemas = tuple(sorted((root / "schemas").glob("*.schema.json")))
     checks: dict[str, list[str]] = {
-        "repository": _repository_issues(root, strict_source_clean=strict_source_clean),
+        "repository": _repository_issues(
+            root,
+            strict_source_clean=strict_source_clean,
+            entries=entries,
+            markdown_paths=markdown_paths,
+        ),
         "version": _version_issues(root),
-        "schemas": _schema_issues(root),
+        "schemas": _schema_issues(schemas),
         "capabilities": capability_contract_issues(root),
     }
     manifest_name = (
@@ -195,7 +213,7 @@ def diagnose(
         "issues": issues,
         "warnings": [],
         "metrics": {
-            "schemas": len(list((root / "schemas").glob("*.schema.json"))),
+            "schemas": len(schemas),
             "specialists": 4,
         },
         "artifact_software_qualification": "PASS" if not issues else "FAIL",
