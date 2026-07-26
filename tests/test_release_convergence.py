@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED_PYTHON = ("3.11", "3.12", "3.13", "3.14")
+ASSET_PATTERN = re.compile(r"!\[[^\]]+\]\(docs/assets/readme/[^)]+\.svg\)")
 
 
 def test_python_support_statement_matches_ci_matrix() -> None:
@@ -29,7 +31,7 @@ def test_ci_and_readmes_lock_sixteen_deterministic_assets() -> None:
 
     for readme_name in ("README.md", "README.zh-CN.md"):
         text = (ROOT / readme_name).read_text(encoding="utf-8")
-        assert text.count("docs/assets/readme/") == 16
+        assert len(ASSET_PATTERN.findall(text)) == 16
         assert "16" in text
 
 
