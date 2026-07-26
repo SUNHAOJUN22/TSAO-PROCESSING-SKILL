@@ -61,6 +61,20 @@ def test_project_metadata_and_requirements_are_in_lockstep() -> None:
     assert project["urls"]["Issues"].endswith("/issues")
 
 
+def test_immutable_release_identities_are_packaged() -> None:
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    verifier = (ROOT / "scripts/verify_wheel_contents.py").read_text(encoding="utf-8")
+    required = (
+        "reports/RELEASE_IDENTITY.json",
+        "reports/ALPHA9_SOURCE_CORE_STATUS.json",
+        "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
+        "reports/SOURCE_CORE_MANIFEST.tsv",
+    )
+    for relative in required:
+        assert f'"{relative}"' in pyproject
+        assert f'/{relative}' in verifier
+
+
 def test_current_release_docs_and_ci_are_alpha9() -> None:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     reports_index = (ROOT / "reports/README.md").read_text(encoding="utf-8")
