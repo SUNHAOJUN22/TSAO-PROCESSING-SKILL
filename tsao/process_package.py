@@ -163,11 +163,10 @@ def validate_process_package(package: object) -> dict[str, Any]:
         if not record.get("locator") or not record.get("applicability"):
             holds.append(f"evidence {identifier or '<unknown>'} lacks locator or applicability")
 
-    stream_by_id: dict[str, dict[str, Any]] = {}
+    stream_mass_by_id: dict[str, float] = {}
+    stream_enthalpy_by_id: dict[str, float] = {}
     for stream in streams:
         identifier = stream.get("stream_id")
-        if isinstance(identifier, str):
-            stream_by_id[identifier] = stream
         source = stream.get("source")
         destination = stream.get("destination")
         for label, node in (("source", source), ("destination", destination)):
@@ -179,12 +178,16 @@ def validate_process_package(package: object) -> dict[str, Any]:
                 )
         try:
             total_mass = _finite(stream.get("total_mass_kg_h"), f"stream {identifier} mass flow")
-            _finite(stream.get("enthalpy_kW"), f"stream {identifier} enthalpy")
+            enthalpy = _finite(stream.get("enthalpy_kW"), f"stream {identifier} enthalpy")
             if total_mass < 0:
                 errors.append(f"stream {identifier} mass flow must be non-negative")
         except ValueError as exc:
             errors.append(str(exc))
             total_mass = 0.0
+            enthalpy = 0.0
+        if isinstance(identifier, str):
+            stream_mass_by_id[identifier] = total_mass
+            stream_enthalpy_by_id[identifier] = enthalpy
         composition = stream.get("composition")
         if not isinstance(composition, dict) or not composition:
             errors.append(f"stream {identifier} composition must be a non-empty object")
@@ -225,13 +228,17 @@ def validate_process_package(package: object) -> dict[str, Any]:
         if not isinstance(inlet_ids, list) or not isinstance(outlet_ids, list):
             errors.append(f"equipment {identifier} inlet/outlet stream IDs must be lists")
             continue
-        for ref in [*inlet_ids, *outlet_ids]:
+        references = [*inlet_ids, *outlet_ids]
+        for ref in references:
             if ref not in stream_ids:
                 errors.append(f"equipment {identifier} references unknown stream: {ref}")
-        if any(ref not in stream_by_id for ref in [*inlet_ids, *outlet_ids]):
+        if any(
+            ref not in stream_mass_by_id or ref not in stream_enthalpy_by_id
+            for ref in references
+        ):
             continue
-        mass_in = sum(float(stream_by_id[ref]["total_mass_kg_h"]) for ref in inlet_ids)
-        mass_out = sum(float(stream_by_id[ref]["total_mass_kg_h"]) for ref in outlet_ids)
+        mass_in = sum(stream_mass_by_id[ref] for ref in inlet_ids)
+        mass_out = sum(stream_mass_by_id[ref] for ref in outlet_ids)
         mass_scale = max(abs(mass_in), abs(mass_out), 1.0)
         mass_error = abs(mass_in - mass_out) / mass_scale
         mass_errors[identifier] = mass_error
@@ -239,8 +246,8 @@ def validate_process_package(package: object) -> dict[str, Any]:
             errors.append(
                 f"equipment {identifier} mass balance relative error {mass_error:.6g} exceeds {mass_tol:.6g}"
             )
-        enthalpy_in = sum(float(stream_by_id[ref]["enthalpy_kW"]) for ref in inlet_ids)
-        enthalpy_out = sum(float(stream_by_id[ref]["enthalpy_kW"]) for ref in outlet_ids)
+        enthalpy_in = sum(stream_enthalpy_by_id[ref] for ref in inlet_ids)
+        enthalpy_out = sum(stream_enthalpy_by_id[ref] for ref in outlet_ids)
         try:
             duty = _finite(item.get("duty_kW", 0.0), f"equipment {identifier} duty")
         except ValueError as exc:
