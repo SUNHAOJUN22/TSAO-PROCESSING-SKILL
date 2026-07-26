@@ -1,4 +1,4 @@
-name: Promote exact verified alpha9 worktree once
+name: Commit verified alpha9 non-workflow content once
 
 on:
   push:
@@ -8,8 +8,8 @@ permissions:
   contents: write
 
 jobs:
-  promote:
-    if: ${{ contains(github.event.head_commit.message, '[DIAG-FINAL-WORKTREE]') }}
+  commit-release:
+    if: ${{ contains(github.event.head_commit.message, '[COMMIT-ALPHA9-NONWORKFLOW]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -26,8 +26,17 @@ jobs:
           python -m pip install --quiet -e .[dev]
           python -m pip check
           python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
-      - name: Construct exact final worktree
+      - name: Construct alpha9 content without workflow mutations
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/apply_alpha9_release.py')
+          text = path.read_text(encoding='utf-8')
+          needle = '    update_ci()\n'
+          if needle not in text:
+              raise RuntimeError('update_ci call not found')
+          path.write_text(text.replace(needle, '', 1), encoding='utf-8')
+          PY
           python -m py_compile .github/apply_alpha9_release.py .github/fix_alpha9_release_residuals.py
           python .github/apply_alpha9_release.py
           python .github/fix_alpha9_release_residuals.py
@@ -36,9 +45,6 @@ jobs:
           for name in (
               '.github/apply_alpha9_release.py',
               '.github/fix_alpha9_release_residuals.py',
-              '.github/workflows/seal-alpha9-release-clean-once.yml',
-              '.github/workflows/diagnose-alpha9-final-worktree-once.yml',
-              '.github/workflows/promote-alpha9-final-worktree-once.yml',
               'reports/ALPHA9_FINAL_WORKTREE_DIAGNOSTIC.txt',
           ):
               Path(name).unlink(missing_ok=True)
@@ -48,7 +54,7 @@ jobs:
           python scripts/generate_decision_readme_assets.py
           git diff --exit-code -- docs/assets/readme
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
-      - name: Reproduce verified qualification
+      - name: Verify alpha9 content
         run: |
           python scripts/run_ci.py
           python -m tsao.skillpacks --root .
@@ -61,11 +67,12 @@ jobs:
           python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
           python -c "import tsao; assert tsao.__version__ == '0.1.0-alpha.9'"
           python -m tsao.cli doctor --root . --profile core
-      - name: Commit exact verified alpha9 main
+      - name: Commit verified non-workflow release content
         run: |
           python -c "import shutil; [shutil.rmtree(path, ignore_errors=True) for path in ('wheelhouse', 'build', 'dist')]"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "release: seal 0.1.0-alpha.9 identity"
+          git reset -- .github/workflows
+          git commit -m "release: stage 0.1.0-alpha.9 verified content"
           git push origin HEAD:main
