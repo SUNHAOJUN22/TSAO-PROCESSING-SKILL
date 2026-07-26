@@ -1,14 +1,18 @@
 # TSAO capability matrix — 0.1.0-alpha.8
 
-| Capability | Universal package | EPDM flagship | POE specialist | Verification |
-|---|---:|---:|---:|---|
-| Design basis / streams / equipment | executable alpha | inherits + EPDM constraints | specialist case validator | Schema, references, attack tests |
-| Mass and energy closure | executable alpha | reactor/recovery package | POE flowsheet validator | known balances and false-PASS tests |
-| Evidence / acceptance / approvals | executable alpha | 20 EPDM Gate requirements | 139 assets / 18 requirements / 7 conflicts | qualified-evidence and named-approval tests |
-| Kinetics / architecture | framework | P1 ternary active-site reference | P1 POE moment reference | conservation, boundaries, known solutions |
-| Reactor / mixing / heat | framework | EPDM margin and mixing Gates | P1 reactor references | capacity, phase, transport Gates |
-| Recovery / recycle | generic closure | poison, purge, guard, devolatilization | POE recycle/devolatilization | finite steady state and HOLD tests |
-| Product/customer bridge | generic acceptance | raw polymer → compound → cure → part → line | application/CQA modules | stage-by-stage evidence tests |
-| Wheel/runtime | qualified alpha | runtime verified | runtime verified | clean-wheel import and calculations |
+| Capability | `process-general` | EPDM flagship | POE specialist | `polymer-general` | Verification boundary |
+|---|---|---|---|---|---|
+| Delivery contract | 14 modules + 6 workflows | 14 contracts + 20 Gate requirements | P0/P1 kernel + 139 controlled assets | 6 reusable scripts | source and installed inventories must agree |
+| Design basis / streams / equipment | executable alpha package validator | inherits + EPDM constraints | specialist case validator | planning and balance support | Schema, references and attack tests |
+| Mass / component / energy closure | executable alpha | semibatch and recovery references | flowsheet and reactor references | generic balance utilities | known solutions, residuals and false-PASS tests |
+| Evidence / acceptance / approvals | executable fail-closed records | raw polymer → compound → cure → part → line | assets, requirements, conflicts and passports | evidence audit utilities | named evidence and approval checks |
+| Kinetics / molecular architecture | framework and model contracts | deepest ternary active-site reference | POE moment and estimation references | reusable experiment planning | conservation, bounds, identifiability and known solutions |
+| Reactor / mixing / heat | framework and decision records | reactor mode, phase, mixing, heat and entropy references | PFR/CSTR/dynamic references | scale-up utilities | capacity, phase and transport Gates |
+| Recovery / recycle / emissions | generic closure contract | poison, purge, guard and non-equilibrium devolatilization | recycle and devolatilization references | balance support | finite steady state and HOLD tests |
+| Control / HSE / abnormal cases | alarms, interlocks, Cause & Effect and safety-study interfaces | inherits + high-viscosity/exotherm constraints | dynamic-control references | planning only | software structures evidence; qualified teams approve |
+| Simulator-neutral integration | governed inputs/outputs for Aspen, DWSIM, custom models and DCS/PLC exchange | PBM/CFD/EOS hand-off boundaries | model passports and property-method records | reusable inputs | simulator convergence is not qualification |
+| README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, uncertainty, reactor, process and customer bridge | represented in platform/evidence views | represented in four-Skill delivery | 16 deterministic SVGs, bilingual parity and XML tests |
+| Wheel/runtime | complete installed Skill tree | runtime verified | runtime verified | installed Skill verified | content gate + real `pip install --target` + installed README-link audit |
+| Supported Python | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | Ubuntu 3.11–3.14; Windows/macOS 3.14 |
 
-Open-software depth is not scientific or engineering approval. Historical commercial models and physical qualification remain `NOT_EVALUATED`.
+Open-software verification is not scientific or engineering approval. Historical commercial models, physical qualification, equipment design, process-safety approval, customer acceptance and industrial performance remain `NOT_EVALUATED` until named evidence and accountable approval exist.
