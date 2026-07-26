@@ -3,7 +3,7 @@
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.9-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[![Status](https://img.shields.io/badge/status-alpha.10-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
 **A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
 
@@ -150,6 +150,32 @@ python -m tsao.cli poe audit-p1 --root .
 python -m tsao.cli poe reference-demo
 ```
 
+## Measured performance and reproducibility
+
+Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.
+
+```bash
+python scripts/benchmark_performance.py --repeats 7 --output reports/runtime/PERFORMANCE_RESULTS.json
+python scripts/compare_performance.py \
+  --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
+  --current reports/runtime/PERFORMANCE_RESULTS.json \
+  --output reports/runtime/PERFORMANCE_COMPARISON.json
+python scripts/update_performance_readme.py \
+  --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+```
+
+<!-- PERFORMANCE_RESULTS_START -->
+| Workload | Baseline median | Optimized median | Speedup | Result identity |
+|---|---:|---:|---:|---|
+| EPDM three-level model, 64 site families | 596.09 µs | 129.38 µs | 4.61× | match |
+| EPDM semibatch material-energy step | 21.78 µs | 13.29 µs | 1.64× | match |
+| POE RK4, 400 steps | 31.76 ms | 13.76 ms | 2.31× | match |
+| Universal process package, 500 equipment items | 4.18 ms | 4.42 ms | 0.95× | match |
+| Source identity, 300 files build + verify | 45.13 ms | 23.21 ms | 1.94× | match |
+<!-- PERFORMANCE_RESULTS_END -->
+
+The gate requires identical result digests. EPDM site-family and semibatch workloads, POE RK4 and source-identity verification also have explicit minimum speedups; the 500-equipment universal package workload has a no-material-regression floor.
+
 ## Evidence and qualification
 
 ![Evidence and qualification gates](docs/assets/readme/evidence-gate-system.svg)
@@ -178,7 +204,7 @@ Wheel verification has two independent gates:
 1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 16 diagrams;
 2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
 
-CI covers Ubuntu/Python 3.11–3.14 plus Windows and macOS on Python 3.14. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke.
+CI covers Ubuntu/Python 3.11–3.14 plus Windows and macOS on Python 3.14. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.
 
 The source manifest is part of release identity: a source change without the matching `reports/SOURCE_CORE_MANIFEST.tsv` update is designed to fail the repository doctor.
 

@@ -116,6 +116,13 @@ _REQUIRED_PATHS = {
     "reports/poe/POE_ALPHA7_P1_REMEDIATION.md",
     "reports/ALPHA8_SOURCE_CORE_STATUS.json",
     "reports/ALPHA9_SOURCE_CORE_STATUS.json",
+    "reports/ALPHA10_SOURCE_CORE_STATUS.json",
+    "reports/PERFORMANCE_BASELINE_ALPHA9.json",
+    "reports/PERFORMANCE_OPTIMIZED_ALPHA10.json",
+    "reports/PERFORMANCE_COMPARISON_ALPHA10.json",
+    "scripts/benchmark_performance.py",
+    "scripts/compare_performance.py",
+    "scripts/update_performance_readme.py",
     "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",
 }
 
@@ -169,8 +176,8 @@ def test_version_metadata_is_consistent() -> None:
     reference = json.loads(
         (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
     )
-    assert tsao.__version__ == "0.1.0-alpha.9"
-    assert pyproject["project"]["version"] == "0.1.0a9"
+    assert tsao.__version__ == "0.1.0-alpha.10"
+    assert pyproject["project"]["version"] == "0.1.0a10"
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
     assert root_skill["version"] == tsao.__version__
@@ -178,7 +185,7 @@ def test_version_metadata_is_consistent() -> None:
     assert reference["version"] == tsao.__version__
     assert reference["qualification"] == "NOT_EVALUATED"
     assert identity["complete_distribution"]["qualification"] == "NOT_EVALUATED"
-    assert "## 0.1.0-alpha.9" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "## 0.1.0-alpha.10" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
 
 
@@ -242,14 +249,18 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "export_source_snapshot.py" in workflow
     assert "tsao.cli doctor" in workflow
     assert "verify_wheel_contents.py" in workflow
-    assert "skills/epdm/scripts/audit_epdm.py" in workflow
     assert "tsao.cli package template" in workflow
     assert "tsao.cli epdm audit" in workflow
-    assert "skills/poe/scripts/audit_p0.py" in workflow
-    assert "skills/poe/scripts/audit_p1.py" in workflow
     assert "verify_wheel_runtime.py" in workflow
-    assert "coverage" in (ROOT / "scripts/run_ci.py").read_text(encoding="utf-8")
-    assert "alpha9" in workflow.casefold()
+    assert "benchmark_performance.py" in workflow
+    assert "compare_performance.py" in workflow
+    runner = (ROOT / "scripts/run_ci.py").read_text(encoding="utf-8")
+    assert "coverage" in runner
+    assert "skills/epdm/scripts/audit_epdm.py" in runner
+    assert "skills/poe/scripts/audit_p0.py" in runner
+    assert "skills/poe/scripts/audit_p1.py" in runner
+    assert "ThreadPoolExecutor" in runner
+    assert "alpha10" in workflow.casefold()
 
 
 def test_relative_markdown_links_resolve() -> None:

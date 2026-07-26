@@ -3,7 +3,7 @@
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.9-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[![Status](https://img.shields.io/badge/status-alpha.10-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
 **面向化工工艺包的可追溯、默认失败关闭 Skill 平台；EPDM 是最深的旗舰路线，POE 是证据谱系最完整的专业路线。**
 
@@ -150,6 +150,32 @@ python -m tsao.cli poe audit-p1 --root .
 python -m tsao.cli poe reference-demo
 ```
 
+## 实测性能与可复现性
+
+性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。
+
+```bash
+python scripts/benchmark_performance.py --repeats 7 --output reports/runtime/PERFORMANCE_RESULTS.json
+python scripts/compare_performance.py \
+  --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
+  --current reports/runtime/PERFORMANCE_RESULTS.json \
+  --output reports/runtime/PERFORMANCE_COMPARISON.json
+python scripts/update_performance_readme.py \
+  --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+```
+
+<!-- PERFORMANCE_RESULTS_START -->
+| 负载 | 基线中位耗时 | 优化后中位耗时 | 加速比 | 结果身份 |
+|---|---:|---:|---:|---|
+| EPDM 三级模型，64 个位点族 | 596.09 µs | 129.38 µs | 4.61× | 一致 |
+| EPDM 半连续物料—能量步进 | 21.78 µs | 13.29 µs | 1.64× | 一致 |
+| POE RK4，400 步 | 31.76 ms | 13.76 ms | 2.31× | 一致 |
+| 通用工艺包，500 台设备 | 4.18 ms | 4.42 ms | 0.95× | 一致 |
+| 源身份，300 文件构建与核验 | 45.13 ms | 23.21 ms | 1.94× | 一致 |
+<!-- PERFORMANCE_RESULTS_END -->
+
+性能门要求结果摘要完全一致；EPDM 位点族与半连续负载、POE RK4 和源身份核验还必须达到明确最低加速比，500 台设备通用工艺包负载则设有“不得实质退化”底线。
+
 ## 证据与资格门
 
 ![证据与资格门](docs/assets/readme/evidence-gate-system.svg)
@@ -178,7 +204,7 @@ Wheel 具有两道独立质量门：
 1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 16 幅图；
 2. **安装门：**同时验证 `pip install --target` 与不继承系统 site-packages 的干净标准虚拟环境；TSAO、EPDM、POE 模块及 Skill 数据根必须全部位于所选安装根内，随后才允许通过安装态 README 与已知解检查。
 
-CI 覆盖 Ubuntu/Python 3.11–3.14，以及 Windows、macOS 的 Python 3.14；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。
+CI 覆盖 Ubuntu/Python 3.11–3.14，以及 Windows、macOS 的 Python 3.14；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。覆盖率完成后，独立审计并行执行；Ubuntu/Python 3.14 还强制执行版本化性能回归门。
 
 源文件清单属于发布身份：源文件变化若未同步刷新 `reports/SOURCE_CORE_MANIFEST.tsv`，仓库 Doctor 将按设计失败。
 

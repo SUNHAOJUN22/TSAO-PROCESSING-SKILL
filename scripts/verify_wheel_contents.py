@@ -127,6 +127,9 @@ _MAINTENANCE_SCRIPTS = (
     "run_ci.py",
     "verify_wheel_contents.py",
     "verify_wheel_runtime.py",
+    "benchmark_performance.py",
+    "compare_performance.py",
+    "update_performance_readme.py",
 )
 _SHARE_ROOT = "share/tsao-processing-skill"
 _EXPECTED_DIST_NAME = "tsao-processing-skill"
@@ -270,7 +273,10 @@ def verify(wheel: Path) -> dict[str, object]:
         f"{_SHARE_ROOT}/reports/BRANCH_CONSOLIDATION_2026-07-23.md",
         f"{_SHARE_ROOT}/reports/FINAL_AUDIT_REPORT.md",
         f"{_SHARE_ROOT}/reports/RELEASE_IDENTITY.json",
-        f"{_SHARE_ROOT}/reports/ALPHA9_SOURCE_CORE_STATUS.json",
+        f"{_SHARE_ROOT}/reports/ALPHA10_SOURCE_CORE_STATUS.json",
+        f"{_SHARE_ROOT}/reports/PERFORMANCE_BASELINE_ALPHA9.json",
+        f"{_SHARE_ROOT}/reports/PERFORMANCE_OPTIMIZED_ALPHA10.json",
+        f"{_SHARE_ROOT}/reports/PERFORMANCE_COMPARISON_ALPHA10.json",
         f"{_SHARE_ROOT}/reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
         f"{_SHARE_ROOT}/reports/SOURCE_CORE_MANIFEST.tsv",
         f"{_SHARE_ROOT}/schemas/project.schema.json",

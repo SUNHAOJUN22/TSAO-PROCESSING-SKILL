@@ -1,10 +1,10 @@
 {
   "format": "TSAO-RELEASE-IDENTITY-2",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.10",
   "source_core": {
     "manifest": "reports/SOURCE_CORE_MANIFEST.tsv",
     "qualification": "EXTERNAL_VERIFICATION",
-    "status": "reports/ALPHA9_SOURCE_CORE_STATUS.json"
+    "status": "reports/ALPHA10_SOURCE_CORE_STATUS.json"
   },
   "complete_distribution": {
     "reference": "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",

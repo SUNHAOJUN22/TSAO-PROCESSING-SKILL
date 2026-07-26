@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.10 — 2026-07-27
+
+- Added deterministic `timeit`/`cProfile` performance evidence with exact-result SHA-256 parity and fail-closed regression thresholds.
+- Reused validated EPDM state and kinetic parameters across heterogeneous-site and semibatch inner loops.
+- Moved POE RK4 validation outside the integration loop, removed repeated dataclass serialization and reused validated estimation arrays.
+- Replaced quadratic settling-time tail scans with a linear last-violation algorithm.
+- Reduced provenance I/O to one canonical read per file and removed costly Path conversion work from the source walk.
+- Reused validated stream numerics in universal process-package equipment balances.
+- Parallelized independent post-coverage CI audits, added elapsed-time reporting and removed duplicate specialist audits from permanent Actions.
+- Added a permanent performance-regression gate and machine-generated bilingual README performance tables.
+
 ## 0.1.0-alpha.9 — 2026-07-26
 
 - Added a fail-closed source/installed Skillpack inventory for all four delivered Skills.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tsao-processing-skill"
-version = "0.1.0a9"
+version = "0.1.0a10"
 description = "Traceable, scientific, auditable and operational chemical process development skill"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -89,7 +89,10 @@ namespaces = true
   "reports/FINAL_AUDIT_REPORT.md",
   "reports/README.md",
   "reports/RELEASE_IDENTITY.json",
-  "reports/ALPHA9_SOURCE_CORE_STATUS.json",
+  "reports/ALPHA10_SOURCE_CORE_STATUS.json",
+  "reports/PERFORMANCE_BASELINE_ALPHA9.json",
+  "reports/PERFORMANCE_OPTIMIZED_ALPHA10.json",
+  "reports/PERFORMANCE_COMPARISON_ALPHA10.json",
   "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
   "reports/SOURCE_CORE_MANIFEST.tsv",
 ]

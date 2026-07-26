@@ -1,9 +1,9 @@
 # TSAO-PROCESSING-SKILL final audit report
 
-Date: 2026-07-26  
+Date: 2026-07-27  
 Authoritative branch: `main`  
 Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`  
-Release identity: `0.1.0-alpha.9`
+Release identity: `0.1.0-alpha.10`
 
 ## Final result
 
@@ -20,7 +20,7 @@ This pass closed six remaining release-consistency gaps:
 
 ## Release identity convergence
 
-The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.9` (`0.1.0a9` in PEP 440 form). Alpha.8 reports remain historical records. Requirements and `pyproject.toml` dependency declarations are tested for exact parity, and the built Wheel must expose the matching METADATA version plus both console scripts.
+The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.10` (`0.1.0a10` in PEP 440 form). Alpha.8 reports remain historical records. Requirements and `pyproject.toml` dependency declarations are tested for exact parity, and the built Wheel must expose the matching METADATA version plus both console scripts.
 
 ## Branch state
 
@@ -110,6 +110,10 @@ GitHub Actions uploads `reports/runtime/CI_RESULTS.json` with `if: always()` so 
 ## Environment limitation
 
 The interactive execution container could not resolve `github.com`, so a clean network clone and direct `gh` log inspection were unavailable there. Final sealing is performed by a temporary self-deleting GitHub Actions workflow; it generates the diagrams, refreshes the source manifest and commits only after the full qualification chain succeeds.
+
+## Alpha.10 computational-efficiency convergence
+
+The alpha.10 pass profiles before changing code, preserves exact result digests and publishes versioned baseline/optimized/comparison records. EPDM heterogeneous-site and semibatch calculations reuse validated inputs; POE RK4 and fitting avoid repeated public-boundary validation; settling analysis is linear; provenance performs one canonical read per file; Doctor reuses one repository scan; independent CI audits execute concurrently after coverage. Permanent CI rejects result drift or speedups below declared thresholds. These are software-performance qualifications only.
 
 ## Responsibility boundary
 

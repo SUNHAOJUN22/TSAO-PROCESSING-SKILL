@@ -1,6 +1,6 @@
 name: TSAO-PROCESSING-SKILL
 display_name: TSAO Process Intelligence OS
-version: 0.1.0-alpha.9
+version: 0.1.0-alpha.10
 status: active-alpha
 entrypoint: SKILL.md
 language: bilingual-zh-CN-en
@@ -16,6 +16,10 @@ delivery_verification:
   standard_prefix_data_resolution: VERIFIED_FROM_DISTRIBUTION_RECORD
   standard_venv_isolation: NO_SYSTEM_SITE_PACKAGES
   installed_import_origin: VERIFIED_INSIDE_INSTALL_ROOT
+  performance_baseline: ALPHA9_PRE_OPTIMIZATION
+  performance_regression: FAIL_CLOSED_RESULT_DIGEST_AND_SPEEDUP
+  performance_report: reports/PERFORMANCE_COMPARISON_ALPHA10.json
+  ci_independent_audits: PARALLEL_AFTER_COVERAGE
   authoritative_branch: main
 subskills:
 - id: process-general
