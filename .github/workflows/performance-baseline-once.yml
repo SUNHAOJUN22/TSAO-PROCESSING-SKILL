@@ -1,0 +1,39 @@
+name: Capture alpha9 performance baseline once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    if: ${{ contains(github.event.head_commit.message, '[PERF-BASELINE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Install benchmark environment
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+      - name: Capture deterministic baseline
+        run: python scripts/benchmark_performance.py --repeats 7 --output reports/PERFORMANCE_BASELINE_ALPHA9.json
+      - name: Commit baseline report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/PERFORMANCE_BASELINE_ALPHA9.json
+          git commit -m "perf: record alpha9 performance baseline [skip ci]"
+          git push origin HEAD:main
