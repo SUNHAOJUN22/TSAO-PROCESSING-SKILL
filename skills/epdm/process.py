@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from .kinetics import EpdmKineticParameters, EpdmKineticState, insertion_rates
+from .kinetics import EpdmKineticParameters, EpdmKineticState, _insertion_rates_validated
 
 
 def _finite(value: object, label: str) -> float:
@@ -29,14 +29,22 @@ class SemibatchInventory:
     heat_capacity_kJ_K: float
 
     def validated(self) -> SemibatchInventory:
-        values = {name: _finite(value, name) for name, value in self.__dict__.items()}
-        if min(values.values()) < 0:
+        values = (
+            _finite(self.volume_L, "volume_L"),
+            _finite(self.ethylene_mol, "ethylene_mol"),
+            _finite(self.propylene_mol, "propylene_mol"),
+            _finite(self.diene_mol, "diene_mol"),
+            _finite(self.polymer_repeat_mol, "polymer_repeat_mol"),
+            _finite(self.temperature_K, "temperature_K"),
+            _finite(self.heat_capacity_kJ_K, "heat_capacity_kJ_K"),
+        )
+        if min(values) < 0:
             raise ValueError("semibatch inventory values must be non-negative")
-        if values["volume_L"] <= 0 or values["temperature_K"] <= 0:
+        if values[0] <= 0 or values[5] <= 0:
             raise ValueError("volume and temperature must be positive")
-        if values["heat_capacity_kJ_K"] <= 0:
+        if values[6] <= 0:
             raise ValueError("heat capacity must be positive")
-        return SemibatchInventory(**values)
+        return SemibatchInventory(*values)
 
 
 @dataclass(frozen=True)
@@ -47,10 +55,15 @@ class SemibatchFeed:
     liquid_volume_L_s: float = 0.0
 
     def validated(self) -> SemibatchFeed:
-        values = {name: _finite(value, name) for name, value in self.__dict__.items()}
-        if min(values.values()) < 0:
+        values = (
+            _finite(self.ethylene_mol_s, "ethylene_mol_s"),
+            _finite(self.propylene_mol_s, "propylene_mol_s"),
+            _finite(self.diene_mol_s, "diene_mol_s"),
+            _finite(self.liquid_volume_L_s, "liquid_volume_L_s"),
+        )
+        if min(values) < 0:
             raise ValueError("semibatch feed values must be non-negative")
-        return SemibatchFeed(**values)
+        return SemibatchFeed(*values)
 
 
 def heat_removal_margin(generation_kW: float, removal_capacity_kW: float) -> float:
@@ -178,25 +191,28 @@ def semibatch_material_energy_step(
         raise ValueError("semibatch operating inputs must be non-negative")
 
     volume = inventory.volume_L + feed.liquid_volume_L_s * duration
+    ethylene_available = inventory.ethylene_mol + feed.ethylene_mol_s * duration
+    propylene_available = inventory.propylene_mol + feed.propylene_mol_s * duration
+    diene_available = inventory.diene_mol + feed.diene_mol_s * duration
     available = {
-        "ethylene": inventory.ethylene_mol + feed.ethylene_mol_s * duration,
-        "propylene": inventory.propylene_mol + feed.propylene_mol_s * duration,
-        "diene": inventory.diene_mol + feed.diene_mol_s * duration,
+        "ethylene": ethylene_available,
+        "propylene": propylene_available,
+        "diene": diene_available,
     }
     state = EpdmKineticState(
-        available["ethylene"] / volume,
-        available["propylene"] / volume,
-        available["diene"] / volume,
+        ethylene_available / volume,
+        propylene_available / volume,
+        diene_available / volume,
         active_site,
         poison,
     )
-    rates = insertion_rates(state, parameters)
+    rates = _insertion_rates_validated(state, parameters)
     consumed = {
         name: min(available[name], rates[name] * volume * duration)
         for name in ("ethylene", "propylene", "diene")
     }
     remaining = {name: available[name] - consumed[name] for name in available}
-    polymer_increment = sum(consumed.values())
+    polymer_increment = consumed["ethylene"] + consumed["propylene"] + consumed["diene"]
     heat_generated_kJ = polymer_increment * reaction_enthalpy
     heat_removed_kJ = heat_removal * duration
     temperature = inventory.temperature_K + (
