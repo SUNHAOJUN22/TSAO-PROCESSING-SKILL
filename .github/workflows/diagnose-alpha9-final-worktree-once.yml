@@ -1,0 +1,87 @@
+name: Diagnose exact alpha9 final worktree once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[DIAG-FINAL-WORKTREE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Run exact final-worktree diagnostic
+        shell: bash
+        run: |
+          set +e
+          DIAG=/tmp/alpha9-final-worktree.txt
+          : > "$DIAG"
+          echo "alpha9 exact final-worktree diagnostic" >> "$DIAG"
+          echo "trigger_sha=${GITHUB_SHA}" >> "$DIAG"
+          echo "python=$(python --version 2>&1)" >> "$DIAG"
+
+          run_step() {
+            label="$1"
+            shift
+            echo "" >> "$DIAG"
+            echo "== ${label} ==" >> "$DIAG"
+            "$@" >> "$DIAG" 2>&1
+            code=$?
+            echo "exit=${code}" >> "$DIAG"
+            return 0
+          }
+
+          run_step install python -m pip install --quiet -e '.[dev]'
+          run_step pip_check python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]" >> "$DIAG" 2>&1
+          run_step compile_release_scripts python -m py_compile .github/apply_alpha9_release.py .github/fix_alpha9_release_residuals.py
+          run_step apply_alpha9 python .github/apply_alpha9_release.py
+          run_step clean_residuals python .github/fix_alpha9_release_residuals.py
+
+          python - <<'PY' >> "$DIAG" 2>&1
+          from pathlib import Path
+          for name in (
+              '.github/apply_alpha9_release.py',
+              '.github/fix_alpha9_release_residuals.py',
+              '.github/workflows/seal-alpha9-release-clean-once.yml',
+              '.github/workflows/diagnose-alpha9-final-worktree-once.yml',
+          ):
+              Path(name).unlink(missing_ok=True)
+          PY
+          echo "temporary_files_removed_exit=$?" >> "$DIAG"
+
+          run_step generate_base_graphics python scripts/generate_readme_assets.py
+          run_step generate_extended_graphics python scripts/generate_extended_readme_assets.py
+          run_step generate_decision_graphics python scripts/generate_decision_readme_assets.py
+          run_step graphics_diff git diff --exit-code -- docs/assets/readme
+          run_step refresh_source_manifest python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          run_step run_ci python scripts/run_ci.py
+          run_step skillpacks python -m tsao.skillpacks --root .
+          run_step epdm_audit python skills/epdm/scripts/audit_epdm.py
+          run_step poe_p0 python skills/poe/scripts/audit_p0.py --root .
+          run_step poe_p1 python skills/poe/scripts/audit_p1.py --root .
+
+          rm -rf wheelhouse build dist
+          run_step wheel_build python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          run_step wheel_contents python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          run_step wheel_runtime python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          run_step final_doctor python -m tsao.cli doctor --root . --profile core
+          run_step final_version python -c "import tsao; assert tsao.__version__ == '0.1.0-alpha.9'"
+
+          cp "$DIAG" reports/ALPHA9_FINAL_WORKTREE_DIAGNOSTIC.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/ALPHA9_FINAL_WORKTREE_DIAGNOSTIC.txt
+          git commit -m "diagnostic: capture exact alpha9 final-worktree results [skip ci]"
+          git push origin HEAD:main
