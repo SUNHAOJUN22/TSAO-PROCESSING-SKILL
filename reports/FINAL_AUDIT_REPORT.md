@@ -4,72 +4,70 @@ Date: 2026-07-26
 Authoritative branch: `main`  
 Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`
 
-## Executive result
+## Final result
 
-This change set strengthens the existing alpha.8 repository without creating a new branch or replacing the qualified source tree. The repository was not empty: the existing universal process-package platform, EPDM specialist, POE specialist, polymer-general tools, source-provenance controls and cross-platform CI were preserved.
+The repository is a non-empty, executable alpha platform for universal chemical-process packages. The universal process layer, EPDM flagship route, POE specialist, polymer-general tools, provenance controls, deterministic archives and cross-platform CI are preserved.
 
-The work concentrated on four gaps:
+This final pass resolved two documentation-assurance gaps:
 
-1. README content was too short to communicate the actual architecture and boundaries.
-2. EPDM had a useful reference kernel but no explicit three-level kinetic/process suite.
-3. README visual assets had no deterministic generation or integrity test.
-4. The upgraded CLI path and new scientific invariants needed CI coverage.
+1. the README asset test did not prove that every generated asset was actually referenced by both README files;
+2. the visual system did not yet show the universal data model, EPDM catalyst/kinetic network, reactor-mode choice and recovery/recycle risk loop.
 
-## Branch consolidation check
+## Branch state
 
-The historical consolidation record identified five prior work/dependency branches. The corresponding remote branch references returned not found during this audit, consistent with their deletion after integration. No branch was created in this change set, and all writes target `main`.
+No branch was created during this work. `main` remains the default and sole authoritative branch. Every historical branch named in the consolidation record was queried by exact ref and returned not found, consistent with deletion after integration.
 
-## Implemented changes
+## Universal process-package scope
 
-### Universal process-package communication
+The executable platform retains design basis, streams, equipment, material/component/energy balances, thermodynamic and model basis, controls, alarms, interlocks, abnormal cases, HSE, evidence, acceptance and approval records. Fourteen process modules and six workflows provide extension points for chemical, polymer, bioprocess, electrochemical, solids, fine-batch and petrochemical packages.
 
-- Rebuilt English and Chinese README files around the actual executable routes.
-- Added truthful capability/status tables and responsibility boundaries.
-- Added an explicit universal process-package lifecycle, object model, repository map and verification chain.
-- Preserved fail-closed semantics: unknown evidence remains `HOLD` or `FAIL`.
+## EPDM flagship scope
 
-### EPDM flagship depth
+The EPDM route retains:
 
-- Added Arrhenius temperature scaling with explicit activation-energy records.
-- Added screening, engineering and heterogeneous-site model layers.
-- Added pseudo-first-order conversion and chain-moment/dispersity references.
-- Added conservative semibatch material/energy stepping with molar-closure residual.
-- Added Flory–Huggins local stability margin, devolatilization Damköhler number and irreversible heat-transfer entropy generation.
-- Added the `tsao epdm model-suite` CLI command.
-- Kept every numerical example labelled `CALCULATED_REFERENCE_ONLY` and all engineering/scientific approvals `NOT_EVALUATED`.
+- active-site normalization and heterogeneous site families;
+- E/P/diene propagation, transfer, deactivation and poison effects;
+- screening, engineering and detailed-reference model levels;
+- Arrhenius adjustment, conversion, chain moments, sequence/architecture and gel risk;
+- conservative semibatch material/energy stepping;
+- phase stability, mixing, heat-removal and entropy-generation references;
+- devolatilization, recovery, recycle, purge and finite poison closure;
+- raw-polymer, compound, cure, part and customer-line evidence bridges.
 
-### Documentation graphics
+All example calculations remain `CALCULATED_REFERENCE_ONLY`; scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED` unless project evidence says otherwise.
 
-Eight original repository-owned SVG diagrams were added and made reproducible by `scripts/generate_readme_assets.py`:
+## README graphics and integrity
 
-- TSAO overview;
-- universal process-package lifecycle;
-- layered architecture;
-- EPDM multiscale chain;
-- EPDM three-level models;
-- EPDM reference flowsheet;
-- evidence/qualification gates;
-- verification pipeline.
+The bilingual README now references twelve deterministic, repository-owned SVG diagrams:
 
-### Tests and CI
+1. TSAO system overview;
+2. universal process-package lifecycle;
+3. layered architecture;
+4. universal process-package data model;
+5. EPDM multiscale chain;
+6. EPDM catalyst-to-architecture network;
+7. EPDM three-level models;
+8. EPDM reactor-mode decision map;
+9. EPDM reference flowsheet;
+10. EPDM recovery/recycle risk loop;
+11. evidence and qualification gates;
+12. verification pipeline.
 
-- Added scientific invariant tests for temperature sensitivity, molar closure, phase-stability sign, entropy generation and multi-site behavior.
-- Added CLI coverage for `epdm model-suite`.
-- Added bilingual README image existence/XML validation.
-- Added deterministic SVG regeneration and Git-diff verification to the cross-platform workflow.
-- Added the EPDM model suite to CLI smoke testing.
+Two deterministic generators produce the complete set. Automated tests require all declared assets to exist, parse as SVG, be committed and be referenced by both README files. Unreferenced generated diagrams now fail CI.
 
-## Local verification completed before push
+## Verification performed for this pass
 
-- Python compilation of all modified Python files: PASS.
-- EPDM reference invariant script: PASS.
-- Semibatch molar closure residual: below `1e-12` in the reference case.
-- Bilingual README SVG integrity: PASS.
-- README asset tests: `2 passed`.
-- All eight SVG files parsed as valid XML.
+- new Python files compiled successfully;
+- both asset-generator contracts passed local pytest execution;
+- both README files reference exactly twelve unique local SVG assets;
+- all four new SVG files parse as XML;
+- GitHub Actions YAML parses successfully;
+- all third-party Actions remain pinned to full commit SHAs;
+- the CI badge is scoped to `main` and the `push` event;
+- the final source manifest was regenerated for every changed and added file.
 
-The execution environment did not provide the `ruff` package or a complete local clone of every unchanged repository file. Therefore the committed GitHub Actions matrix remains the authoritative full-repository verification for Ruff, coverage, wheel, platform and unchanged-module integration.
+The execution container could not resolve `github.com`, so a clean network clone and direct inspection of push-triggered Actions logs were unavailable from that container. The committed workflow remains the authoritative cross-platform full-repository run for coverage, Ruff, Wheel and unchanged-module integration.
 
-## Residual qualification boundary
+## Responsibility boundary
 
-This software does not establish fitted EPDM kinetics, licensed thermodynamic properties, CFD validity, equipment design, relief design, HAZOP/LOPA/SIL approval, customer qualification or industrial performance. Those states remain `NOT_EVALUATED` until project-specific evidence and qualified approvals exist.
+This software does not establish fitted industrial kinetics, licensed thermodynamic properties, qualified CFD, equipment or relief design, HAZOP/LOPA/SIL approval, customer qualification or industrial performance. Those states remain explicitly outside software self-certification.
