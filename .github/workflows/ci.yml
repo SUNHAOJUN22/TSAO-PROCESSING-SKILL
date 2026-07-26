@@ -1,4 +1,4 @@
-name: TSAO alpha9 qualification
+name: TSAO alpha10 qualification
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   qualification:
-    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[FINALIZE-ALPHA9]') }}
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[FINALIZE-ALPHA10]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -33,6 +33,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
       - name: Install
         run: python -m pip install --quiet -e .[dev]
       - name: Dependency integrity
@@ -45,23 +48,26 @@ jobs:
           python scripts/generate_extended_readme_assets.py
           python scripts/generate_decision_readme_assets.py
           git diff --exit-code -- docs/assets/readme
-      - name: Core, P0, P1 and coverage qualification
+      - name: Core, specialists, Ruff and coverage qualification
         run: python scripts/run_ci.py
-      - name: Universal and EPDM package closure
+      - name: Universal Skillpack closure
         run: |
           python -m tsao.skillpacks --root .
           python -m tsao.cli package template --family "generic process"
-          python skills/epdm/scripts/audit_epdm.py
-      - name: Explicit POE P0 closure
-        run: python skills/poe/scripts/audit_p0.py --root .
-      - name: Explicit POE P1 reference closure
-        run: python skills/poe/scripts/audit_p1.py --root .
       - name: Build wheel
         run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
       - name: Verify wheel members and installed runtime
         run: |
           python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
           python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+      - name: Performance regression gate
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: |
+          python scripts/benchmark_performance.py --repeats 5 --output reports/runtime/PERFORMANCE_RESULTS.json
+          python scripts/compare_performance.py \
+            --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
+            --current reports/runtime/PERFORMANCE_RESULTS.json \
+            --output reports/runtime/PERFORMANCE_COMPARISON.json
       - name: CLI smoke
         run: |
           python -m tsao.cli doctor --root . --profile core
@@ -76,12 +82,15 @@ jobs:
           python -m tsao.cli poe audit-p0 --root .
           python -m tsao.cli poe audit-p1 --root .
           python -m tsao.cli poe reference-demo
-      - name: Upload qualification report
+      - name: Upload qualification reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tsao-qualification-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}
-          path: reports/runtime/CI_RESULTS.json
+          path: |
+            reports/runtime/CI_RESULTS.json
+            reports/runtime/PERFORMANCE_RESULTS.json
+            reports/runtime/PERFORMANCE_COMPARISON.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -94,17 +103,19 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: Install
         run: python -m pip install --quiet -e .
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
       - name: Build deterministic public-source snapshot
-        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.9.zip
+        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.10.zip
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tsao-source-alpha9-${{ github.sha }}
+          name: tsao-source-alpha10-${{ github.sha }}
           path: |
-            TSAO-PROCESSING-SKILL-source-alpha.9.zip
-            TSAO-PROCESSING-SKILL-source-alpha.9.zip.sha256
+            TSAO-PROCESSING-SKILL-source-alpha.10.zip
+            TSAO-PROCESSING-SKILL-source-alpha.10.zip.sha256
           if-no-files-found: error
           retention-days: 14
