@@ -66,6 +66,13 @@ def test_runtime_verifier_covers_isolated_install_schemes() -> None:
     assert delivery["installed_import_origin"] == "VERIFIED_INSIDE_INSTALL_ROOT"
 
 
+def test_readmes_explain_isolated_standard_installation() -> None:
+    english = (ROOT / "README.md").read_text(encoding="utf-8")
+    chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+    assert "no inherited system site packages" in english
+    assert "不继承系统 site-packages" in chinese
+
+
 def test_installed_readme_support_files_are_packaged() -> None:
     pyproject_text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     for required in (
