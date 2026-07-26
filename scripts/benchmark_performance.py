@@ -4,7 +4,6 @@ import argparse
 import cProfile
 import hashlib
 import json
-import math
 import platform
 import pstats
 import statistics
@@ -13,7 +12,6 @@ import tempfile
 import timeit
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
