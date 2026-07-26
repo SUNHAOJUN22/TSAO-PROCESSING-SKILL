@@ -1,5 +1,5 @@
 name: Finalize alpha9 release identity once
-# Paused while Windows/macOS diagnostic evidence is collected.
+# Final clean run after Ubuntu, Windows and macOS diagnostic PASS evidence.
 
 on:
   push:
