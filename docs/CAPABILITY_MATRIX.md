@@ -12,7 +12,8 @@
 | Control / HSE / abnormal cases | alarms, interlocks, Cause & Effect and safety-study interfaces | inherits + high-viscosity/exotherm constraints | dynamic-control references | planning only | software structures evidence; qualified teams approve |
 | Simulator-neutral integration | governed inputs/outputs for Aspen, DWSIM, custom models and DCS/PLC exchange | PBM/CFD/EOS hand-off boundaries | model passports and property-method records | reusable inputs | simulator convergence is not qualification |
 | README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, uncertainty, reactor, process and customer bridge | represented in platform/evidence views | represented in four-Skill delivery | 16 deterministic SVGs, bilingual parity and XML tests |
-| Wheel/runtime | complete installed Skill tree | runtime verified | runtime verified | installed Skill verified | content gate + real `pip install --target` + installed README-link audit |
+| Wheel/runtime | complete installed Skill tree | runtime verified | runtime verified | installed Skill verified | content gate + `pip install --target` + standard virtual environment + installed README-link audit |
+| Installed data-root discovery | distribution `RECORD` plus installation-scheme fallback | inherited | inherited | inherited | must resolve both target-directory and prefix/share layouts |
 | Supported Python | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | Ubuntu 3.11–3.14; Windows/macOS 3.14 |
 
 Open-software verification is not scientific or engineering approval. Historical commercial models, physical qualification, equipment design, process-safety approval, customer acceptance and industrial performance remain `NOT_EVALUATED` until named evidence and accountable approval exist.
