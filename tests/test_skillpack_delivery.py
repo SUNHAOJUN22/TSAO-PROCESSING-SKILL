@@ -7,7 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from tsao.skillpacks import resolve_skillpack_root, skillpack_inventory
+from tsao.skillpacks import (
+    _distribution_skillpack_candidates,
+    resolve_skillpack_root,
+    skillpack_inventory,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,6 +35,24 @@ def test_source_checkout_skillpack_inventory_is_complete():
 def test_skillpack_root_rejects_incomplete_directory(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         resolve_skillpack_root(tmp_path)
+
+
+def test_distribution_record_locates_standard_prefix_data(tmp_path: Path):
+    installed_root = tmp_path / "venv/share/tsao-processing-skill"
+    installed_root.mkdir(parents=True)
+    marker = Path("../../../share/tsao-processing-skill/SKILL.md")
+
+    class FakeDistribution:
+        files = (marker,)
+
+        @staticmethod
+        def locate_file(member: object) -> Path:
+            if Path(member).as_posix().endswith("share/tsao-processing-skill/SKILL.md"):
+                return installed_root / "SKILL.md"
+            return tmp_path / "venv/lib/site-packages" / Path(member)
+
+    candidates = _distribution_skillpack_candidates(FakeDistribution())
+    assert installed_root.resolve() in candidates
 
 
 def test_inventory_rejects_duplicate_and_escaping_subskills(tmp_path: Path):
