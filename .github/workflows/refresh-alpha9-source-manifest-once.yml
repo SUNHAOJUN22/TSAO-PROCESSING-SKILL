@@ -1,4 +1,5 @@
 name: Refresh final alpha9 source manifest once
+# Explicit rerun after temporary workflow cleanup.
 
 on:
   push:
