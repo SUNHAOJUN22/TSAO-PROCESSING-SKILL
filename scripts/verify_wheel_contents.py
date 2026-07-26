@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import configparser
 import json
 import zipfile
+from email.parser import Parser
 from pathlib import Path
+
+from tsao import __version__
 
 _REQUIRED = {
     "tsao/process_package.py",
@@ -125,6 +129,12 @@ _MAINTENANCE_SCRIPTS = (
     "verify_wheel_runtime.py",
 )
 _SHARE_ROOT = "share/tsao-processing-skill"
+_EXPECTED_DIST_NAME = "tsao-processing-skill"
+_EXPECTED_PEP440_VERSION = __version__.replace("-alpha.", "a")
+_EXPECTED_CONSOLE_SCRIPTS = {
+    "tsao": "tsao.cli:main",
+    "tsao-skillpacks": "tsao.skillpacks:main",
+}
 
 
 def _choose_wheel(wheel: Path | None, wheel_dir: Path | None) -> Path:
@@ -145,10 +155,98 @@ def _has_suffix(names: set[str], suffix: str) -> bool:
     return any(name.endswith(normalized) for name in names)
 
 
+def _unique_dist_info_member(
+    names: set[str],
+    suffix: str,
+    *,
+    label: str,
+    errors: list[str],
+) -> str | None:
+    matches = sorted(name for name in names if name.endswith(f".dist-info/{suffix}"))
+    if len(matches) != 1:
+        errors.append(f"expected exactly one Wheel {label}, found {len(matches)}")
+        return None
+    return matches[0]
+
+
+def _verify_wheel_identity(
+    archive: zipfile.ZipFile,
+    wheel: Path,
+    names: set[str],
+    errors: list[str],
+) -> dict[str, object]:
+    identity: dict[str, object] = {
+        "expected_name": _EXPECTED_DIST_NAME,
+        "expected_version": _EXPECTED_PEP440_VERSION,
+        "console_scripts": {},
+    }
+    if f"-{_EXPECTED_PEP440_VERSION}-" not in wheel.name:
+        errors.append(
+            "wheel filename version mismatch: "
+            f"expected {_EXPECTED_PEP440_VERSION} in {wheel.name}"
+        )
+
+    metadata_member = _unique_dist_info_member(
+        names,
+        "METADATA",
+        label="METADATA member",
+        errors=errors,
+    )
+    if metadata_member is not None:
+        try:
+            metadata = Parser().parsestr(archive.read(metadata_member).decode("utf-8"))
+        except (KeyError, UnicodeDecodeError) as exc:
+            errors.append(f"could not read Wheel METADATA: {exc}")
+        else:
+            actual_name = (metadata.get("Name") or "").casefold().replace("_", "-")
+            actual_version = metadata.get("Version") or ""
+            identity["metadata_name"] = actual_name
+            identity["metadata_version"] = actual_version
+            if actual_name != _EXPECTED_DIST_NAME:
+                errors.append(
+                    "wheel metadata name mismatch: "
+                    f"expected {_EXPECTED_DIST_NAME}, found {actual_name or '<missing>'}"
+                )
+            if actual_version != _EXPECTED_PEP440_VERSION:
+                errors.append(
+                    "wheel metadata version mismatch: "
+                    f"expected {_EXPECTED_PEP440_VERSION}, found {actual_version or '<missing>'}"
+                )
+
+    entry_member = _unique_dist_info_member(
+        names,
+        "entry_points.txt",
+        label="entry_points.txt member",
+        errors=errors,
+    )
+    scripts: dict[str, str] = {}
+    if entry_member is not None:
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.optionxform = str
+        try:
+            parser.read_string(archive.read(entry_member).decode("utf-8"))
+        except (KeyError, UnicodeDecodeError, configparser.Error) as exc:
+            errors.append(f"could not read Wheel entry points: {exc}")
+        else:
+            if parser.has_section("console_scripts"):
+                scripts = dict(parser.items("console_scripts"))
+    identity["console_scripts"] = scripts
+    for name, target in _EXPECTED_CONSOLE_SCRIPTS.items():
+        if name not in scripts:
+            errors.append(f"missing wheel console script: {name}")
+        elif scripts[name] != target:
+            errors.append(
+                f"wheel console script mismatch for {name}: "
+                f"expected {target}, found {scripts[name]}"
+            )
+    return identity
+
+
 def verify(wheel: Path) -> dict[str, object]:
     errors: list[str] = []
     with zipfile.ZipFile(wheel) as archive:
         names = set(archive.namelist())
+        identity = _verify_wheel_identity(archive, wheel, names, errors)
     missing = sorted(_REQUIRED - names)
     errors.extend(f"missing wheel member: {name}" for name in missing)
     for index in range(1, 13):
@@ -171,6 +269,10 @@ def verify(wheel: Path) -> dict[str, object]:
         f"{_SHARE_ROOT}/reports/QUALIFICATION_BOUNDARY.md",
         f"{_SHARE_ROOT}/reports/BRANCH_CONSOLIDATION_2026-07-23.md",
         f"{_SHARE_ROOT}/reports/FINAL_AUDIT_REPORT.md",
+        f"{_SHARE_ROOT}/reports/RELEASE_IDENTITY.json",
+        f"{_SHARE_ROOT}/reports/ALPHA9_SOURCE_CORE_STATUS.json",
+        f"{_SHARE_ROOT}/reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
+        f"{_SHARE_ROOT}/reports/SOURCE_CORE_MANIFEST.tsv",
         f"{_SHARE_ROOT}/schemas/project.schema.json",
         f"{_SHARE_ROOT}/templates/README.md",
         f"{_SHARE_ROOT}/examples/generic-process/brief.yaml",
@@ -208,6 +310,7 @@ def verify(wheel: Path) -> dict[str, object]:
         "wheel": str(wheel),
         "pass": not errors,
         "errors": errors,
+        "identity": identity,
         "poe_members": len([name for name in names if name.startswith("skills/poe/")]),
         "epdm_members": len([name for name in names if name.startswith("skills/epdm/")]),
         "poe_module_count": len(_POE_MODULES),

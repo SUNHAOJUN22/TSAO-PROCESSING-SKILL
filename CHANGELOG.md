@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased hardening — 2026-07-26
+## 0.1.0-alpha.9 — 2026-07-26
 
 - Added a fail-closed source/installed Skillpack inventory for all four delivered Skills.
 - Packaged the master Skill, process-general, polymer-general, specialist contracts, schemas, examples, documentation, qualification reports, maintenance scripts and sixteen deterministic diagrams into the Wheel data tree.
@@ -11,6 +11,10 @@
 - Added four functional diagrams for control/safety, simulator-neutral integration, EPDM identifiability/uncertainty and the raw-polymer-to-customer bridge.
 - Rebuilt the capability matrix around all four Skills and truthful executable/framework/approval boundaries.
 - Added cross-platform Skillpack smoke checks and downloadable structured qualification reports to GitHub Actions.
+- Sealed target-directory and clean standard-virtual-environment installs with hard module/data origin checks.
+- Promoted the hardened source tree to alpha.9 so distinct source and Wheel contents no longer share the released alpha.8 identity.
+- Added exact Python classifiers, project URLs, dependency-parity tests and Wheel METADATA/console-script verification.
+- Packaged immutable release identity, current source status, complete-distribution boundary and source manifest inside the Wheel.
 
 ## 0.1.0-alpha.8 — 2026-07-24
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tsao-processing-skill"
-version = "0.1.0a8"
+version = "0.1.0a9"
 description = "Traceable, scientific, auditable and operational chemical process development skill"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,8 +19,16 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Chemistry",
 ]
+
+[project.urls]
+Source = "https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL"
+Issues = "https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -80,6 +88,10 @@ namespaces = true
   "reports/BRANCH_CONSOLIDATION_2026-07-23.md",
   "reports/FINAL_AUDIT_REPORT.md",
   "reports/README.md",
+  "reports/RELEASE_IDENTITY.json",
+  "reports/ALPHA9_SOURCE_CORE_STATUS.json",
+  "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
+  "reports/SOURCE_CORE_MANIFEST.tsv",
 ]
 "share/tsao-processing-skill/scripts" = ["scripts/*.py"]
 "share/tsao-processing-skill/schemas" = ["schemas/*.json"]

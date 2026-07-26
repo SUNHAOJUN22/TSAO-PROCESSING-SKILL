@@ -2,18 +2,25 @@
 
 Date: 2026-07-26  
 Authoritative branch: `main`  
-Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`
+Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`  
+Release identity: `0.1.0-alpha.9`
 
 ## Final result
 
 The repository is a non-empty, executable alpha platform for universal chemical-process packages. The universal process layer, EPDM flagship route, POE specialist, polymer-general tools, provenance controls, deterministic archives and cross-platform CI are preserved.
 
-This pass closed four remaining release-consistency gaps:
+This pass closed six remaining release-consistency gaps:
 
 1. the package declared Python `>=3.11`, while permanent CI stopped at Python 3.12 even though 3.13 and 3.14 are current supported feature series;
 2. the capability matrix still described a three-route, zipimport-era delivery model instead of the installed four-Skill platform;
 3. the installed Wheel carried the bilingual READMEs but omitted several local link targets and top-level maintenance scripts;
-4. the visual system did not separately show control/safety, simulator-neutral exchange, EPDM parameter confidence or the raw-polymer-to-customer evidence bridge.
+4. the visual system did not separately show control/safety, simulator-neutral exchange, EPDM parameter confidence or the raw-polymer-to-customer evidence bridge;
+5. substantial post-alpha.8 source and Wheel changes still reused the released alpha.8 identity;
+6. the reports index and complete-distribution reason still described alpha.7, and immutable release identities were not shipped inside the Wheel.
+
+## Release identity convergence
+
+The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.9` (`0.1.0a9` in PEP 440 form). Alpha.8 reports remain historical records. Requirements and `pyproject.toml` dependency declarations are tested for exact parity, and the built Wheel must expose the matching METADATA version plus both console scripts.
 
 ## Branch state
 
