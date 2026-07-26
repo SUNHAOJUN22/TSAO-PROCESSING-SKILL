@@ -176,7 +176,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 Wheel verification has two independent gates:
 
 1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 16 diagrams;
-2. **installation gate:** verifies both `pip install --target` and a standard virtual-environment installation, resolves the Skillpack root from each installation scheme, audits both installed READMEs and runs known-solution universal/EPDM/POE checks.
+2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
 
 CI covers Ubuntu/Python 3.11–3.14 plus Windows and macOS on Python 3.14. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke.
 

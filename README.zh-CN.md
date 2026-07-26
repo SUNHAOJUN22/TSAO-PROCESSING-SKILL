@@ -176,7 +176,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 Wheel 具有两道独立质量门：
 
 1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 16 幅图；
-2. **安装门：**同时验证 `pip install --target` 与标准虚拟环境安装，分别解析对应安装 scheme 下的 Skill 根，审计两份安装态 README，并运行通用工艺包、EPDM 和 POE 已知解检查。
+2. **安装门：**同时验证 `pip install --target` 与不继承系统 site-packages 的干净标准虚拟环境；TSAO、EPDM、POE 模块及 Skill 数据根必须全部位于所选安装根内，随后才允许通过安装态 README 与已知解检查。
 
 CI 覆盖 Ubuntu/Python 3.11–3.14，以及 Windows、macOS 的 Python 3.14；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。
 
