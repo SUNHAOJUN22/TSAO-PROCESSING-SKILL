@@ -33,6 +33,7 @@ dev = [
 
 [project.scripts]
 tsao = "tsao.cli:main"
+tsao-skillpacks = "tsao.skillpacks:main"
 
 [tool.setuptools.packages.find]
 include = ["tsao*", "skills", "skills.poe*", "skills.epdm*"]
@@ -58,6 +59,97 @@ namespaces = true
   "scripts/*.py",
   "modules/*/*.md",
   "modules/*/*.json",
+]
+
+[tool.setuptools.data-files]
+"share/tsao-processing-skill" = [
+  "SKILL.md",
+  "manifest.yaml",
+  "ARCHITECTURE.md",
+  "README.md",
+  "README.zh-CN.md",
+  "LICENSE",
+  "NOTICE.md",
+  "CITATION.cff",
+]
+"share/tsao-processing-skill/docs" = ["docs/*.md"]
+"share/tsao-processing-skill/docs/assets/readme" = ["docs/assets/readme/*.svg"]
+"share/tsao-processing-skill/schemas" = ["schemas/*.json"]
+"share/tsao-processing-skill/templates" = ["templates/*.md"]
+"share/tsao-processing-skill/examples/generic-process" = ["examples/generic-process/*.yaml"]
+"share/tsao-processing-skill/skills/process-general" = [
+  "skills/process-general/*.md",
+  "skills/process-general/*.yaml",
+]
+"share/tsao-processing-skill/skills/process-general/modules" = [
+  "skills/process-general/modules/*.md",
+]
+"share/tsao-processing-skill/skills/process-general/workflows" = [
+  "skills/process-general/workflows/*.md",
+]
+"share/tsao-processing-skill/skills/polymer-general" = ["skills/polymer-general/*.md"]
+"share/tsao-processing-skill/skills/polymer-general/scripts" = [
+  "skills/polymer-general/scripts/*.py",
+]
+"share/tsao-processing-skill/skills/epdm" = ["skills/epdm/*.md"]
+"share/tsao-processing-skill/skills/epdm/data" = ["skills/epdm/data/*.json"]
+"share/tsao-processing-skill/skills/epdm/docs" = ["skills/epdm/docs/*.md"]
+"share/tsao-processing-skill/skills/epdm/fixtures" = ["skills/epdm/fixtures/*.json"]
+"share/tsao-processing-skill/skills/epdm/schemas" = ["skills/epdm/schemas/*.json"]
+"share/tsao-processing-skill/skills/epdm/scripts" = ["skills/epdm/scripts/*.py"]
+"share/tsao-processing-skill/skills/poe" = ["skills/poe/*.md"]
+"share/tsao-processing-skill/skills/poe/data" = ["skills/poe/data/*.json"]
+"share/tsao-processing-skill/skills/poe/docs" = ["skills/poe/docs/*.md"]
+"share/tsao-processing-skill/skills/poe/fixtures" = ["skills/poe/fixtures/*.json"]
+"share/tsao-processing-skill/skills/poe/schemas" = ["skills/poe/schemas/*.json"]
+"share/tsao-processing-skill/skills/poe/scripts" = ["skills/poe/scripts/*.py"]
+"share/tsao-processing-skill/skills/poe/modules/01_product_cqa" = [
+  "skills/poe/modules/01_product_cqa/*.md",
+  "skills/poe/modules/01_product_cqa/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/02_catalyst_impurity" = [
+  "skills/poe/modules/02_catalyst_impurity/*.md",
+  "skills/poe/modules/02_catalyst_impurity/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/03_kinetics_network" = [
+  "skills/poe/modules/03_kinetics_network/*.md",
+  "skills/poe/modules/03_kinetics_network/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/04_parameter_estimation" = [
+  "skills/poe/modules/04_parameter_estimation/*.md",
+  "skills/poe/modules/04_parameter_estimation/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/05_thermodynamics_properties" = [
+  "skills/poe/modules/05_thermodynamics_properties/*.md",
+  "skills/poe/modules/05_thermodynamics_properties/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/06_rheology_transport" = [
+  "skills/poe/modules/06_rheology_transport/*.md",
+  "skills/poe/modules/06_rheology_transport/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/07_reactor_cfd_heat_removal" = [
+  "skills/poe/modules/07_reactor_cfd_heat_removal/*.md",
+  "skills/poe/modules/07_reactor_cfd_heat_removal/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/08_steady_flowsheet_balances" = [
+  "skills/poe/modules/08_steady_flowsheet_balances/*.md",
+  "skills/poe/modules/08_steady_flowsheet_balances/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/09_devolatilization_finishing" = [
+  "skills/poe/modules/09_devolatilization_finishing/*.md",
+  "skills/poe/modules/09_devolatilization_finishing/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/10_recovery_recycle_purge" = [
+  "skills/poe/modules/10_recovery_recycle_purge/*.md",
+  "skills/poe/modules/10_recovery_recycle_purge/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/11_dynamics_control_transitions" = [
+  "skills/poe/modules/11_dynamics_control_transitions/*.md",
+  "skills/poe/modules/11_dynamics_control_transitions/*.json",
+]
+"share/tsao-processing-skill/skills/poe/modules/12_scaleup_package_acceptance" = [
+  "skills/poe/modules/12_scaleup_package_acceptance/*.md",
+  "skills/poe/modules/12_scaleup_package_acceptance/*.json",
 ]
 
 [tool.pytest.ini_options]
