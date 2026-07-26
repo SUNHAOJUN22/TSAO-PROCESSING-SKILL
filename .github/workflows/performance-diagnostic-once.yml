@@ -1,0 +1,65 @@
+name: Diagnose performance qualification once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[PERF-DIAG]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Run exact diagnostic
+        shell: bash
+        run: |
+          set +e
+          LOG=/tmp/tsao-performance-diagnostic.txt
+          : > "$LOG"
+          step() {
+            echo "" >> "$LOG"
+            echo "== $1 ==" >> "$LOG"
+            shift
+            "$@" >> "$LOG" 2>&1
+            echo "exit=$?" >> "$LOG"
+          }
+          step install python -m pip install --quiet -e '.[dev]'
+          step pip_check python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+          rm .github/workflows/performance-baseline-once.yml
+          rm .github/workflows/performance-qualification-once.yml
+          rm .github/workflows/performance-diagnostic-once.yml
+          step refresh_manifest python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          step run_ci python scripts/run_ci.py
+          step skillpacks python -m tsao.skillpacks --root .
+          step epdm_audit python skills/epdm/scripts/audit_epdm.py
+          step poe_p0 python skills/poe/scripts/audit_p0.py --root .
+          step poe_p1 python skills/poe/scripts/audit_p1.py --root .
+          rm -rf wheelhouse build dist
+          step wheel_build python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          step wheel_contents python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          step wheel_runtime python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          step benchmark python scripts/benchmark_performance.py --repeats 7 --output /tmp/PERFORMANCE_OPTIMIZED_ALPHA9.json
+          step compare python scripts/compare_performance.py --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json --current /tmp/PERFORMANCE_OPTIMIZED_ALPHA9.json --output /tmp/PERFORMANCE_COMPARISON_ALPHA9.json
+          cp "$LOG" reports/PERFORMANCE_QUALIFICATION_DIAGNOSTIC.txt
+          cp /tmp/PERFORMANCE_OPTIMIZED_ALPHA9.json reports/PERFORMANCE_OPTIMIZED_ALPHA9.json 2>/dev/null || true
+          cp /tmp/PERFORMANCE_COMPARISON_ALPHA9.json reports/PERFORMANCE_COMPARISON_ALPHA9.json 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/PERFORMANCE_QUALIFICATION_DIAGNOSTIC.txt reports/PERFORMANCE_OPTIMIZED_ALPHA9.json reports/PERFORMANCE_COMPARISON_ALPHA9.json
+          git commit -m "diagnostic: capture performance qualification results [skip ci]"
+          git push origin HEAD:main
