@@ -89,32 +89,37 @@ def _excluded_relative(relative: str) -> bool:
     )
 
 
+def _relative_directory(directory: str, root_string: str) -> str:
+    if directory == root_string:
+        return ""
+    return os.path.relpath(directory, root_string).replace(os.sep, "/")
+
+
 def iter_source_files(root: Path):
-    root = Path(root)
-    for directory, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
-        directory_path = Path(directory)
-        relative_directory = directory_path.relative_to(root).as_posix()
-        directory_names[:] = sorted(
-            name
-            for name in directory_names
-            if not _generated_part(name)
-            and not any(
-                (
-                    f"{relative_directory}/{name}/"
-                    if relative_directory != "."
-                    else f"{name}/"
-                ).startswith(prefix)
-                for prefix in _EXCLUDED_PREFIXES
-            )
-            and not (directory_path / name).is_symlink()
-        )
-        for file_name in sorted(file_names):
-            path = directory_path / file_name
-            if path.is_symlink() or not path.is_file():
+    root_path = Path(root)
+    root_string = os.path.abspath(os.fspath(root_path))
+    for directory, directory_names, file_names in os.walk(
+        root_string, topdown=True, followlinks=False
+    ):
+        relative_directory = _relative_directory(directory, root_string)
+        kept_directories: list[str] = []
+        for name in sorted(directory_names):
+            if _generated_part(name) or os.path.islink(os.path.join(directory, name)):
                 continue
-            relative = path.relative_to(root).as_posix()
+            relative = f"{relative_directory}/{name}/" if relative_directory else f"{name}/"
+            if any(relative.startswith(prefix) for prefix in _EXCLUDED_PREFIXES):
+                continue
+            kept_directories.append(name)
+        directory_names[:] = kept_directories
+        for file_name in sorted(file_names):
+            path_string = os.path.join(directory, file_name)
+            if os.path.islink(path_string):
+                continue
+            relative = (
+                f"{relative_directory}/{file_name}" if relative_directory else file_name
+            )
             if not _excluded_relative(relative):
-                yield path, relative
+                yield Path(path_string), relative
 
 
 def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None = None) -> int:
