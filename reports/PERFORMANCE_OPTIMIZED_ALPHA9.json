@@ -10,10 +10,10 @@
       "name": "epdm_three_level_64_site_families",
       "number_per_repeat": 120,
       "repeats": 7,
-      "median_s_per_call": 0.00012833871666657616,
-      "minimum_s_per_call": 0.00012769768333325732,
-      "maximum_s_per_call": 0.0001298133916666444,
-      "stdev_s_per_call": 6.05291484764683e-07,
+      "median_s_per_call": 0.00013342765833333677,
+      "minimum_s_per_call": 0.00013284657499994522,
+      "maximum_s_per_call": 0.00018970785000007595,
+      "stdev_s_per_call": 1.9645591877517818e-05,
       "result_sha256": "b7e48a748bcc6b81e892ecc80a43d81c3315b59e5fe899ca44257cda2bbabc94",
       "profile_loops": 20,
       "profile_top_cumulative": [
@@ -21,106 +21,106 @@
           "function": "benchmark_performance.py:94:_epdm_suite_case",
           "primitive_calls": 20,
           "total_calls": 20,
-          "total_time_s": 0.00039325300000000004,
-          "cumulative_time_s": 0.006717495
+          "total_time_s": 0.00039935000000000003,
+          "cumulative_time_s": 0.0068684390000000005
         },
         {
           "function": "kinetics.py:294:three_level_kinetic_suite",
           "primitive_calls": 20,
           "total_calls": 20,
-          "total_time_s": 0.0020128950000000002,
-          "cumulative_time_s": 0.00590869
+          "total_time_s": 0.002050973,
+          "cumulative_time_s": 0.0060653140000000005
         },
         {
           "function": "kinetics.py:10:_finite",
           "primitive_calls": 2940,
           "total_calls": 2940,
-          "total_time_s": 0.0012125640000000002,
-          "cumulative_time_s": 0.0018325280000000002
+          "total_time_s": 0.0012663470000000001,
+          "cumulative_time_s": 0.001914216
         },
         {
           "function": "kinetics.py:316:<genexpr>",
           "primitive_calls": 1300,
           "total_calls": 1300,
-          "total_time_s": 0.000351151,
-          "cumulative_time_s": 0.001146911
+          "total_time_s": 0.000322364,
+          "cumulative_time_s": 0.001140168
         },
         {
           "function": "kinetics.py:317:<genexpr>",
           "primitive_calls": 1300,
           "total_calls": 1300,
-          "total_time_s": 0.000318277,
-          "cumulative_time_s": 0.0010902940000000001
+          "total_time_s": 0.000333424,
+          "cumulative_time_s": 0.001115927
         },
         {
           "function": "~:0:<built-in method builtins.sum>",
           "primitive_calls": 60,
           "total_calls": 60,
-          "total_time_s": 0.000323751,
-          "cumulative_time_s": 0.000690291
+          "total_time_s": 0.00032546500000000004,
+          "cumulative_time_s": 0.000712424
         },
         {
           "function": "~:0:<built-in method builtins.isinstance>",
           "primitive_calls": 2940,
           "total_calls": 2940,
-          "total_time_s": 0.00037414500000000004,
-          "cumulative_time_s": 0.00037414500000000004
+          "total_time_s": 0.000387264,
+          "cumulative_time_s": 0.000387264
         },
         {
           "function": "~:0:<built-in method math.isfinite>",
           "primitive_calls": 2940,
           "total_calls": 2940,
-          "total_time_s": 0.00024581900000000004,
-          "cumulative_time_s": 0.00024581900000000004
+          "total_time_s": 0.000260605,
+          "cumulative_time_s": 0.000260605
         },
         {
           "function": "kinetics.py:346:<genexpr>",
           "primitive_calls": 1300,
           "total_calls": 1300,
-          "total_time_s": 0.00023822100000000002,
-          "cumulative_time_s": 0.00023822100000000002
+          "total_time_s": 0.000259,
+          "cumulative_time_s": 0.000259
         },
         {
           "function": "benchmark_performance.py:97:<genexpr>",
           "primitive_calls": 1300,
           "total_calls": 1300,
-          "total_time_s": 0.00021624800000000002,
-          "cumulative_time_s": 0.00021624800000000002
+          "total_time_s": 0.000201062,
+          "cumulative_time_s": 0.000201062
         },
         {
           "function": "~:0:<method 'append' of 'list' objects>",
           "primitive_calls": 1280,
           "total_calls": 1280,
-          "total_time_s": 0.00020461600000000002,
-          "cumulative_time_s": 0.00020461600000000002
-        },
-        {
-          "function": "kinetics.py:38:validated",
-          "primitive_calls": 20,
-          "total_calls": 20,
-          "total_time_s": 4.0010000000000005e-05,
-          "cumulative_time_s": 0.000149641
-        },
-        {
-          "function": "kinetics.py:61:validated",
-          "primitive_calls": 20,
-          "total_calls": 20,
-          "total_time_s": 3.7254e-05,
-          "cumulative_time_s": 0.000147999
+          "total_time_s": 0.00019633900000000002,
+          "cumulative_time_s": 0.00019633900000000002
         },
         {
           "function": "kinetics.py:83:validated",
           "primitive_calls": 20,
           "total_calls": 20,
-          "total_time_s": 4.2039e-05,
-          "cumulative_time_s": 0.000146887
+          "total_time_s": 4.5891000000000005e-05,
+          "cumulative_time_s": 0.000190246
+        },
+        {
+          "function": "kinetics.py:38:validated",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 4.2772e-05,
+          "cumulative_time_s": 0.000159277
+        },
+        {
+          "function": "kinetics.py:61:validated",
+          "primitive_calls": 20,
+          "total_calls": 20,
+          "total_time_s": 3.9733e-05,
+          "cumulative_time_s": 0.00015634400000000002
         },
         {
           "function": "benchmark_performance.py:96:<genexpr>",
           "primitive_calls": 1300,
           "total_calls": 1300,
-          "total_time_s": 0.00012874700000000002,
-          "cumulative_time_s": 0.00012874700000000002
+          "total_time_s": 0.000130302,
+          "cumulative_time_s": 0.000130302
         }
       ]
     },
@@ -128,10 +128,10 @@
       "name": "epdm_semibatch_material_energy_step",
       "number_per_repeat": 600,
       "repeats": 7,
-      "median_s_per_call": 1.2733149999988313e-05,
-      "minimum_s_per_call": 1.2670350000002864e-05,
-      "maximum_s_per_call": 1.2861523333332532e-05,
-      "stdev_s_per_call": 5.995632629768941e-08,
+      "median_s_per_call": 1.3101546666665817e-05,
+      "minimum_s_per_call": 1.307267666665742e-05,
+      "maximum_s_per_call": 1.325371666666797e-05,
+      "stdev_s_per_call": 6.030915558706181e-08,
       "result_sha256": "aec440641c2b9c2de5572e7df51e9258d6f30344e22dde0c63ef5a020ca142f7",
       "profile_loops": 80,
       "profile_top_cumulative": [
@@ -139,106 +139,106 @@
           "function": "benchmark_performance.py:109:_epdm_semibatch_case",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 0.000216192,
-          "cumulative_time_s": 0.0031531940000000002
+          "total_time_s": 0.000183709,
+          "cumulative_time_s": 0.0031356300000000004
         },
         {
           "function": "process.py:170:semibatch_material_energy_step",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 0.000516965,
-          "cumulative_time_s": 0.0026490140000000003
+          "total_time_s": 0.000532157,
+          "cumulative_time_s": 0.002667408
         },
         {
           "function": "process.py:9:_finite",
           "primitive_calls": 1280,
           "total_calls": 1280,
-          "total_time_s": 0.000545779,
-          "cumulative_time_s": 0.000825753
+          "total_time_s": 0.000549281,
+          "cumulative_time_s": 0.000828997
         },
         {
           "function": "process.py:31:validated",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 0.00018231100000000002,
-          "cumulative_time_s": 0.000688225
+          "total_time_s": 0.000182788,
+          "cumulative_time_s": 0.0006864470000000001
         },
         {
           "function": "kinetics.py:38:validated",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 0.000149125,
-          "cumulative_time_s": 0.000570284
+          "total_time_s": 0.000151134,
+          "cumulative_time_s": 0.000568378
         },
         {
           "function": "process.py:57:validated",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 0.000115248,
-          "cumulative_time_s": 0.000407
+          "total_time_s": 0.00011349600000000001,
+          "cumulative_time_s": 0.000413754
         },
         {
           "function": "kinetics.py:10:_finite",
           "primitive_calls": 480,
           "total_calls": 480,
-          "total_time_s": 0.00019938600000000002,
-          "cumulative_time_s": 0.00030731700000000004
+          "total_time_s": 0.00019934800000000002,
+          "cumulative_time_s": 0.000302587
         },
         {
           "function": "~:0:<built-in method builtins.isinstance>",
           "primitive_calls": 1760,
           "total_calls": 1760,
-          "total_time_s": 0.00023565900000000001,
-          "cumulative_time_s": 0.00023565900000000001
+          "total_time_s": 0.000233355,
+          "cumulative_time_s": 0.000233355
         },
         {
           "function": "~:0:<built-in method math.isfinite>",
           "primitive_calls": 1760,
           "total_calls": 1760,
-          "total_time_s": 0.000152246,
-          "cumulative_time_s": 0.000152246
+          "total_time_s": 0.0001496,
+          "cumulative_time_s": 0.0001496
         },
         {
           "function": "<string>:2:__init__",
           "primitive_calls": 160,
           "total_calls": 160,
-          "total_time_s": 0.00014435700000000001,
-          "cumulative_time_s": 0.00014435700000000001
+          "total_time_s": 0.00013186800000000002,
+          "cumulative_time_s": 0.00013186800000000002
         },
         {
           "function": "~:0:<built-in method builtins.min>",
           "primitive_calls": 560,
           "total_calls": 560,
-          "total_time_s": 0.000110846,
-          "cumulative_time_s": 0.000110846
+          "total_time_s": 0.000111958,
+          "cumulative_time_s": 0.000111958
         },
         {
           "function": "kinetics.py:164:_insertion_rates_validated",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 3.8298000000000005e-05,
-          "cumulative_time_s": 3.8298000000000005e-05
+          "total_time_s": 4.4832e-05,
+          "cumulative_time_s": 4.4832e-05
         },
         {
           "function": "~:0:<built-in method builtins.sum>",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 2.7923e-05,
-          "cumulative_time_s": 2.7923e-05
+          "total_time_s": 2.8267000000000002e-05,
+          "cumulative_time_s": 2.8267000000000002e-05
         },
         {
           "function": "~:0:<method 'values' of 'dict' objects>",
           "primitive_calls": 80,
           "total_calls": 80,
-          "total_time_s": 1.8286e-05,
-          "cumulative_time_s": 1.8286e-05
+          "total_time_s": 1.7462e-05,
+          "cumulative_time_s": 1.7462e-05
         },
         {
           "function": "~:0:<method 'disable' of '_lsprof.Profiler' objects>",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 1.7132e-05,
-          "cumulative_time_s": 1.7132e-05
+          "total_time_s": 1.6161e-05,
+          "cumulative_time_s": 1.6161e-05
         }
       ]
     },
@@ -246,10 +246,10 @@
       "name": "poe_rk4_400_steps",
       "number_per_repeat": 3,
       "repeats": 7,
-      "median_s_per_call": 0.0137128873333315,
-      "minimum_s_per_call": 0.013679081333331547,
-      "maximum_s_per_call": 0.014627249999999018,
-      "stdev_s_per_call": 0.00031620362866445115,
+      "median_s_per_call": 0.013881370000002372,
+      "minimum_s_per_call": 0.013820088000002784,
+      "maximum_s_per_call": 0.013996158333332195,
+      "stdev_s_per_call": 6.176707479194407e-05,
       "result_sha256": "5a158478b8fd13c6c7ab77c6255a650f4025d8a5732a947ff2eaed47caf5acf5",
       "profile_loops": 1,
       "profile_top_cumulative": [
@@ -257,106 +257,106 @@
           "function": "benchmark_performance.py:122:_poe_rk4_case",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 1.059e-05,
-          "cumulative_time_s": 0.039974016
+          "total_time_s": 1.093e-05,
+          "cumulative_time_s": 0.040161299000000004
         },
         {
           "function": "kinetics.py:143:simulate_kinetics",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 0.002328825,
-          "cumulative_time_s": 0.039957605
+          "total_time_s": 0.0023509480000000003,
+          "cumulative_time_s": 0.040144628
         },
         {
           "function": "kinetics.py:116:_state_add",
           "primitive_calls": 1600,
           "total_calls": 1600,
-          "total_time_s": 0.011075529,
-          "cumulative_time_s": 0.022657992000000002
+          "total_time_s": 0.011109071,
+          "cumulative_time_s": 0.022657416000000003
         },
         {
           "function": "kinetics.py:60:_kinetic_derivative_validated",
           "primitive_calls": 1600,
           "total_calls": 1600,
-          "total_time_s": 0.0031397490000000003,
-          "cumulative_time_s": 0.006785176
+          "total_time_s": 0.0032054650000000002,
+          "cumulative_time_s": 0.0068866610000000005
         },
         {
           "function": "kinetics.py:126:_rk4_combined",
           "primitive_calls": 400,
           "total_calls": 400,
-          "total_time_s": 0.001045556,
-          "cumulative_time_s": 0.006760556
+          "total_time_s": 0.001058939,
+          "cumulative_time_s": 0.00677214
         },
         {
           "function": "~:0:<built-in method builtins.getattr>",
           "primitive_calls": 57240,
           "total_calls": 57240,
-          "total_time_s": 0.006186176000000001,
-          "cumulative_time_s": 0.006186176000000001
+          "total_time_s": 0.006165296000000001,
+          "cumulative_time_s": 0.006165296000000001
         },
         {
           "function": "kinetics.py:130:<genexpr>",
           "primitive_calls": 4800,
           "total_calls": 4800,
-          "total_time_s": 0.002942955,
-          "cumulative_time_s": 0.004814252000000001
+          "total_time_s": 0.002955142,
+          "cumulative_time_s": 0.004814231
         },
         {
           "function": "~:0:<method 'append' of 'list' objects>",
           "primitive_calls": 18000,
           "total_calls": 18000,
-          "total_time_s": 0.0024126,
-          "cumulative_time_s": 0.0024126
+          "total_time_s": 0.002332666,
+          "cumulative_time_s": 0.002332666
         },
         {
           "function": "~:0:<built-in method builtins.max>",
           "primitive_calls": 17600,
           "total_calls": 17600,
-          "total_time_s": 0.0018723230000000002,
-          "cumulative_time_s": 0.0018723230000000002
+          "total_time_s": 0.001883047,
+          "cumulative_time_s": 0.001883047
         },
         {
           "function": "kinetics.py:56:_state_dict",
           "primitive_calls": 402,
           "total_calls": 402,
-          "total_time_s": 0.0007910150000000001,
-          "cumulative_time_s": 0.001268166
+          "total_time_s": 0.0008223270000000001,
+          "cumulative_time_s": 0.0013102130000000002
         },
         {
           "function": "~:0:<built-in method builtins.min>",
           "primitive_calls": 400,
           "total_calls": 400,
-          "total_time_s": 5.9918000000000005e-05,
-          "cumulative_time_s": 5.9918000000000005e-05
+          "total_time_s": 6.7315e-05,
+          "cumulative_time_s": 6.7315e-05
         },
         {
           "function": "~:0:<method 'disable' of '_lsprof.Profiler' objects>",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 2.4255e-05,
-          "cumulative_time_s": 2.4255e-05
+          "total_time_s": 2.1450000000000003e-05,
+          "cumulative_time_s": 2.1450000000000003e-05
         },
         {
           "function": "kinetics.py:43:validate",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 1.2132e-05,
-          "cumulative_time_s": 1.7121e-05
+          "total_time_s": 1.2539000000000001e-05,
+          "cumulative_time_s": 1.7793e-05
         },
         {
           "function": "kinetics.py:18:validate",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 4.577e-06,
-          "cumulative_time_s": 7.053e-06
+          "total_time_s": 4.298e-06,
+          "cumulative_time_s": 6.853e-06
         },
         {
           "function": "~:0:<built-in method builtins.isinstance>",
           "primitive_calls": 18,
           "total_calls": 18,
-          "total_time_s": 2.8340000000000003e-06,
-          "cumulative_time_s": 2.8340000000000003e-06
+          "total_time_s": 3.057e-06,
+          "cumulative_time_s": 3.057e-06
         }
       ]
     },
@@ -364,10 +364,10 @@
       "name": "process_package_500_equipment",
       "number_per_repeat": 4,
       "repeats": 7,
-      "median_s_per_call": 0.0043722849999987545,
-      "minimum_s_per_call": 0.00434177549999859,
-      "maximum_s_per_call": 0.00441499200000095,
-      "stdev_s_per_call": 2.775461934764253e-05,
+      "median_s_per_call": 0.004481722750000472,
+      "minimum_s_per_call": 0.004479173000000003,
+      "maximum_s_per_call": 0.004507015249998858,
+      "stdev_s_per_call": 9.028473518795969e-06,
       "result_sha256": "fce84786d96cb3bfe636e9298e35514e33538c64942670fb5628db7b26369a53",
       "profile_loops": 1,
       "profile_top_cumulative": [
@@ -375,106 +375,106 @@
           "function": "benchmark_performance.py:254:<lambda>",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 1.1320000000000001e-06,
-          "cumulative_time_s": 0.019810268000000002
+          "total_time_s": 1.2510000000000002e-06,
+          "cumulative_time_s": 0.019617631
         },
         {
           "function": "benchmark_performance.py:225:_process_package_case",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 6.3549e-05,
-          "cumulative_time_s": 0.019809136
+          "total_time_s": 5.83e-05,
+          "cumulative_time_s": 0.019616380000000003
         },
         {
           "function": "process_package.py:77:validate_process_package",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 0.008618046,
-          "cumulative_time_s": 0.019745587000000002
+          "total_time_s": 0.008561397,
+          "cumulative_time_s": 0.019558080000000002
         },
         {
           "function": "process_package.py:12:_finite",
           "primitive_calls": 4506,
           "total_calls": 4506,
-          "total_time_s": 0.001989222,
-          "cumulative_time_s": 0.00302101
+          "total_time_s": 0.001986467,
+          "cumulative_time_s": 0.00304346
         },
         {
           "function": "~:0:<built-in method builtins.sum>",
           "primitive_calls": 2000,
           "total_calls": 2000,
-          "total_time_s": 0.0011226950000000002,
-          "cumulative_time_s": 0.0018181380000000002
+          "total_time_s": 0.0011515260000000002,
+          "cumulative_time_s": 0.0018491730000000002
         },
         {
           "function": "process_package.py:37:_unique_ids",
           "primitive_calls": 7,
           "total_calls": 7,
-          "total_time_s": 0.001026421,
-          "cumulative_time_s": 0.001795586
+          "total_time_s": 0.001035995,
+          "cumulative_time_s": 0.001759499
         },
         {
           "function": "~:0:<method 'get' of 'dict' objects>",
           "primitive_calls": 11048,
           "total_calls": 11048,
-          "total_time_s": 0.001756437,
-          "cumulative_time_s": 0.001756437
+          "total_time_s": 0.001672223,
+          "cumulative_time_s": 0.001672223
         },
         {
           "function": "~:0:<built-in method builtins.isinstance>",
           "primitive_calls": 14043,
           "total_calls": 14043,
-          "total_time_s": 0.001604092,
-          "cumulative_time_s": 0.001604092
+          "total_time_s": 0.001619219,
+          "cumulative_time_s": 0.001619219
         },
         {
           "function": "process_package.py:24:_records",
           "primitive_calls": 7,
           "total_calls": 7,
-          "total_time_s": 0.00042860800000000003,
-          "cumulative_time_s": 0.000748438
+          "total_time_s": 0.000426283,
+          "cumulative_time_s": 0.0007177860000000001
         },
         {
           "function": "~:0:<built-in method builtins.abs>",
           "primitive_calls": 4500,
           "total_calls": 4500,
-          "total_time_s": 0.0005706190000000001,
-          "cumulative_time_s": 0.0005706190000000001
+          "total_time_s": 0.000572907,
+          "cumulative_time_s": 0.000572907
         },
         {
           "function": "~:0:<method 'strip' of 'str' objects>",
           "primitive_calls": 3517,
           "total_calls": 3517,
-          "total_time_s": 0.0005253170000000001,
-          "cumulative_time_s": 0.0005253170000000001
+          "total_time_s": 0.00047036500000000004,
+          "cumulative_time_s": 0.00047036500000000004
         },
         {
           "function": "~:0:<built-in method math.isfinite>",
           "primitive_calls": 4506,
           "total_calls": 4506,
-          "total_time_s": 0.000406475,
-          "cumulative_time_s": 0.000406475
+          "total_time_s": 0.00040045900000000004,
+          "cumulative_time_s": 0.00040045900000000004
         },
         {
           "function": "~:0:<method 'add' of 'set' objects>",
           "primitive_calls": 1507,
           "total_calls": 1507,
-          "total_time_s": 0.00022965700000000003,
-          "cumulative_time_s": 0.00022965700000000003
+          "total_time_s": 0.00022490400000000003,
+          "cumulative_time_s": 0.00022490400000000003
         },
         {
           "function": "process_package.py:231:<genexpr>",
           "primitive_calls": 1500,
           "total_calls": 1500,
-          "total_time_s": 0.000205844,
-          "cumulative_time_s": 0.000205844
+          "total_time_s": 0.000210991,
+          "cumulative_time_s": 0.000210991
         },
         {
-          "function": "~:0:<method 'append' of 'list' objects>",
-          "primitive_calls": 1505,
-          "total_calls": 1505,
-          "total_time_s": 0.000195798,
-          "cumulative_time_s": 0.000195798
+          "function": "~:0:<method 'items' of 'dict' objects>",
+          "primitive_calls": 1000,
+          "total_calls": 1000,
+          "total_time_s": 0.000184723,
+          "cumulative_time_s": 0.000184723
         }
       ]
     },
@@ -482,10 +482,10 @@
       "name": "provenance_300_files_build_and_verify",
       "number_per_repeat": 2,
       "repeats": 7,
-      "median_s_per_call": 0.022923491500002058,
-      "minimum_s_per_call": 0.022743695500004435,
-      "maximum_s_per_call": 0.023246620499996595,
-      "stdev_s_per_call": 0.0001483511818596107,
+      "median_s_per_call": 0.023760914500002173,
+      "minimum_s_per_call": 0.023539669999998125,
+      "maximum_s_per_call": 0.023894455499998912,
+      "stdev_s_per_call": 0.00011172822876614997,
       "result_sha256": "70bfad20ba5bc1f2f55b6d405a395acd8574dbd3e0fae79cc8e6bfd73cbe7c28",
       "profile_loops": 1,
       "profile_top_cumulative": [
@@ -493,106 +493,106 @@
           "function": "benchmark_performance.py:236:exercise",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 5.0895000000000007e-05,
-          "cumulative_time_s": 0.042842287
+          "total_time_s": 5.6335e-05,
+          "cumulative_time_s": 0.043892494000000004
         },
         {
           "function": "provenance.py:164:verify_manifest",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 0.0016376740000000002,
-          "cumulative_time_s": 0.02505991
+          "total_time_s": 0.0016714680000000002,
+          "cumulative_time_s": 0.025533102000000002
         },
         {
           "function": "provenance.py:48:canonical_identity",
           "primitive_calls": 600,
           "total_calls": 600,
-          "total_time_s": 0.0007523530000000001,
-          "cumulative_time_s": 0.018955777
+          "total_time_s": 0.0008108280000000001,
+          "cumulative_time_s": 0.019452940000000002
         },
         {
           "function": "provenance.py:125:build_manifest",
           "primitive_calls": 1,
           "total_calls": 1,
-          "total_time_s": 0.000610858,
-          "cumulative_time_s": 0.017731482
+          "total_time_s": 0.0006210590000000001,
+          "cumulative_time_s": 0.018303057
         },
         {
           "function": "provenance.py:36:canonical_bytes",
           "primitive_calls": 600,
           "total_calls": 600,
-          "total_time_s": 0.0014846330000000002,
-          "cumulative_time_s": 0.016285491000000003
+          "total_time_s": 0.0015157570000000002,
+          "cumulative_time_s": 0.016681236000000002
         },
         {
           "function": "__init__.py:773:read_bytes",
           "primitive_calls": 600,
           "total_calls": 600,
-          "total_time_s": 0.000899128,
-          "cumulative_time_s": 0.013757712
+          "total_time_s": 0.000960366,
+          "cumulative_time_s": 0.014157105000000001
         },
         {
           "function": "__init__.py:763:open",
           "primitive_calls": 602,
           "total_calls": 602,
-          "total_time_s": 0.000264954,
-          "cumulative_time_s": 0.009761034
+          "total_time_s": 0.000281865,
+          "cumulative_time_s": 0.010126396000000001
         },
         {
           "function": "~:0:<built-in method _io.open>",
           "primitive_calls": 602,
           "total_calls": 602,
-          "total_time_s": 0.0037696720000000004,
-          "cumulative_time_s": 0.00949559
+          "total_time_s": 0.003949202000000001,
+          "cumulative_time_s": 0.009844079
         },
         {
           "function": "provenance.py:98:iter_source_files",
           "primitive_calls": 602,
           "total_calls": 602,
-          "total_time_s": 0.001703552,
-          "cumulative_time_s": 0.009279349000000001
+          "total_time_s": 0.0017429530000000002,
+          "cumulative_time_s": 0.009499174
         },
         {
           "function": "__init__.py:190:__fspath__",
           "primitive_calls": 907,
           "total_calls": 907,
-          "total_time_s": 0.000499422,
-          "cumulative_time_s": 0.009273676
+          "total_time_s": 0.000519735,
+          "cumulative_time_s": 0.009494208
         },
         {
           "function": "__init__.py:251:__str__",
           "primitive_calls": 907,
           "total_calls": 907,
-          "total_time_s": 0.002335675,
-          "cumulative_time_s": 0.008774254
+          "total_time_s": 0.002351657,
+          "cumulative_time_s": 0.008974473
         },
         {
           "function": "__init__.py:341:drive",
           "primitive_calls": 905,
           "total_calls": 905,
-          "total_time_s": 0.001459278,
-          "cumulative_time_s": 0.0055503620000000005
+          "total_time_s": 0.001523699,
+          "cumulative_time_s": 0.005702085
         },
         {
           "function": "__init__.py:685:is_file",
           "primitive_calls": 301,
           "total_calls": 301,
-          "total_time_s": 0.00022502100000000003,
-          "cumulative_time_s": 0.005393637000000001
+          "total_time_s": 0.000245864,
+          "cumulative_time_s": 0.005529311
         },
         {
           "function": "<frozen genericpath>:36:isfile",
           "primitive_calls": 301,
           "total_calls": 301,
-          "total_time_s": 0.00021116800000000002,
-          "cumulative_time_s": 0.005168616
+          "total_time_s": 0.00021994600000000002,
+          "cumulative_time_s": 0.005283447
         },
         {
           "function": "~:0:<built-in method posix.stat>",
           "primitive_calls": 302,
           "total_calls": 302,
-          "total_time_s": 0.0013753320000000002,
-          "cumulative_time_s": 0.004893102000000001
+          "total_time_s": 0.001438995,
+          "cumulative_time_s": 0.005006607000000001
         }
       ]
     }

@@ -8,8 +8,8 @@
     {
       "name": "epdm_semibatch_material_energy_step",
       "baseline_median_s": 2.1779941666662712e-05,
-      "optimized_median_s": 1.2733149999988313e-05,
-      "speedup": 1.7104912505297356,
+      "optimized_median_s": 1.3101546666665817e-05,
+      "speedup": 1.6623946943666799,
       "minimum_speedup": 1.5,
       "result_digest_match": true,
       "pass": true
@@ -17,8 +17,8 @@
     {
       "name": "epdm_three_level_64_site_families",
       "baseline_median_s": 0.0005960921333333739,
-      "optimized_median_s": 0.00012833871666657616,
-      "speedup": 4.644678931004278,
+      "optimized_median_s": 0.00013342765833333677,
+      "speedup": 4.467530501391111,
       "minimum_speedup": 2.0,
       "result_digest_match": true,
       "pass": true
@@ -26,8 +26,8 @@
     {
       "name": "poe_rk4_400_steps",
       "baseline_median_s": 0.031758135333333826,
-      "optimized_median_s": 0.0137128873333315,
-      "speedup": 2.315933512859855,
+      "optimized_median_s": 0.013881370000002372,
+      "speedup": 2.2878242805521642,
       "minimum_speedup": 2.0,
       "result_digest_match": true,
       "pass": true
@@ -35,8 +35,8 @@
     {
       "name": "process_package_500_equipment",
       "baseline_median_s": 0.004182754749999518,
-      "optimized_median_s": 0.0043722849999987545,
-      "speedup": 0.9566518994074515,
+      "optimized_median_s": 0.004481722750000472,
+      "speedup": 0.9332917235897908,
       "minimum_speedup": 0.8,
       "result_digest_match": true,
       "pass": true
@@ -44,8 +44,8 @@
     {
       "name": "provenance_300_files_build_and_verify",
       "baseline_median_s": 0.04513286899999969,
-      "optimized_median_s": 0.022923491500002058,
-      "speedup": 1.968847939241526,
+      "optimized_median_s": 0.023760914500002173,
+      "speedup": 1.8994584152051706,
       "minimum_speedup": 1.5,
       "result_digest_match": true,
       "pass": true
