@@ -1,0 +1,152 @@
+from __future__ import annotations
+
+import argparse
+import json
+from importlib.metadata import PackageNotFoundError, distribution
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+DISTRIBUTION_NAME = "tsao-processing-skill"
+INSTALLED_SHARE = Path("share") / DISTRIBUTION_NAME
+EXPECTED_SUBSKILLS = {"process-general", "epdm", "poe", "polymer-general"}
+PROCESS_MODULES = (
+    "01_chemistry_reaction_basis.md",
+    "02_measurement_data.md",
+    "03_thermodynamics_properties.md",
+    "04_reactors_transport.md",
+    "05_separation_recycle.md",
+    "06_control_operability.md",
+    "07_hse_reliability.md",
+    "08_scaleup_pilot.md",
+    "09_tea_lca_supply.md",
+    "10_bioprocess.md",
+    "11_electrochemical.md",
+    "12_solids_crystallization.md",
+    "13_fine_batch.md",
+    "14_petrochemical.md",
+)
+PROCESS_WORKFLOWS = (
+    "00_one_shot_orchestrator.md",
+    "01_evidence_and_route_selection.md",
+    "02_measurement_and_experiment.md",
+    "03_models_and_process_synthesis.md",
+    "04_scaleup_control_hse.md",
+    "05_package_acceptance_transfer.md",
+)
+POLYMER_SCRIPTS = (
+    "audit_evidence.py",
+    "check_balance.py",
+    "common.py",
+    "generate_doe.py",
+    "generate_master_plan.py",
+    "scaleup_numbers.py",
+)
+
+
+def _valid_root(candidate: Path) -> bool:
+    return (candidate / "manifest.yaml").is_file() and (candidate / "SKILL.md").is_file()
+
+
+def resolve_skillpack_root(root: str | Path | None = None) -> Path:
+    if root is not None:
+        candidate = Path(root).expanduser().resolve()
+        if not _valid_root(candidate):
+            raise FileNotFoundError(f"not a TSAO skillpack root: {candidate}")
+        return candidate
+
+    source_root = Path(__file__).resolve().parents[1]
+    if _valid_root(source_root):
+        return source_root
+
+    try:
+        installed_root = Path(distribution(DISTRIBUTION_NAME).locate_file(INSTALLED_SHARE))
+    except PackageNotFoundError as exc:
+        raise FileNotFoundError("TSAO skillpack distribution is not installed") from exc
+    if not _valid_root(installed_root):
+        raise FileNotFoundError(f"installed TSAO skillpack root is incomplete: {installed_root}")
+    return installed_root.resolve()
+
+
+def _missing_files(root: Path, relative_paths: tuple[str, ...]) -> list[str]:
+    return [relative for relative in relative_paths if not (root / relative).is_file()]
+
+
+def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
+    resolved = resolve_skillpack_root(root)
+    manifest = yaml.safe_load((resolved / "manifest.yaml").read_text(encoding="utf-8"))
+    errors: list[str] = []
+    if not isinstance(manifest, dict):
+        raise ValueError("manifest.yaml must contain an object")
+
+    subskill_rows = manifest.get("subskills")
+    if not isinstance(subskill_rows, list):
+        raise ValueError("manifest.yaml subskills must be a list")
+    subskills: dict[str, dict[str, Any]] = {}
+    for index, row in enumerate(subskill_rows, start=1):
+        if not isinstance(row, dict) or not isinstance(row.get("id"), str):
+            errors.append(f"invalid subskill row {index}")
+            continue
+        subskills[row["id"]] = row
+
+    missing_subskills = sorted(EXPECTED_SUBSKILLS - set(subskills))
+    errors.extend(f"missing subskill manifest entry: {item}" for item in missing_subskills)
+    for subskill_id, row in subskills.items():
+        path = row.get("path")
+        if not isinstance(path, str) or not path.strip():
+            errors.append(f"subskill {subskill_id} has no path")
+            continue
+        if not (resolved / path / "SKILL.md").is_file():
+            errors.append(f"subskill {subskill_id} is missing SKILL.md at {path}")
+
+    errors.extend(
+        f"missing process-general module: {item}"
+        for item in _missing_files(resolved / "skills/process-general/modules", PROCESS_MODULES)
+    )
+    errors.extend(
+        f"missing process-general workflow: {item}"
+        for item in _missing_files(resolved / "skills/process-general/workflows", PROCESS_WORKFLOWS)
+    )
+    errors.extend(
+        f"missing polymer-general script: {item}"
+        for item in _missing_files(resolved / "skills/polymer-general/scripts", POLYMER_SCRIPTS)
+    )
+
+    readme_assets = sorted((resolved / "docs/assets/readme").glob("*.svg"))
+    if len(readme_assets) < 12:
+        errors.append(f"expected at least 12 README SVG assets, found {len(readme_assets)}")
+
+    return {
+        "pass": not errors,
+        "root": str(resolved),
+        "delivery": "SOURCE_CHECKOUT"
+        if resolved == Path(__file__).resolve().parents[1]
+        else "INSTALLED_SKILLPACK",
+        "version": manifest.get("version"),
+        "subskills": sorted(subskills),
+        "process_general_modules": len(PROCESS_MODULES),
+        "process_general_workflows": len(PROCESS_WORKFLOWS),
+        "polymer_general_scripts": len(POLYMER_SCRIPTS),
+        "readme_svg_assets": len(readme_assets),
+        "errors": errors,
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+        "industrial_performance_guarantee": "NOT_EVALUATED",
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="tsao-skillpacks")
+    parser.add_argument("--root")
+    args = parser.parse_args(argv)
+    try:
+        result = skillpack_inventory(args.root)
+    except (OSError, TypeError, ValueError) as exc:
+        result = {"pass": False, "errors": [str(exc)]}
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["pass"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
