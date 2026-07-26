@@ -42,6 +42,7 @@ jobs:
       - name: Verify deterministic README graphics
         run: |
           python scripts/generate_readme_assets.py
+          python scripts/generate_extended_readme_assets.py
           git diff --exit-code -- docs/assets/readme
       - name: Core, P0, P1 and coverage qualification
         run: python scripts/run_ci.py
