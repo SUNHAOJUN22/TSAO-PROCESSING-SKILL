@@ -1,4 +1,5 @@
 name: Qualify optimized computational paths once
+# Rerun after provenance fast-path and benchmark Ruff cleanup.
 
 on:
   push:
