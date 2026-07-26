@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased hardening — 2026-07-26
+
+- Added a fail-closed source/installed Skillpack inventory for all four delivered Skills.
+- Packaged the master Skill, process-general, polymer-general, specialist contracts, schemas, examples, documentation and twelve deterministic diagrams into the Wheel data tree.
+- Replaced the former Wheel zipimport smoke test with a real `pip install --target` installation test.
+- Expanded the Wheel content contract to require fourteen process-general modules, six workflows, six polymer-general scripts and the complete installed Skill tree.
+- Added cross-platform Skillpack smoke checks and downloadable structured qualification reports to GitHub Actions.
+- Updated both READMEs without reducing the twelve-diagram functional visual system.
+
 ## 0.1.0-alpha.8 — 2026-07-24
 
 - Added the universal executable process-package platform.
