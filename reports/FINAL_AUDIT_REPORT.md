@@ -8,19 +8,22 @@ Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`
 
 The repository is a non-empty, executable alpha platform for universal chemical-process packages. The universal process layer, EPDM flagship route, POE specialist, polymer-general tools, provenance controls, deterministic archives and cross-platform CI are preserved.
 
-This pass resolved a release-delivery gap that remained after the twelve-diagram README closure:
+This pass closed four remaining release-consistency gaps:
 
-1. the Wheel contained the executable `tsao`, EPDM and POE Python packages, but did not carry the canonical `process-general` and `polymer-general` Skill trees;
-2. the former `verify_wheel_runtime.py` used zipimport by inserting the Wheel archive into `sys.path`, so it did not prove that a real installation delivered the complete Skill platform;
-3. CI did not publish its structured qualification report for each operating-system/Python matrix entry.
+1. the package declared Python `>=3.11`, while permanent CI stopped at Python 3.12 even though 3.13 and 3.14 are current supported feature series;
+2. the capability matrix still described a three-route, zipimport-era delivery model instead of the installed four-Skill platform;
+3. the installed Wheel carried the bilingual READMEs but omitted several local link targets and top-level maintenance scripts;
+4. the visual system did not separately show control/safety, simulator-neutral exchange, EPDM parameter confidence or the raw-polymer-to-customer evidence bridge.
 
 ## Branch state
 
-No branch was created during this work. `main` remains the default and sole authoritative branch. Historical branch names in the consolidation record remain outside the authoritative release path.
+No branch was created during this work. `main` remains the default and sole authoritative release path. Every historical branch named in the consolidation record was queried again by exact ref and returned `not found`, consistent with deletion after integration.
+
+The connector's free-text branch search does not reliably enumerate even `main`; branch closure is therefore based on default-branch metadata plus exact-ref checks rather than an empty search result.
 
 ## Complete Skillpack delivery
 
-The source checkout and installed Wheel now expose the same four-Skill inventory:
+The source checkout and installed Wheel expose the same four-Skill inventory:
 
 - `process-general`;
 - `epdm`;
@@ -33,13 +36,15 @@ The fail-closed inventory requires:
 - fourteen process-general modules;
 - six process-general workflows;
 - six polymer-general executable scripts;
-- at least twelve deterministic README SVG assets.
+- at least sixteen deterministic README SVG assets.
 
-The Wheel data tree also carries the master Skill, bilingual READMEs, architecture, documentation, schemas, templates, generic-process example, specialist contracts, fixtures and controlled open data required for portable Skill use.
+The installed data tree also carries the master Skill, bilingual READMEs, `pyproject.toml`, architecture, documentation, qualification reports, schemas, templates, generic-process example and top-level maintenance scripts. Installed README auditing rejects missing or root-escaping relative links.
 
 ## Universal process-package scope
 
 The executable platform retains design basis, streams, equipment, material/component/energy balances, thermodynamic and model basis, controls, alarms, interlocks, abnormal cases, HSE, evidence, acceptance and approval records. Fourteen process modules and six workflows provide extension points for chemical, polymer, bioprocess, electrochemical, solids, fine-batch and petrochemical packages.
+
+Control, Cause & Effect, HAZID/HAZOP/LOPA/SIL and simulator interfaces are structured as governed contracts. Software organizes evidence and actions but does not perform accountable safety approval or turn simulator convergence into qualification.
 
 ## EPDM flagship scope
 
@@ -49,6 +54,7 @@ The EPDM route retains:
 - E/P/diene propagation, transfer, deactivation and poison effects;
 - screening, engineering and detailed-reference model levels;
 - Arrhenius adjustment, conversion, chain moments, sequence/architecture and gel risk;
+- parameter provenance, sensitivity, identifiability and uncertainty boundaries;
 - conservative semibatch material/energy stepping;
 - phase stability, mixing, heat-removal and entropy-generation references;
 - devolatilization, recovery, recycle, purge and finite poison closure;
@@ -58,35 +64,45 @@ All example calculations remain `CALCULATED_REFERENCE_ONLY`; scientific, enginee
 
 ## README graphics and integrity
 
-The bilingual README retains twelve deterministic, repository-owned SVG diagrams:
+The bilingual README now contains sixteen deterministic, repository-owned functional SVG diagrams:
 
 1. TSAO system overview;
 2. universal process-package lifecycle;
 3. layered architecture;
 4. universal process-package data model;
-5. EPDM multiscale chain;
-6. EPDM catalyst-to-architecture network;
-7. EPDM three-level models;
-8. EPDM reactor-mode decision map;
-9. EPDM reference flowsheet;
-10. EPDM recovery/recycle risk loop;
-11. evidence and qualification gates;
-12. verification pipeline.
+5. control, interlock and process-safety chain;
+6. simulator-neutral integration contract;
+7. EPDM multiscale chain;
+8. EPDM catalyst-to-architecture network;
+9. EPDM three-level models;
+10. EPDM reactor-mode decision map;
+11. EPDM parameter-identifiability and uncertainty ladder;
+12. EPDM raw-polymer-to-customer evidence bridge;
+13. EPDM reference flowsheet;
+14. EPDM recovery/recycle risk loop;
+15. evidence and qualification gates;
+16. verification pipeline.
 
-Automated tests require all declared assets to exist, parse as SVG, be committed and be referenced by both README files. The complete diagram set is also required inside the installed Wheel Skill tree.
+Automated tests require every declared asset to exist, parse as SVG, be committed and be referenced by both README files. The same complete diagram set is required inside the installed Wheel Skill tree.
 
 ## Wheel and installation qualification
 
-Wheel verification now uses two independent gates:
+Wheel verification uses two independent gates:
 
-1. `verify_wheel_contents.py` checks executable package members and the complete installed Skill data tree;
-2. `verify_wheel_runtime.py` performs a real `pip install --target`, imports only from the installed target, resolves the installed Skillpack root, validates the four-Skill inventory and runs universal, EPDM and POE known-solution checks.
+1. `verify_wheel_contents.py` checks executable members plus the complete installed Skill data tree, reports, maintenance scripts and sixteen diagrams;
+2. `verify_wheel_runtime.py` performs a real `pip install --target`, imports only from the installed target, resolves the installed Skillpack root, audits installed README links, validates the four-Skill inventory and runs universal, EPDM and POE known-solution checks.
 
-The release no longer labels direct zipimport as installed-runtime verification.
+The release does not label direct zipimport as installed-runtime verification.
 
-## CI transparency
+## Python and CI qualification
 
-Every supported operating-system/Python matrix entry runs the Skillpack inventory. GitHub Actions uploads `reports/runtime/CI_RESULTS.json` with `if: always()` so a structured qualification report remains available for both successful and failed runs. Third-party Actions remain pinned to full commit SHAs and normal qualification jobs retain read-only repository permissions.
+Permanent CI covers Ubuntu on Python 3.11, 3.12, 3.13 and 3.14, plus Windows and macOS on Python 3.14. Each entry runs compilation, branch coverage, repository contracts, provenance, Ruff, deterministic graphics, four-Skill inventory, EPDM/POE audits, complete Wheel content and real installed-runtime verification.
+
+GitHub Actions uploads `reports/runtime/CI_RESULTS.json` with `if: always()` so a structured qualification report remains available for successful and failed matrix runs. Third-party Actions remain pinned to full commit SHAs and permanent qualification jobs retain read-only repository permissions.
+
+## Environment limitation
+
+The interactive execution container could not resolve `github.com`, so a clean network clone and direct `gh` log inspection were unavailable there. Final sealing is performed by a temporary self-deleting GitHub Actions workflow; it generates the diagrams, refreshes the source manifest and commits only after the full qualification chain succeeds.
 
 ## Responsibility boundary
 
