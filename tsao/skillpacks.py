@@ -11,6 +11,7 @@ import yaml
 DISTRIBUTION_NAME = "tsao-processing-skill"
 INSTALLED_SHARE = Path("share") / DISTRIBUTION_NAME
 EXPECTED_SUBSKILLS = {"process-general", "epdm", "poe", "polymer-general"}
+README_ASSET_MINIMUM = 16
 PROCESS_MODULES = (
     "01_chemistry_reaction_basis.md",
     "02_measurement_data.md",
@@ -139,8 +140,11 @@ def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
     )
 
     readme_assets = sorted((resolved / "docs/assets/readme").glob("*.svg"))
-    if len(readme_assets) < 12:
-        errors.append(f"expected at least 12 README SVG assets, found {len(readme_assets)}")
+    if len(readme_assets) < README_ASSET_MINIMUM:
+        errors.append(
+            f"expected at least {README_ASSET_MINIMUM} README SVG assets, "
+            f"found {len(readme_assets)}"
+        )
 
     return {
         "pass": not errors,
@@ -157,6 +161,7 @@ def skillpack_inventory(root: str | Path | None = None) -> dict[str, Any]:
         "polymer_general_scripts_present": _present_count(polymer_script_root, POLYMER_SCRIPTS),
         "polymer_general_scripts_expected": len(POLYMER_SCRIPTS),
         "readme_svg_assets": len(readme_assets),
+        "readme_svg_assets_expected_minimum": README_ASSET_MINIMUM,
         "errors": errors,
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",
