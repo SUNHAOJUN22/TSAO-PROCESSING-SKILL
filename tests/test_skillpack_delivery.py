@@ -32,6 +32,26 @@ def test_skillpack_root_rejects_incomplete_directory(tmp_path: Path):
         resolve_skillpack_root(tmp_path)
 
 
+def test_inventory_rejects_duplicate_and_escaping_subskills(tmp_path: Path):
+    (tmp_path / "SKILL.md").write_text("root\n", encoding="utf-8")
+    (tmp_path / "manifest.yaml").write_text(
+        """version: test
+subskills:
+- id: process-general
+  path: skills/process-general
+- id: process-general
+  path: skills/process-general-copy
+- id: epdm
+  path: ../outside
+""",
+        encoding="utf-8",
+    )
+    result = skillpack_inventory(tmp_path)
+    assert result["pass"] is False
+    assert "duplicate subskill id: process-general" in result["errors"]
+    assert "subskill path escapes Skillpack root: ../outside" in result["errors"]
+
+
 def test_skillpacks_module_reports_source_delivery():
     completed = subprocess.run(
         [sys.executable, "-m", "tsao.skillpacks", "--root", str(ROOT)],
