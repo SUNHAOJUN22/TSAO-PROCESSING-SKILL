@@ -1,0 +1,105 @@
+name: Finalize alpha10 performance release once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsao-finalize-alpha10-performance-once
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-PERFORMANCE-ALPHA10]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Install development environment
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+      - name: Apply alpha10 release identity
+        run: |
+          python -m py_compile scripts/apply_alpha10_performance_release.py
+          python scripts/apply_alpha10_performance_release.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('reports/FINAL_AUDIT_REPORT.md')
+          text = path.read_text(encoding='utf-8')
+          old = 'The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.9` (`0.1.0a9` in PEP 440 form).'
+          new = 'The current source, Python package, Skill manifest, citation, capability matrix, CI archive names, report index and Wheel metadata now identify `0.1.0-alpha.10` (`0.1.0a10` in PEP 440 form).'
+          if text.count(old) != 1:
+              raise SystemExit('alpha9 release-identity paragraph was not found exactly once')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Measure alpha10 and publish deterministic README table
+        run: |
+          python scripts/benchmark_performance.py --repeats 9 --output reports/PERFORMANCE_OPTIMIZED_ALPHA10.json
+          python scripts/compare_performance.py \
+            --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
+            --current reports/PERFORMANCE_OPTIMIZED_ALPHA10.json \
+            --output reports/PERFORMANCE_COMPARISON_ALPHA10.json
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+      - name: Remove one-time sources from the qualified worktree
+        run: |
+          rm scripts/apply_alpha10_performance_release.py
+          rm .github/workflows/performance-baseline-once.yml
+          rm .github/workflows/performance-qualification-once.yml
+          rm .github/workflows/performance-diagnostic-once.yml
+          rm .github/workflows/performance-probe-once.yml
+          rm .github/workflows/finalize-alpha10-performance-once.yml
+      - name: Rebuild deterministic graphics and source identity
+        run: |
+          python scripts/generate_readme_assets.py
+          python scripts/generate_extended_readme_assets.py
+          python scripts/generate_decision_readme_assets.py
+          git diff --exit-code -- docs/assets/readme
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+      - name: Complete source qualification
+        run: |
+          python scripts/run_ci.py
+          python -m tsao.skillpacks --root .
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+      - name: Build and verify alpha10 Wheel
+        run: |
+          rm -rf wheelhouse build dist
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+      - name: Final command checks
+        run: |
+          python -c "import tsao; assert tsao.__version__ == '0.1.0-alpha.10'"
+          python -m tsao.cli doctor --root . --profile core
+          python -m tsao.skillpacks --root .
+          python -m tsao.cli package template --family "continuous chemical process"
+          python -m tsao.cli epdm model-suite --temperature-k 323.15 --residence-s 300
+      - name: Commit verified non-workflow content
+        run: |
+          git checkout -- .github/workflows
+          rm -rf wheelhouse build dist
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset -- .github/workflows
+          git commit -m "release: stage 0.1.0-alpha.10 performance convergence [FINALIZE-ALPHA10]"
+          git push origin HEAD:main
