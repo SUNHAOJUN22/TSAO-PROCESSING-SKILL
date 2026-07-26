@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import os
 from pathlib import Path
 from typing import Any
 
@@ -42,12 +43,18 @@ def canonical_bytes(path: Path) -> bytes:
     return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
+def canonical_identity(path: Path) -> tuple[str, int]:
+    """Return SHA-256 and canonical byte count after one file read."""
+    data = canonical_bytes(path)
+    return hashlib.sha256(data).hexdigest(), len(data)
+
+
 def sha256_file(path: Path) -> str:
-    return hashlib.sha256(canonical_bytes(path)).hexdigest()
+    return canonical_identity(path)[0]
 
 
 def canonical_size(path: Path) -> int:
-    return len(canonical_bytes(path))
+    return canonical_identity(path)[1]
 
 
 def classify_path(relative: str) -> tuple[str, str, str]:
@@ -72,22 +79,36 @@ def _generated_part(part: str) -> bool:
     return part in _EXCLUDED_PARTS or part.endswith(".egg-info")
 
 
-def iter_source_files(root: Path):
-    root = Path(root)
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.is_symlink():
+def _excluded_relative(relative: str) -> bool:
+    return (
+        relative in _SELF_MANIFESTS
+        or relative in _EXCLUDED_FILES
+        or relative.startswith(_EXCLUDED_PREFIXES)
+    )
+
+
+def _walk_source_entries(root: Path, directory: Path):
+    with os.scandir(directory) as entries:
+        ordered = sorted(entries, key=lambda entry: entry.name)
+    for entry in ordered:
+        path = Path(entry.path)
+        if entry.is_symlink():
             continue
         relative_path = path.relative_to(root)
         relative = relative_path.as_posix()
-        if any(_generated_part(part) for part in relative_path.parts):
-            continue
-        if (
-            relative in _SELF_MANIFESTS
-            or relative in _EXCLUDED_FILES
-            or relative.startswith(_EXCLUDED_PREFIXES)
-        ):
-            continue
-        yield path, relative
+        if entry.is_dir(follow_symlinks=False):
+            if _generated_part(entry.name) or any(
+                (relative + "/").startswith(prefix) for prefix in _EXCLUDED_PREFIXES
+            ):
+                continue
+            yield from _walk_source_entries(root, path)
+        elif entry.is_file(follow_symlinks=False) and not _excluded_relative(relative):
+            yield path, relative
+
+
+def iter_source_files(root: Path):
+    root = Path(root)
+    yield from _walk_source_entries(root, root)
 
 
 def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None = None) -> int:
@@ -98,11 +119,12 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
         if allowed_paths is not None and relative not in allowed_paths:
             continue
         specialist, artifact_class, license_scope = classify_path(relative)
+        digest, size = canonical_identity(path)
         rows.append(
             {
                 "path": relative,
-                "sha256": sha256_file(path),
-                "bytes": canonical_size(path),
+                "sha256": digest,
+                "bytes": size,
                 "specialist": specialist,
                 "artifact_class": artifact_class,
                 "license_scope": license_scope,
@@ -162,9 +184,10 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
             except ValueError:
                 issues.append(f"manifest row {row_number}: invalid byte count")
                 continue
-            if canonical_size(path) != expected_size:
+            digest, size = canonical_identity(path)
+            if size != expected_size:
                 issues.append(f"manifest row {row_number}: size mismatch {relative}")
-            if sha256_file(path) != (row.get("sha256") or "").strip():
+            if digest != (row.get("sha256") or "").strip():
                 issues.append(f"manifest row {row_number}: hash mismatch {relative}")
     if not seen:
         issues.append("source manifest contains no file records")
