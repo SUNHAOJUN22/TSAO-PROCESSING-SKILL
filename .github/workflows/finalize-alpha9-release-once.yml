@@ -1,5 +1,5 @@
 name: Finalize alpha9 release identity once
-# Clean rerun after diagnostic artifact removal.
+# Latest clean run supersedes stale queued attempts.
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: tsao-finalize-alpha9-release-once
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   matrix-qualification:
