@@ -1,7 +1,7 @@
 # TSAO 工艺智能操作系统
 
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.11%2B-2563eb)](pyproject.toml)
+[![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
 [![Status](https://img.shields.io/badge/status-alpha.8-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
@@ -20,7 +20,7 @@
 | `poe` | P0/P1 参考内核和 139 项历史资产受控谱系 | 具有明确证据边界的专业 Alpha |
 | `polymer-general` | 通用证据、衡算、DoE、规划和放大工具 | 通用规划工具，不是合格产品配方 |
 
-源码检出与安装后的 Wheel 现在暴露同一套四 Skill 清单：
+源码检出和安装后的 Wheel 暴露同一套 Skill 清单：
 
 ```bash
 python -m tsao.skillpacks --root .
@@ -28,13 +28,13 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-若四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或至少 12 幅 README 图中缺少任何一项，清单检查都会失败关闭。
+四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或至少 16 幅 README 图中缺少任何一项，库存检查都会失败关闭。
 
 ![通用工艺包生命周期](docs/assets/readme/universal-process-package.svg)
 
 ## 通用工艺包平台
 
-通用路线把工艺包视为相互约束的工程系统，而不是若干孤立文档。覆盖化学、测量、热力学、反应器、传递、分离、循环、公用工程、设备、控制、异常工况、HSE、放大、TEA/LCA 和验收；同一合同还可扩展到聚合物、生物过程、电化学、固体/结晶、精细间歇和石油化工。
+通用路线把工艺包视为相互约束的工程系统，覆盖化学、测量、热力学、反应器、传递、分离、循环、公用工程、设备、控制、异常工况、HSE、放大、TEA/LCA 和验收；同一合同可扩展到聚合物、生物过程、电化学、固体/结晶、精细间歇和石油化工。
 
 ![分层工艺包架构](docs/assets/readme/process-package-architecture.svg)
 
@@ -54,6 +54,14 @@ tsao-skillpacks
 ```
 
 未知或证据不足的结论必须输出 `HOLD` 或 `FAIL`，不得被静默提升为 `PASS`。
+
+### 控制、安全与模拟器中立接口
+
+![控制、联锁与过程安全链](docs/assets/readme/control-safety-cause-effect.svg)
+
+![模拟器中立集成合同](docs/assets/readme/simulation-integration-contract.svg)
+
+平台结构化管理报警、联锁、Cause & Effect、异常响应以及 HAZID/HAZOP/LOPA/SIL 前置接口。Aspen Plus、Aspen HYSYS、DWSIM、自定义模型和 DCS/PLC 数据交换均受同一设计基础、证据台账和模型护照约束；模拟器收敛不等于技术资格。
 
 ## EPDM 旗舰专业路线
 
@@ -89,6 +97,14 @@ EPDM 在通用工艺包之上增加更深的“机理—结构—反应器—后
 ![EPDM 反应器模式决策图](docs/assets/readme/epdm-reactor-mode-map.svg)
 
 所有层级均输出 `CALCULATED_REFERENCE_ONLY`，不冒充已拟合动力学、商业热力学包、合格 CFD、设备设计、HAZOP/LOPA/SIL、客户认证或工业性能保证。
+
+### 参数可辨识性、不确定度与产品证据
+
+![EPDM 参数可辨识性与不确定度阶梯](docs/assets/readme/epdm-identifiability-uncertainty.svg)
+
+![EPDM 生胶到客户线证据桥](docs/assets/readme/epdm-product-customer-bridge.svg)
+
+参数必须区分为实测、估计、文献先验、干扰参数、结构固定或不可辨识。反应器结果若没有经过固定配方、混炼、硫化、部件和客户线证据，不得提升为耐久性或客户结论。
 
 ### 聚合、后处理与循环
 
@@ -147,6 +163,7 @@ python -m tsao.cli poe reference-demo
 ```bash
 python scripts/generate_readme_assets.py
 python scripts/generate_extended_readme_assets.py
+python scripts/generate_decision_readme_assets.py
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
@@ -156,12 +173,12 @@ python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
 python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 ```
 
-Wheel 现在有两道相互独立的质量门：
+Wheel 具有两道独立质量门：
 
-1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、示例和全部 12 幅图；
-2. **安装门：**真实执行 `pip install --target`，从安装目录导入代码，解析安装态 Skill 根，并运行通用工艺包、EPDM 和 POE 已知解检查。
+1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 16 幅图；
+2. **安装门：**真实执行 `pip install --target`，只从安装目录导入代码，解析安装态 Skill 根，审计两份安装态 README，并运行通用工艺包、EPDM 和 POE 已知解检查。
 
-CI 覆盖 Ubuntu/Python 3.11–3.12、Windows/Python 3.12 和 macOS/Python 3.12，检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。
+CI 覆盖 Ubuntu/Python 3.11–3.14，以及 Windows、macOS 的 Python 3.14；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。
 
 源文件清单属于发布身份：源文件变化若未同步刷新 `reports/SOURCE_CORE_MANIFEST.tsv`，仓库 Doctor 将按设计失败。
 
