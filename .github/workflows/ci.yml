@@ -48,6 +48,7 @@ jobs:
         run: python scripts/run_ci.py
       - name: Universal and EPDM package closure
         run: |
+          python -m tsao.skillpacks --root .
           python -m tsao.cli package template --family "generic process"
           python skills/epdm/scripts/audit_epdm.py
       - name: Explicit POE P0 closure
@@ -63,6 +64,7 @@ jobs:
       - name: CLI smoke
         run: |
           python -m tsao.cli doctor --root . --profile core
+          python -m tsao.skillpacks --root .
           python -m tsao.cli route "POE solution polymerization and solvent recovery"
           python -m tsao.cli package template --family "continuous chemical process"
           python -m tsao.cli epdm status
@@ -73,6 +75,14 @@ jobs:
           python -m tsao.cli poe audit-p0 --root .
           python -m tsao.cli poe audit-p1 --root .
           python -m tsao.cli poe reference-demo
+      - name: Upload qualification report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tsao-qualification-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}
+          path: reports/runtime/CI_RESULTS.json
+          if-no-files-found: warn
+          retention-days: 14
 
   source-snapshot:
     needs: qualification
