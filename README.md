@@ -1,54 +1,43 @@
 # TSAO Process Intelligence OS
 
-[![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
+[![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
 [![Status](https://img.shields.io/badge/status-alpha.8-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
-**A traceable, fail-closed operating system for building and auditing chemical-process packages. EPDM is the flagship specialist route; POE is the evidence-rich specialist route.**
+**A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the flagship specialist route; POE is the evidence-rich specialist route.**
 
 [简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md)
 
 ![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)
 
-## What TSAO is
+## One platform, three executable routes
 
-TSAO turns a process-development brief into a controlled project workspace, a machine-readable process package and an auditable evidence trail. It is designed to make missing evidence visible before assumptions propagate into equipment sizing, control, safety, customer or investment decisions.
-
-The repository currently provides three executable routes:
-
-| Route | Executable scope | Current boundary |
+| Route | What is executable now | Truthful boundary |
 |---|---|---|
-| `tsao package` | Universal design basis, streams, equipment, mass/energy balances, controls, HSE, evidence, acceptance and approval audit | Executable alpha framework; project-specific engineering remains to be supplied and approved |
-| `tsao epdm` | Active sites, E/P/diene kinetics, three-level models, architecture/gel risk, semibatch closure, heat/mixing, phase stability, recycle poison, devolatilization and process-package audit | Calculated reference layer; parameter fitting and industrial qualification are not bundled |
-| `tsao poe` | P0/P1 POE reference kernel, kinetics/properties/reactors/dynamics/scale-up and 139-asset evidence lineage | Evidence-rich specialist alpha; historical assets remain controlled evidence |
+| `tsao package` | design basis, streams, equipment, material/energy closure, controls, HSE, evidence, acceptance and approval audit | project data and qualified engineering remain external |
+| `tsao epdm` | active sites, E/P/diene kinetics, three model levels, architecture/gel risk, semibatch closure, heat/mixing, phase stability, recycle poison and devolatilization | transparent reference calculations, not industrial parameter certification |
+| `tsao poe` | P0/P1 scientific references and controlled lineage for 139 historical assets | specialist alpha with explicit evidence boundaries |
 
 ![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
 
 ## Universal process-package platform
 
-The general route covers the recurring structure of a process package rather than hard-coding one technology. Fourteen process-general modules and six workflows span:
-
-- chemistry and reaction basis, measurement/data quality and thermodynamic method selection;
-- reactors, transport, separation, recycle, utilities and material/energy closure;
-- equipment records, process control, operability, abnormal scenarios and HSE;
-- scale-up/pilot logic, TEA/LCA/supply interfaces and package acceptance;
-- bioprocess, electrochemical, solids/crystallization, fine-batch and petrochemical extensions;
-- evidence IDs, status gates, approval records and deterministic delivery archives.
+The general route models a process package as a connected engineering system rather than a document bundle. Fourteen process modules and six workflows cover chemistry, measurements, thermodynamics, reactors, transport, separation, recycle, utilities, equipment, control, abnormal cases, HSE, scale-up, TEA/LCA and acceptance.
 
 ![Layered process-package architecture](docs/assets/readme/process-package-architecture.svg)
 
-### Process-package object model
+### Connected data model
 
-A package is audited as a connected system, not a stack of unrelated documents:
+![Universal process-package data model](docs/assets/readme/process-package-data-model.svg)
 
 ```text
 design basis
   ├─ streams and components
   ├─ equipment and operating envelopes
-  ├─ mass / energy balances
+  ├─ mass / component / energy balances
   ├─ thermodynamic and model basis
-  ├─ control / interlock / abnormal cases
+  ├─ controls / alarms / interlocks / abnormal cases
   ├─ HSE and acceptance requirements
   └─ evidence ledger and named approvals
 ```
@@ -57,9 +46,13 @@ Unknown or unsupported claims produce `HOLD` or `FAIL`; they are never silently 
 
 ## EPDM flagship specialist
 
-EPDM adds a deeper mechanism-to-process chain on top of the universal package.
+EPDM adds a deeper mechanism-to-package chain on top of the universal platform.
 
 ![EPDM multiscale chain](docs/assets/readme/epdm-multiscale-chain.svg)
+
+### Catalyst and kinetic network
+
+![EPDM catalyst-to-architecture network](docs/assets/readme/epdm-catalyst-kinetics-network.svg)
 
 The mandatory chain is:
 
@@ -78,27 +71,23 @@ application / CQA
 
 ![Three EPDM model levels](docs/assets/readme/epdm-three-level-models.svg)
 
-| Level | Implemented reference calculations | Appropriate use |
+| Level | Implemented reference calculations | Use |
 |---|---|---|
-| 1 — screening | active-site normalization, ternary insertion/transfer/deactivation, insertion fractions, pseudo-first-order conversion | rapid ranking and input sanity checks |
-| 2 — engineering | Arrhenius temperature adjustment, residence-time conversion, conservative semibatch material/energy step, heat-removal margin, mixing Reynolds number, recycle-poison closure, devolatilization Damköhler number | flowsheet studies and experiment planning with explicit assumptions |
-| 3 — detailed reference | heterogeneous site families, chain moments/dispersity reference, branch/gel risk, Flory–Huggins spinodal margin and heat-transfer entropy generation | deciding whether higher-fidelity PBM/CFD/EOS work is justified |
+| 1 — screening | active-site normalization, ternary propagation/transfer/deactivation, insertion fractions, rapid conversions | ranking and input checks |
+| 2 — engineering | Arrhenius adjustment, residence-time conversion, conservative semibatch material/energy step, heat/mixing, recycle poison and devolatilization Damköhler number | flowsheet studies and experiment planning |
+| 3 — detailed reference | heterogeneous site families, chain moments/dispersity, branching/gel, Flory–Huggins stability and heat-transfer entropy generation | deciding whether PBM/CFD/EOS work is justified |
 
-All three layers return `CALCULATED_REFERENCE_ONLY`. They do **not** claim fitted kinetics, licensed thermodynamics, qualified CFD, equipment design, HAZOP/LOPA/SIL approval, customer qualification or an industrial performance guarantee.
+![EPDM reactor-mode decision map](docs/assets/readme/epdm-reactor-mode-map.svg)
 
-### EPDM process-package map
+Every level returns `CALCULATED_REFERENCE_ONLY`. It does not claim fitted kinetics, licensed thermodynamics, qualified CFD, equipment design, HAZOP/LOPA/SIL approval, customer qualification or an industrial guarantee.
+
+### Process, finishing and recycle
 
 ![EPDM process-package reference flowsheet](docs/assets/readme/epdm-process-flowsheet.svg)
 
-The executable EPDM audit is fail-closed when any of the following remain open:
+![EPDM recovery, recycle and impurity-risk loop](docs/assets/readme/recovery-recycle-risk-loop.svg)
 
-- the industrial catalyst benchmark is absent without an approved retirement record;
-- active-site concentration or diene topology lacks evidence;
-- heat-removal, high-viscosity mixing or polymer-solution phase stability is unqualified;
-- recycle impurity/poison accumulation has no finite closure;
-- devolatilization is represented without a non-equilibrium basis;
-- the product bridge from raw polymer to customer line is incomplete;
-- referenced EPDM evidence IDs are missing from the package ledger.
+The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.
 
 ## Install and run
 
@@ -106,25 +95,18 @@ The executable EPDM audit is fail-closed when any of the following remain open:
 git clone https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL.git
 cd TSAO-PROCESSING-SKILL
 python -m pip install -e .[dev]
-```
-
-### Repository and source-identity check
-
-```bash
 python -m tsao.cli doctor --root . --profile core
 ```
 
-### Create and audit a generic process workspace
+### Generic process package
 
 ```bash
-python -m tsao.cli init \
-  --brief examples/generic-process/brief.yaml \
-  --out work/demo
+python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
 python -m tsao.cli audit --root work/demo
 python -m tsao.cli package template --family "continuous chemical process"
 ```
 
-### Run EPDM references
+### EPDM
 
 ```bash
 python -m tsao.cli epdm status
@@ -133,9 +115,7 @@ python -m tsao.cli epdm model-suite --temperature-k 323.15 --residence-s 300
 python -m tsao.cli epdm audit
 ```
 
-`model-suite` emits the three kinetic levels, a conservative semibatch step, molar-closure residual, phase-stability margin, devolatilization Damköhler number and irreversible heat-transfer entropy generation.
-
-### Run POE references
+### POE
 
 ```bash
 python -m tsao.cli poe status --root .
@@ -144,27 +124,19 @@ python -m tsao.cli poe audit-p1 --root .
 python -m tsao.cli poe reference-demo
 ```
 
-## Evidence and gates
+## Evidence and qualification
 
 ![Evidence and qualification gates](docs/assets/readme/evidence-gate-system.svg)
 
-Every decision-facing result should retain:
-
-1. the source or dataset ID;
-2. measurement/model conditions and units;
-3. the equation, method and validity boundary;
-4. assumptions, uncertainty and conflict records;
-5. current gate status and named approver where approval exists.
-
-A software test can establish that code behaves as specified. It cannot establish that chemistry, equipment, safety, customer performance or plant economics are correct for a real project.
+Decision-facing results retain source IDs, conditions, units, method boundaries, assumptions, uncertainty, conflicts and the current Gate. Software tests establish software behavior only; they do not approve chemistry, equipment, safety, customer performance or plant economics.
 
 ## Verification
 
 ![Verification pipeline](docs/assets/readme/verification-pipeline.svg)
 
-Run the integrated local qualification:
-
 ```bash
+python scripts/generate_readme_assets.py
+python scripts/generate_extended_readme_assets.py
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
@@ -174,46 +146,35 @@ python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
 python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 ```
 
-The CI workflow executes on Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, wheel members, installed runtime, CLI smoke and deterministic README graphics.
+CI covers Ubuntu/Python 3.11–3.12, Windows/Python 3.12 and macOS/Python 3.12. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, installed runtime and CLI smoke.
 
-The source manifest is part of release identity: changing a source file without rebuilding `reports/SOURCE_CORE_MANIFEST.tsv` is designed to fail the repository doctor.
+The source manifest is part of release identity: a source change without the matching `reports/SOURCE_CORE_MANIFEST.tsv` update is designed to fail the repository doctor.
 
 ## Repository map
 
 ```text
 tsao/                       universal executable core and CLI
-skills/process-general/     fourteen general process modules and workflows
+skills/process-general/     general process modules and workflows
 skills/epdm/                flagship EPDM calculations, contracts and audits
 skills/poe/                 POE specialist and controlled evidence lineage
 skills/polymer-general/     reusable polymer planning and balance tools
-schemas/                    cross-project contracts
-examples/                   reproducible starter briefs
+schemas/                    machine-readable cross-project contracts
 scripts/                    CI, provenance, packaging and graphics generation
-docs/assets/readme/         original repository-owned AI-generated SVG diagrams
+docs/assets/readme/         deterministic repository-owned SVG diagrams
 reports/                    qualification, lineage and consolidation records
 tests/                      repository, security, schema and integration tests
-```
-
-Regenerate the documentation graphics deterministically with:
-
-```bash
-python scripts/generate_readme_assets.py
 ```
 
 ## Status language
 
 | Status | Meaning |
 |---|---|
-| `PASS` | The declared software or evidence gate is satisfied |
-| `HOLD` | Required evidence, qualification or approval is incomplete |
-| `FAIL` | A schema, invariant, balance, reference or integrity rule is violated |
-| `NOT_EVALUATED` | No qualified conclusion has been made |
-| `CALCULATED_REFERENCE_ONLY` | A transparent example calculation, not a fitted or approved design result |
+| `PASS` | declared software or evidence Gate is satisfied |
+| `HOLD` | required evidence, qualification or approval is incomplete |
+| `FAIL` | schema, balance, invariant, reference or integrity rule is violated |
+| `NOT_EVALUATED` | no qualified conclusion has been made |
+| `CALCULATED_REFERENCE_ONLY` | transparent calculation, not a fitted or approved design result |
 
-## Branch policy
+## Branch and responsibility policy
 
-`main` is the sole authoritative branch. Repository consolidation history is recorded in `reports/BRANCH_CONSOLIDATION_2026-07-23.md`. New development should preserve source identity, tests and evidence boundaries rather than creating parallel “more complete” lines that silently diverge.
-
-## License and responsibility boundary
-
-The code is licensed under Apache-2.0. Use of this repository does not replace qualified process engineering, laboratory work, equipment design, relief design, HAZOP/LOPA/SIL, legal review, environmental permitting, customer trials or operating approval.
+`main` is the sole authoritative branch. The consolidation record is in [reports/BRANCH_CONSOLIDATION_2026-07-23.md](reports/BRANCH_CONSOLIDATION_2026-07-23.md). This repository does not replace qualified process engineering, laboratory work, equipment/relief design, HAZOP/LOPA/SIL, legal review, environmental permitting, customer trials or operating approval.
