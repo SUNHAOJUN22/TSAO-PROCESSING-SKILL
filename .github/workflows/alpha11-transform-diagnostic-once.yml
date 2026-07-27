@@ -3,6 +3,12 @@ name: Promote alpha11 performance release once
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '*/10 * * * *'
+
+concurrency:
+  group: tsao-alpha11-performance-promotion
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -10,7 +16,7 @@ permissions:
 
 jobs:
   promote:
-    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-ALPHA11]') }}
+    if: ${{ github.event_name == 'schedule' || contains(github.event.head_commit.message, '[FINALIZE-ALPHA11]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -33,9 +39,53 @@ jobs:
         run: |
           set -euo pipefail
           ORCHESTRATION_SHA="$(git rev-parse HEAD)"; export ORCHESTRATION_SHA
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          promotion_failure() {
+            local status="$?"
+            local failed_command="${BASH_COMMAND}"
+            local failed_line="${BASH_LINENO[0]:-${LINENO}}"
+            trap - ERR
+            set +e
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports
+            {
+              printf 'status=FAIL\n'
+              printf 'audit_baseline=%s\n' "${AUDIT_BASE_SHA}"
+              printf 'orchestration_commit=%s\n' "${ORCHESTRATION_SHA}"
+              printf 'workflow_run_id=%s\n' "${GITHUB_RUN_ID}"
+              printf 'workflow_run_attempt=%s\n' "${GITHUB_RUN_ATTEMPT}"
+              printf 'failed_line=%s\n' "${failed_line}"
+              printf 'failed_command=%s\n' "${failed_command}"
+              printf 'exit_status=%s\n' "${status}"
+              printf 'recorded_utc=%s\n' "$(date -u +%FT%TZ)"
+            } > reports/ALPHA11_PROMOTION_FAILURE.txt
+            git add reports/ALPHA11_PROMOTION_FAILURE.txt
+            git commit -m 'diagnostic: capture alpha11 promotion failure [skip ci]'
+            git push origin HEAD:main
+            exit "${status}"
+          }
+          trap promotion_failure ERR
+
+          mkdir -p reports
+          {
+            printf 'status=RUNNING\n'
+            printf 'audit_baseline=%s\n' "${AUDIT_BASE_SHA}"
+            printf 'orchestration_commit=%s\n' "${ORCHESTRATION_SHA}"
+            printf 'workflow_run_id=%s\n' "${GITHUB_RUN_ID}"
+            printf 'workflow_run_attempt=%s\n' "${GITHUB_RUN_ATTEMPT}"
+            printf 'started_utc=%s\n' "$(date -u +%FT%TZ)"
+          } > reports/ALPHA11_PROMOTION_HEARTBEAT.txt
+          git add reports/ALPHA11_PROMOTION_HEARTBEAT.txt
+          git commit -m 'chore: record alpha11 promotion heartbeat [skip ci]' || true
+          git push origin HEAD:main
+
           cp scripts/finalize_alpha11_once.py /tmp/finalize_alpha11_once.py
           python -m pip install --quiet -e '.[dev]'
           python /tmp/finalize_alpha11_once.py prepare
+          rm -f reports/ALPHA11_PROMOTION_HEARTBEAT.txt reports/ALPHA11_PROMOTION_FAILURE.txt
 
           python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
           python scripts/generate_readme_assets.py
@@ -84,12 +134,12 @@ jobs:
           git diff --check
           test "$(find .github/workflows -maxdepth 1 -type f -name '*.yml' | wc -l)" -eq 1
           test ! -e scripts/finalize_alpha11_once.py
+          test ! -e reports/ALPHA11_PROMOTION_HEARTBEAT.txt
+          test ! -e reports/ALPHA11_PROMOTION_FAILURE.txt
           test -z "$(find reports -maxdepth 1 -type f \( -name '*CANDIDATE*' -o -name '*DIAGNOSTIC*' -o -name 'PERFORMANCE_V2_*' \) -print)"
           rm -rf build dist wheelhouse ./*.egg-info
           find reports/runtime -maxdepth 1 -type f ! -name README.md -delete
 
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'release(perf): promote 0.1.0-alpha.11 with measured qualification'
           CANDIDATE_SHA="$(git rev-parse HEAD)"; export CANDIDATE_SHA
@@ -133,6 +183,7 @@ jobs:
           cat > reports/runtime/ALPHA11_PROMOTION_WORKFLOW.json <<JSON
           {"audit_baseline":"${AUDIT_BASE_SHA}","orchestration_commit":"${ORCHESTRATION_SHA}","candidate_commit":"${CANDIDATE_SHA}","candidate_run_id":${CANDIDATE_RUN_ID},"candidate_run_url":"${CANDIDATE_RUN_URL}","final_commit":"${FINAL_SHA}","final_run_id":${QUAL_RUN_ID},"final_run_url":"${QUAL_RUN_URL}","status":"PASS"}
           JSON
+          trap - ERR
       - name: Upload promotion evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
