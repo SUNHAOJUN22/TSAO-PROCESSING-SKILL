@@ -89,6 +89,7 @@ jobs:
 
           cp scripts/finalize_alpha11_once.py /tmp/finalize_alpha11_once.py
           python -m pip install --quiet -e '.[dev]'
+          python scripts/normalize_alpha11_transform_once.py normalize
           set +e
           python /tmp/finalize_alpha11_once.py prepare 2>&1 | tee /tmp/alpha11-prepare.log
           prepare_status=${PIPESTATUS[0]}
@@ -96,6 +97,8 @@ jobs:
           if [[ ${prepare_status} -ne 0 ]]; then
             false
           fi
+          python scripts/normalize_alpha11_transform_once.py restore
+          rm -f scripts/normalize_alpha11_transform_once.py
           rm -f reports/ALPHA11_PROMOTION_HEARTBEAT.txt reports/ALPHA11_PROMOTION_FAILURE.txt
 
           python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
@@ -145,6 +148,7 @@ jobs:
           git diff --check
           test "$(find .github/workflows -maxdepth 1 -type f -name '*.yml' | wc -l)" -eq 1
           test ! -e scripts/finalize_alpha11_once.py
+          test ! -e scripts/normalize_alpha11_transform_once.py
           test ! -e reports/ALPHA11_PROMOTION_HEARTBEAT.txt
           test ! -e reports/ALPHA11_PROMOTION_FAILURE.txt
           test -z "$(find reports -maxdepth 1 -type f \( -name '*CANDIDATE*' -o -name '*DIAGNOSTIC*' -o -name 'PERFORMANCE_V2_*' \) -print)"
