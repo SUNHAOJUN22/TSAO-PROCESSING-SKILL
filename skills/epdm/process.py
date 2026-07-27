@@ -241,12 +241,8 @@ def _semibatch_step_kernel(
         feed.ethylene_mol_s + feed.propylene_mol_s + feed.diene_mol_s
     )
     monomer_before = inventory.ethylene_mol + inventory.propylene_mol + inventory.diene_mol
-    closure = (
-        monomer_before
-        + feed_total
-        - (ethylene_remaining + propylene_remaining + diene_remaining)
-        - polymer_increment
-    )
+    remaining_total = sum((ethylene_remaining, propylene_remaining, diene_remaining))
+    closure = monomer_before + feed_total - remaining_total - polymer_increment
     next_inventory = SemibatchInventory(
         volume,
         ethylene_remaining,
