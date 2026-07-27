@@ -1,5 +1,5 @@
 name: Probe performance v2 optimized paths once
-# Triggered once for focused speed and peak-memory evidence.
+# Rerun after restoring alpha10 compensated semibatch closure summation.
 
 on:
   push:
