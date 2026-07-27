@@ -6,6 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "docs/CAPABILITY_MATRIX.md"
+COMPARE = ROOT / "scripts/compare_performance_v2.py"
+PATCH_HELPER = ROOT / "scripts/patch_alpha11_compare_once.py"
 
 ADVANCED_ROW = "| README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, batch screening, uncertainty, reactor, process and customer bridge | represented in platform/evidence/performance views | represented in four-Skill delivery | 18 deterministic SVGs, persisted Scientific Midnight Bento design system, WCAG contrast, explicit title/desc, 12px minimum text, no external resources, bilingual parity and XML accessibility tests |\n"
 LEGACY_ROW = "| README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, uncertainty, reactor, process and customer bridge | represented in platform/evidence views | represented in four-Skill delivery | 16 deterministic SVGs, bilingual parity and XML tests |\n"
@@ -17,6 +19,24 @@ GENERATED_BLOCK = (
 COMPUTE_ROW = "| Computational efficiency | validated numerics reused in balance loops | vectorized batch screening, site-family and semibatch fast paths | POE RK4, terminal-only, fitting and linear settling analysis | reusable scripts unchanged | exact/tolerance/semantic parity + timing, memory and scale Gates |\n"
 PERFORMANCE_ROW = "| Performance regression | package-scale non-regression | batch/trajectory speed and parity | RK4 speed and terminal memory | inherited | frozen baseline, median timing, peak memory, three tenfold scale checks and fail-closed comparison |\n"
 SOURCE_CI_ROW = "| Source/CI efficiency | one-read canonical identity and pruned walk | inherited | inherited | inherited | Doctor scan reuse; independent audits run in parallel after coverage |\n"
+OLD_POLICIES = '''PARITY_POLICIES = {
+    "doctor_core_repository": "repository semantic contract: PASS and approval boundaries",
+    "wheel_content_verification": "wheel semantic contract: identity and required-member tests",
+    "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
+    "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
+}
+'''
+NEW_POLICIES = '''PARITY_POLICIES = {
+    "doctor_core_repository": "repository semantic contract: PASS and approval boundaries",
+    "skillpack_inventory": (
+        "skillpack semantic contract: four Skills, 14/6/6 inventory, "
+        "README assets and approval boundaries"
+    ),
+    "wheel_content_verification": "wheel semantic contract: identity and required-member tests",
+    "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
+    "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
+}
+'''
 
 
 def normalize(text: str) -> str:
@@ -35,8 +55,16 @@ def restore(text: str) -> str:
     text = text.replace(GENERATED_BLOCK, ADVANCED_ROW, 1)
     if SOURCE_CI_ROW not in text:
         raise SystemExit("capability matrix Source/CI anchor was not found")
-    text = text.replace(SOURCE_CI_ROW, COMPUTE_ROW + PERFORMANCE_ROW + SOURCE_CI_ROW, 1)
-    return text
+    return text.replace(SOURCE_CI_ROW, COMPUTE_ROW + PERFORMANCE_ROW + SOURCE_CI_ROW, 1)
+
+
+def patch_compare() -> None:
+    text = COMPARE.read_text(encoding="utf-8")
+    if NEW_POLICIES not in text:
+        if text.count(OLD_POLICIES) != 1:
+            raise SystemExit("performance comparison parity-policy block changed unexpectedly")
+        COMPARE.write_text(text.replace(OLD_POLICIES, NEW_POLICIES, 1), encoding="utf-8")
+    PATCH_HELPER.unlink(missing_ok=True)
 
 
 def main() -> int:
@@ -46,6 +74,7 @@ def main() -> int:
         text = normalize(text)
     elif mode == "restore":
         text = restore(text)
+        patch_compare()
     else:
         raise SystemExit(f"unknown mode: {mode}")
     MATRIX.write_text(text, encoding="utf-8")
