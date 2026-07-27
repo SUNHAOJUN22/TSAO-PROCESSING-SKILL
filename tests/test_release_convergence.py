@@ -53,6 +53,7 @@ def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
     assert "18 deterministic svg" in matrix
     assert "batch screening" in matrix
     assert "performance regression" in matrix
+    assert "scientific midnight bento" in matrix
 
 
 def test_runtime_verifier_covers_isolated_install_schemes() -> None:
@@ -85,12 +86,13 @@ def test_readmes_explain_isolated_standard_installation() -> None:
 
 def test_installed_readme_support_files_are_packaged() -> None:
     pyproject_text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert (ROOT / "docs/README_VISUAL_SYSTEM.md").is_file()
     for required in (
         '"pyproject.toml"',
         '"share/tsao-processing-skill/reports"',
         '"share/tsao-processing-skill/scripts"',
         '"reports/QUALIFICATION_BOUNDARY.md"',
         '"reports/BRANCH_CONSOLIDATION_2026-07-23.md"',
-        '"docs/README_VISUAL_SYSTEM.md"',
+        '"docs/*.md"',
     ):
         assert required in pyproject_text
