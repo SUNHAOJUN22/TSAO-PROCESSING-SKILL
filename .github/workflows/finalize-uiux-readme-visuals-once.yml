@@ -1,4 +1,5 @@
 name: Finalize UIUX README visuals once
+# Final run after persisting the UI/UX Pro Max-aligned visual system.
 
 on:
   push:
