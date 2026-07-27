@@ -71,6 +71,9 @@ def main() -> int:
 
     repository_test = ROOT / "tests/test_repository_contracts.py"
     text = repository_test.read_text(encoding="utf-8")
+    duplicate = '    "skills/epdm/core.py",\n    "skills/epdm/core.py",\n'
+    if duplicate in text:
+        text = text.replace(duplicate, '    "skills/epdm/core.py",\n', 1)
     required = (
         '    "scripts/verify_wheel_runtime.py",\n',
         '    "scripts/verify_wheel_runtime.py",\n'
@@ -81,7 +84,8 @@ def main() -> int:
     if required[1] not in text:
         if text.count(required[0]) != 1:
             raise SystemExit("repository required-path anchor is not unique")
-        repository_test.write_text(text.replace(required[0], required[1], 1), encoding="utf-8")
+        text = text.replace(required[0], required[1], 1)
+    repository_test.write_text(text, encoding="utf-8")
 
     print("applied eighteen-diagram UI/UX visual delivery contract")
     return 0
