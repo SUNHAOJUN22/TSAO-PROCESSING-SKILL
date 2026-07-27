@@ -81,7 +81,7 @@ def test_immutable_release_identities_are_packaged() -> None:
         assert f'/{relative}' in verifier
 
 
-def test_current_release_docs_and_ci_are_alpha10() -> None:
+def test_current_alpha10_source_uses_staged_alpha11_qualification_pipeline() -> None:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     reports_index = (ROOT / "reports/README.md").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -92,13 +92,13 @@ def test_current_release_docs_and_ci_are_alpha10() -> None:
     assert changelog.index("## 0.1.0-alpha.10") < changelog.index("## 0.1.0-alpha.9")
     assert "Current alpha.10 identities" in reports_index
     assert "ALPHA10_SOURCE_CORE_STATUS.json" in reports_index
-    assert "name: TSAO alpha10 qualification" in workflow
-    assert "[FINALIZE-ALPHA10]" in workflow
-    assert "source-alpha.10.zip" in workflow
-    assert "tsao-source-alpha10-" in workflow
-    assert "performance-regression" not in workflow.casefold()
-    assert "benchmark_performance.py" in workflow
-    assert "compare_performance.py" in workflow
+    assert "name: TSAO alpha11 qualification" in workflow
+    assert "[FINALIZE-ALPHA11]" in workflow
+    assert "source-alpha.11.zip" in workflow
+    assert "tsao-source-alpha11-" in workflow
+    assert "benchmark_performance_v2.py" in workflow
+    assert "compare_performance_v2.py" in workflow
+    assert "generate_uiux_readme_assets.py" in workflow
     assert "status-alpha.10" in readme
     assert "status-alpha.10" in readme_zh
     assert "PERFORMANCE_RESULTS_START" in readme
