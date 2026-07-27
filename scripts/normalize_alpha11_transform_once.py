@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "docs/CAPABILITY_MATRIX.md"
 COMPARE = ROOT / "scripts/compare_performance_v2.py"
+UIUX = ROOT / "scripts/generate_uiux_readme_assets.py"
+PERFORMANCE_ASSETS = ROOT / "scripts/generate_performance_readme_assets.py"
 PATCH_HELPER = ROOT / "scripts/patch_alpha11_compare_once.py"
 
 ADVANCED_ROW = "| README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, batch screening, uncertainty, reactor, process and customer bridge | represented in platform/evidence/performance views | represented in four-Skill delivery | 18 deterministic SVGs, persisted Scientific Midnight Bento design system, WCAG contrast, explicit title/desc, 12px minimum text, no external resources, bilingual parity and XML accessibility tests |\n"
@@ -36,6 +38,38 @@ NEW_POLICIES = '''PARITY_POLICIES = {
     "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
     "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
 }
+'''
+PERFORMANCE_GENERATOR = '''from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.generate_uiux_readme_assets import (  # noqa: E402
+    OUT,
+    render_batch_scan,
+    render_perf_gate,
+)
+
+ASSETS = {
+    "batch-parameter-scan.svg": render_batch_scan,
+    "performance-regression-gate.svg": render_perf_gate,
+}
+
+
+def main() -> int:
+    OUT.mkdir(parents=True, exist_ok=True)
+    for name, builder in ASSETS.items():
+        (OUT / name).write_text(builder(), encoding="utf-8")
+    print(f"generated {len(ASSETS)} performance README assets in {OUT}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 '''
 
 
@@ -67,6 +101,17 @@ def patch_compare() -> None:
     PATCH_HELPER.unlink(missing_ok=True)
 
 
+def patch_visual_generators() -> None:
+    text = UIUX.read_text(encoding="utf-8")
+    old = '_text(1089, 335, "10.46×", size=25, fill=TEXT, weight=850, anchor="middle")'
+    new = '_text(1089, 335, "≥3× gate", size=22, fill=TEXT, weight=850, anchor="middle")'
+    if new not in text:
+        if text.count(old) != 1:
+            raise SystemExit("UIUX batch-speed label changed unexpectedly")
+        UIUX.write_text(text.replace(old, new, 1), encoding="utf-8")
+    PERFORMANCE_ASSETS.write_text(PERFORMANCE_GENERATOR, encoding="utf-8")
+
+
 def main() -> int:
     mode = sys.argv[1] if len(sys.argv) > 1 else "normalize"
     text = MATRIX.read_text(encoding="utf-8")
@@ -75,6 +120,7 @@ def main() -> int:
     elif mode == "restore":
         text = restore(text)
         patch_compare()
+        patch_visual_generators()
     else:
         raise SystemExit(f"unknown mode: {mode}")
     MATRIX.write_text(text, encoding="utf-8")
