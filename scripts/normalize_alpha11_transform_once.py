@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# One-shot compatibility bridge; deleted by the successful Alpha.11 promotion.
 import sys
 from pathlib import Path
 
