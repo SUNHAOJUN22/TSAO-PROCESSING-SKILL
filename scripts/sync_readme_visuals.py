@@ -15,6 +15,20 @@ def _replace_once(text: str, old: str, new: str, *, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+def _ensure_figure(
+    text: str,
+    *,
+    marker: str,
+    old: str,
+    new: str,
+    label: str,
+) -> str:
+    """Insert a governed local figure once while tolerating surrounding copy revisions."""
+    if marker in text:
+        return text
+    return _replace_once(text, old, new, label=label)
+
+
 def _english(text: str) -> str:
     text = _replace_once(
         text,
@@ -28,16 +42,18 @@ def _english(text: str) -> str:
         "The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 18 README diagrams are present.",
         label="English inventory",
     )
-    text = _replace_once(
+    text = _ensure_figure(
         text,
-        "The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.\n\n## Install and run",
-        "The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.\n\n### Batch scenario screening\n\n![EPDM batch parameter-scan data flow](docs/assets/readme/batch-parameter-scan.svg)\n\nBroadcast-compatible scenario arrays are validated once and retain explicit dimensions, numerical parity and the `CALCULATED_REFERENCE_ONLY` boundary.\n\n## Install and run",
+        marker="docs/assets/readme/batch-parameter-scan.svg",
+        old="The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.\n\n## Install and run",
+        new="The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.\n\n### Batch scenario screening\n\n![EPDM batch parameter-scan data flow](docs/assets/readme/batch-parameter-scan.svg)\n\nBroadcast-compatible scenario arrays are validated once and retain explicit dimensions, numerical parity and the `CALCULATED_REFERENCE_ONLY` boundary.\n\n## Install and run",
         label="English batch figure",
     )
-    text = _replace_once(
+    text = _ensure_figure(
         text,
-        "Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.\n\n```bash",
-        "Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.\n\n![Performance regression qualification gate](docs/assets/readme/performance-regression-gate.svg)\n\n```bash",
+        marker="docs/assets/readme/performance-regression-gate.svg",
+        old="Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.\n\n```bash",
+        new="Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.\n\n![Performance regression qualification gate](docs/assets/readme/performance-regression-gate.svg)\n\n```bash",
         label="English performance figure",
     )
     text = _replace_once(
@@ -68,16 +84,18 @@ def _chinese(text: str) -> str:
         "四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 18 幅 README 图中缺少任何一项，库存检查都会失败关闭。",
         label="Chinese inventory",
     )
-    text = _replace_once(
+    text = _ensure_figure(
         text,
-        "活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。\n\n## 安装与运行",
-        "活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。\n\n### 批量情景筛选\n\n![EPDM 批量参数扫描数据流](docs/assets/readme/batch-parameter-scan.svg)\n\n广播兼容的情景数组只在入口校验一次，同时保留明确维度、数值等价性和 `CALCULATED_REFERENCE_ONLY` 边界。\n\n## 安装与运行",
+        marker="docs/assets/readme/batch-parameter-scan.svg",
+        old="活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。\n\n## 安装与运行",
+        new="活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。\n\n### 批量情景筛选\n\n![EPDM 批量参数扫描数据流](docs/assets/readme/batch-parameter-scan.svg)\n\n广播兼容的情景数组只在入口校验一次，同时保留明确维度、数值等价性和 `CALCULATED_REFERENCE_ONLY` 边界。\n\n## 安装与运行",
         label="Chinese batch figure",
     )
-    text = _replace_once(
+    text = _ensure_figure(
         text,
-        "性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。\n\n```bash",
-        "性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。\n\n![性能回归资格门](docs/assets/readme/performance-regression-gate.svg)\n\n```bash",
+        marker="docs/assets/readme/performance-regression-gate.svg",
+        old="性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。\n\n```bash",
+        new="性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。\n\n![性能回归资格门](docs/assets/readme/performance-regression-gate.svg)\n\n```bash",
         label="Chinese performance figure",
     )
     text = _replace_once(
