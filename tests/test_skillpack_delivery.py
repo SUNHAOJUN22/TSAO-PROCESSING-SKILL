@@ -27,8 +27,8 @@ def test_source_checkout_skillpack_inventory_is_complete():
     assert inventory["process_general_workflows_expected"] == 6
     assert inventory["polymer_general_scripts_present"] == 6
     assert inventory["polymer_general_scripts_expected"] == 6
-    assert inventory["readme_svg_assets"] >= 16
-    assert inventory["readme_svg_assets_expected_minimum"] == 16
+    assert inventory["readme_svg_assets"] >= 18
+    assert inventory["readme_svg_assets_expected_minimum"] == 18
     assert inventory["scientific_technical_approval"] == "NOT_EVALUATED"
 
 
@@ -87,4 +87,4 @@ def test_skillpacks_module_reports_source_delivery():
     payload = json.loads(completed.stdout)
     assert payload["pass"] is True
     assert payload["delivery"] == "SOURCE_CHECKOUT"
-    assert payload["readme_svg_assets_expected_minimum"] == 16
+    assert payload["readme_svg_assets_expected_minimum"] == 18
