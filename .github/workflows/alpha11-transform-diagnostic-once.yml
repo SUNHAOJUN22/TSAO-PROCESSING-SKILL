@@ -1,4 +1,5 @@
 name: Diagnose alpha11 release transformation once
+# Triggered once before the final alpha11 promotion.
 
 on:
   push:
