@@ -1,0 +1,36 @@
+install=0
+Processing ./.
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: tsao-processing-skill
+  Building wheel for tsao-processing-skill (pyproject.toml): started
+  Building wheel for tsao-processing-skill (pyproject.toml): finished with status 'done'
+  Created wheel for tsao-processing-skill: filename=tsao_processing_skill-0.1.0a10-py3-none-any.whl size=504600 sha256=c7d256292abddc5cfa97863ccaa59fd68914c2c955786cb79747a951b09d63ea
+  Stored in directory: /home/runner/.cache/pip/wheels/4c/01/48/b3d13d995607b5b8e41ce2c652da12bae8e84ed0d83d133ae1
+Successfully built tsao-processing-skill
+wheel=0
+Traceback (most recent call last):
+  File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/benchmark_performance_v2.py", line 9, in <module>
+    from scripts.benchmark_performance import (
+    ...<8 lines>...
+    )
+ModuleNotFoundError: No module named 'scripts'
+benchmark=1
+Traceback (most recent call last):
+  File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/compare_performance_v2.py", line 270, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/compare_performance_v2.py", line 260, in main
+    result = compare_reports(_load(args.baseline), _load(args.current))
+                                                   ~~~~~^^^^^^^^^^^^^^
+  File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/compare_performance_v2.py", line 29, in _load
+    data = json.loads(path.read_text(encoding="utf-8"))
+                      ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.14.6/x64/lib/python3.14/pathlib/__init__.py", line 787, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.14.6/x64/lib/python3.14/pathlib/__init__.py", line 771, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/PERFORMANCE_OPTIMIZED_ALPHA11_CANDIDATE.json'
+compare=1
