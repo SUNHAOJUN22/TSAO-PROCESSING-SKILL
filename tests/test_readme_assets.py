@@ -11,14 +11,15 @@ ASSET_PATTERN = re.compile(r"!\[([^\]]+)\]\((docs/assets/readme/[^)]+\.svg)\)")
 def declared_asset_names() -> set[str]:
     from scripts.generate_decision_readme_assets import ASSETS as DECISION_ASSETS
     from scripts.generate_extended_readme_assets import EXTRA_ASSETS
+    from scripts.generate_performance_readme_assets import ASSETS as PERFORMANCE_ASSETS
     from scripts.generate_readme_assets import ASSETS
 
-    return set(ASSETS) | set(EXTRA_ASSETS) | set(DECISION_ASSETS)
+    return set(ASSETS) | set(EXTRA_ASSETS) | set(DECISION_ASSETS) | set(PERFORMANCE_ASSETS)
 
 
 def test_bilingual_readmes_reference_every_declared_local_svg_asset():
     declared_names = declared_asset_names()
-    assert len(declared_names) >= 16
+    assert len(declared_names) == 18
 
     expected_names: set[str] | None = None
     for readme_name in ("README.md", "README.zh-CN.md"):
@@ -44,9 +45,12 @@ def test_bilingual_readmes_reference_every_declared_local_svg_asset():
 def test_readme_assets_are_deterministically_declared_by_generators():
     from scripts.generate_decision_readme_assets import ASSETS as DECISION_ASSETS
     from scripts.generate_extended_readme_assets import EXTRA_ASSETS
+    from scripts.generate_performance_readme_assets import ASSETS as PERFORMANCE_ASSETS
     from scripts.generate_readme_assets import ASSETS, OUT
 
-    generated_names = set(ASSETS) | set(EXTRA_ASSETS) | set(DECISION_ASSETS)
+    generated_names = (
+        set(ASSETS) | set(EXTRA_ASSETS) | set(DECISION_ASSETS) | set(PERFORMANCE_ASSETS)
+    )
     committed_names = {path.name for path in OUT.glob("*.svg")}
     assert generated_names == committed_names
-    assert len(generated_names) >= 16
+    assert len(generated_names) == 18
