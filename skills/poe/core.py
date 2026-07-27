@@ -25,6 +25,7 @@ from .kinetics import (
     kinetic_derivative,
     kinetic_metrics,
     simulate_kinetics,
+    simulate_kinetics_terminal,
 )
 from .model_passport import validate_model_passport, validate_model_passport_registry
 from .package_audit import audit_process_package
@@ -67,6 +68,7 @@ __all__ = [
     "regression_error_metrics",
     "response_metrics",
     "simulate_kinetics",
+    "simulate_kinetics_terminal",
     "validate_asset_registry",
     "validate_conflict_ledger",
     "validate_model_passport",
