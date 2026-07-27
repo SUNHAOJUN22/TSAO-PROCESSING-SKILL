@@ -1,5 +1,5 @@
 name: Finalize README visual accessibility once
-# Rerun after font, synchronization, matrix-anchor and Ruff fixes.
+# Final run after all visual-accessibility gates passed diagnosis.
 
 on:
   push:
