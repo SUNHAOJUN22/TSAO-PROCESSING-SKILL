@@ -58,6 +58,17 @@ def _scale_check(
     size_ratio: float,
     limit: float,
 ) -> dict[str, object]:
+    missing = [name for name in (small, large) if name not in rows]
+    if missing:
+        return {
+            "small": small,
+            "large": large,
+            "size_ratio": size_ratio,
+            "normalized_time_ratio": None,
+            "maximum_normalized_time_ratio": limit,
+            "missing_workloads": missing,
+            "pass": False,
+        }
     normalized_ratio = (_time(rows[large]) / _time(rows[small])) / size_ratio
     return {
         "small": small,
@@ -65,6 +76,7 @@ def _scale_check(
         "size_ratio": size_ratio,
         "normalized_time_ratio": normalized_ratio,
         "maximum_normalized_time_ratio": limit,
+        "missing_workloads": [],
         "pass": normalized_ratio <= limit,
     }
 
@@ -136,7 +148,21 @@ def compare_reports(
         before = baseline_rows.get(baseline_name)
         after = current_rows.get(current_name)
         if before is None or after is None:
-            errors.append(f"missing special performance workload: {current_name}")
+            missing_special = [
+                name
+                for name, row in ((baseline_name, before), (current_name, after))
+                if row is None
+            ]
+            errors.append(f"missing special performance workload(s): {missing_special}")
+            special.append(
+                {
+                    "name": current_name,
+                    "reference": baseline_name,
+                    "missing_workloads": missing_special,
+                    "parity_policy": parity_policy,
+                    "pass": False,
+                }
+            )
             continue
         speedup = _time(before) / _time(after) if _time(after) > 0 else float("inf")
         memory_ratio = _memory(after) / max(_memory(before), 1)
@@ -197,7 +223,14 @@ def compare_reports(
         ),
     ]
     for check in scale_checks:
-        if not check["pass"]:
+        if check["pass"]:
+            continue
+        if check["missing_workloads"]:
+            errors.append(
+                f"scale check {check['small']} -> {check['large']} is missing workloads: "
+                f"{check['missing_workloads']}"
+            )
+        else:
             errors.append(
                 f"scale check {check['small']} -> {check['large']} exceeded normalized limit"
             )
