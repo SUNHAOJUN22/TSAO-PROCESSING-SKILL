@@ -66,6 +66,35 @@ class SemibatchFeed:
         return SemibatchFeed(*values)
 
 
+@dataclass(frozen=True)
+class _SemibatchOperatingInputs:
+    active_site_mol_L: float
+    poison_mol_L: float
+    step_s: float
+    reaction_enthalpy_kJ_mol: float
+    heat_removal_kW: float
+
+
+def _validated_semibatch_inputs(
+    *,
+    active_site_mol_L: float,
+    poison_mol_L: float,
+    step_s: float,
+    reaction_enthalpy_kJ_mol: float,
+    heat_removal_kW: float,
+) -> _SemibatchOperatingInputs:
+    values = (
+        _finite(active_site_mol_L, "active site concentration"),
+        _finite(poison_mol_L, "poison concentration"),
+        _finite(step_s, "step duration"),
+        _finite(reaction_enthalpy_kJ_mol, "reaction enthalpy"),
+        _finite(heat_removal_kW, "heat removal"),
+    )
+    if min(values) < 0:
+        raise ValueError("semibatch operating inputs must be non-negative")
+    return _SemibatchOperatingInputs(*values)
+
+
 def heat_removal_margin(generation_kW: float, removal_capacity_kW: float) -> float:
     generation = _finite(generation_kW, "heat generation")
     capacity = _finite(removal_capacity_kW, "heat removal capacity")
@@ -167,6 +196,94 @@ def entropy_generation_heat_transfer_kW_K(
     return duty * (1.0 / cold - 1.0 / hot)
 
 
+def _semibatch_step_kernel(
+    inventory: SemibatchInventory,
+    feed: SemibatchFeed,
+    parameters: EpdmKineticParameters,
+    operating: _SemibatchOperatingInputs,
+) -> tuple[
+    SemibatchInventory,
+    dict[str, float],
+    dict[str, float],
+    float,
+    float,
+    float,
+    float,
+]:
+    duration = operating.step_s
+    volume = inventory.volume_L + feed.liquid_volume_L_s * duration
+    ethylene_available = inventory.ethylene_mol + feed.ethylene_mol_s * duration
+    propylene_available = inventory.propylene_mol + feed.propylene_mol_s * duration
+    diene_available = inventory.diene_mol + feed.diene_mol_s * duration
+    state = EpdmKineticState(
+        ethylene_available / volume,
+        propylene_available / volume,
+        diene_available / volume,
+        operating.active_site_mol_L,
+        operating.poison_mol_L,
+    )
+    rates = _insertion_rates_validated(state, parameters)
+    ethylene_consumed = min(ethylene_available, rates["ethylene"] * volume * duration)
+    propylene_consumed = min(propylene_available, rates["propylene"] * volume * duration)
+    diene_consumed = min(diene_available, rates["diene"] * volume * duration)
+    ethylene_remaining = ethylene_available - ethylene_consumed
+    propylene_remaining = propylene_available - propylene_consumed
+    diene_remaining = diene_available - diene_consumed
+    polymer_increment = ethylene_consumed + propylene_consumed + diene_consumed
+    heat_generated_kJ = polymer_increment * operating.reaction_enthalpy_kJ_mol
+    heat_removed_kJ = operating.heat_removal_kW * duration
+    temperature = inventory.temperature_K + (
+        heat_generated_kJ - heat_removed_kJ
+    ) / inventory.heat_capacity_kJ_K
+    if temperature <= 0:
+        raise ValueError("calculated temperature is non-physical")
+    feed_total = duration * (
+        feed.ethylene_mol_s + feed.propylene_mol_s + feed.diene_mol_s
+    )
+    monomer_before = inventory.ethylene_mol + inventory.propylene_mol + inventory.diene_mol
+    closure = (
+        monomer_before
+        + feed_total
+        - (ethylene_remaining + propylene_remaining + diene_remaining)
+        - polymer_increment
+    )
+    next_inventory = SemibatchInventory(
+        volume,
+        ethylene_remaining,
+        propylene_remaining,
+        diene_remaining,
+        inventory.polymer_repeat_mol + polymer_increment,
+        temperature,
+        inventory.heat_capacity_kJ_K,
+    )
+    consumed = {
+        "ethylene": ethylene_consumed,
+        "propylene": propylene_consumed,
+        "diene": diene_consumed,
+    }
+    return (
+        next_inventory,
+        rates,
+        consumed,
+        polymer_increment,
+        heat_generated_kJ,
+        heat_removed_kJ,
+        closure,
+    )
+
+
+def _inventory_dict(inventory: SemibatchInventory) -> dict[str, float]:
+    return {
+        "volume_L": inventory.volume_L,
+        "ethylene_mol": inventory.ethylene_mol,
+        "propylene_mol": inventory.propylene_mol,
+        "diene_mol": inventory.diene_mol,
+        "polymer_repeat_mol": inventory.polymer_repeat_mol,
+        "temperature_K": inventory.temperature_K,
+        "heat_capacity_kJ_K": inventory.heat_capacity_kJ_K,
+    }
+
+
 def semibatch_material_energy_step(
     inventory: SemibatchInventory,
     feed: SemibatchFeed,
@@ -179,62 +296,29 @@ def semibatch_material_energy_step(
     heat_removal_kW: float,
 ) -> dict[str, object]:
     """One conservative semibatch reference step with explicit heat accounting."""
-    inventory = inventory.validated()
-    feed = feed.validated()
-    parameters = parameters.validated()
-    active_site = _finite(active_site_mol_L, "active site concentration")
-    poison = _finite(poison_mol_L, "poison concentration")
-    duration = _finite(step_s, "step duration")
-    reaction_enthalpy = _finite(reaction_enthalpy_kJ_mol, "reaction enthalpy")
-    heat_removal = _finite(heat_removal_kW, "heat removal")
-    if min(active_site, poison, duration, reaction_enthalpy, heat_removal) < 0:
-        raise ValueError("semibatch operating inputs must be non-negative")
-
-    volume = inventory.volume_L + feed.liquid_volume_L_s * duration
-    ethylene_available = inventory.ethylene_mol + feed.ethylene_mol_s * duration
-    propylene_available = inventory.propylene_mol + feed.propylene_mol_s * duration
-    diene_available = inventory.diene_mol + feed.diene_mol_s * duration
-    available = {
-        "ethylene": ethylene_available,
-        "propylene": propylene_available,
-        "diene": diene_available,
-    }
-    state = EpdmKineticState(
-        ethylene_available / volume,
-        propylene_available / volume,
-        diene_available / volume,
-        active_site,
-        poison,
+    validated_inventory = inventory.validated()
+    validated_feed = feed.validated()
+    validated_parameters = parameters.validated()
+    operating = _validated_semibatch_inputs(
+        active_site_mol_L=active_site_mol_L,
+        poison_mol_L=poison_mol_L,
+        step_s=step_s,
+        reaction_enthalpy_kJ_mol=reaction_enthalpy_kJ_mol,
+        heat_removal_kW=heat_removal_kW,
     )
-    rates = _insertion_rates_validated(state, parameters)
-    consumed = {
-        name: min(available[name], rates[name] * volume * duration)
-        for name in ("ethylene", "propylene", "diene")
-    }
-    remaining = {name: available[name] - consumed[name] for name in available}
-    polymer_increment = consumed["ethylene"] + consumed["propylene"] + consumed["diene"]
-    heat_generated_kJ = polymer_increment * reaction_enthalpy
-    heat_removed_kJ = heat_removal * duration
-    temperature = inventory.temperature_K + (
-        heat_generated_kJ - heat_removed_kJ
-    ) / inventory.heat_capacity_kJ_K
-    if temperature <= 0:
-        raise ValueError("calculated temperature is non-physical")
-    feed_total = duration * (
-        feed.ethylene_mol_s + feed.propylene_mol_s + feed.diene_mol_s
+    (
+        next_inventory,
+        rates,
+        consumed,
+        polymer_increment,
+        heat_generated_kJ,
+        heat_removed_kJ,
+        closure,
+    ) = _semibatch_step_kernel(
+        validated_inventory, validated_feed, validated_parameters, operating
     )
-    monomer_before = inventory.ethylene_mol + inventory.propylene_mol + inventory.diene_mol
-    closure = monomer_before + feed_total - sum(remaining.values()) - polymer_increment
     return {
-        "inventory": {
-            "volume_L": volume,
-            "ethylene_mol": remaining["ethylene"],
-            "propylene_mol": remaining["propylene"],
-            "diene_mol": remaining["diene"],
-            "polymer_repeat_mol": inventory.polymer_repeat_mol + polymer_increment,
-            "temperature_K": temperature,
-            "heat_capacity_kJ_K": inventory.heat_capacity_kJ_K,
-        },
+        "inventory": _inventory_dict(next_inventory),
         "rates_mol_L_s": rates,
         "consumed_mol": consumed,
         "polymer_increment_mol": polymer_increment,
@@ -242,4 +326,52 @@ def semibatch_material_energy_step(
         "heat_removed_kJ": heat_removed_kJ,
         "molar_closure_residual": closure,
         "status": "CALCULATED_REFERENCE_ONLY",
+    }
+
+
+def semibatch_trajectory(
+    inventory: SemibatchInventory,
+    feed: SemibatchFeed,
+    parameters: EpdmKineticParameters,
+    *,
+    steps: int,
+    active_site_mol_L: float,
+    poison_mol_L: float,
+    step_s: float,
+    reaction_enthalpy_kJ_mol: float,
+    heat_removal_kW: float,
+) -> dict[str, object]:
+    """Run a full-history semibatch trajectory after one boundary validation."""
+    if isinstance(steps, bool) or not isinstance(steps, int) or steps <= 0:
+        raise ValueError("steps must be a positive integer")
+    current = inventory.validated()
+    validated_feed = feed.validated()
+    validated_parameters = parameters.validated()
+    operating = _validated_semibatch_inputs(
+        active_site_mol_L=active_site_mol_L,
+        poison_mol_L=poison_mol_L,
+        step_s=step_s,
+        reaction_enthalpy_kJ_mol=reaction_enthalpy_kJ_mol,
+        heat_removal_kW=heat_removal_kW,
+    )
+    history: list[dict[str, float]] = []
+    total_polymer = 0.0
+    maximum_closure = 0.0
+    for index in range(steps):
+        current, _, _, polymer_increment, _, _, closure = _semibatch_step_kernel(
+            current, validated_feed, validated_parameters, operating
+        )
+        total_polymer += polymer_increment
+        maximum_closure = max(maximum_closure, abs(closure))
+        history.append({"step": index + 1, **_inventory_dict(current)})
+    return {
+        "status": "CALCULATED_REFERENCE_ONLY",
+        "steps": steps,
+        "final_inventory": history[-1],
+        "history": history,
+        "total_polymer_increment_mol": total_polymer,
+        "maximum_abs_molar_closure_residual": maximum_closure,
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+        "industrial_performance_guarantee": "NOT_EVALUATED",
     }
