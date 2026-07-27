@@ -51,6 +51,9 @@ jobs:
             if [[ -f reports/PERFORMANCE_COMPARISON_ALPHA11.json ]]; then
               cp reports/PERFORMANCE_COMPARISON_ALPHA11.json /tmp/alpha11-failure-comparison.json
             fi
+            if [[ -f reports/runtime/CI_RESULTS.json ]]; then
+              cp reports/runtime/CI_RESULTS.json /tmp/alpha11-failure-ci.json
+            fi
             git fetch origin main
             git reset --hard origin/main
             mkdir -p reports
@@ -73,7 +76,10 @@ jobs:
             if [[ -f /tmp/alpha11-failure-comparison.json ]]; then
               cp /tmp/alpha11-failure-comparison.json reports/ALPHA11_PROMOTION_FAILURE_COMPARISON.json
             fi
-            git add reports/ALPHA11_PROMOTION_FAILURE.txt reports/ALPHA11_PROMOTION_FAILURE_COMPARISON.json 2>/dev/null || git add reports/ALPHA11_PROMOTION_FAILURE.txt
+            if [[ -f /tmp/alpha11-failure-ci.json ]]; then
+              cp /tmp/alpha11-failure-ci.json reports/ALPHA11_PROMOTION_FAILURE_CI.json
+            fi
+            git add reports/ALPHA11_PROMOTION_FAILURE.txt reports/ALPHA11_PROMOTION_FAILURE_COMPARISON.json reports/ALPHA11_PROMOTION_FAILURE_CI.json 2>/dev/null || git add reports/ALPHA11_PROMOTION_FAILURE.txt
             git commit -m 'diagnostic: capture alpha11 promotion failure [skip ci]'
             git push origin HEAD:main
             exit "${status}"
@@ -105,7 +111,7 @@ jobs:
           fi
           python scripts/normalize_alpha11_transform_once.py restore
           rm -f scripts/normalize_alpha11_transform_once.py
-          rm -f reports/ALPHA11_PROMOTION_HEARTBEAT.txt reports/ALPHA11_PROMOTION_FAILURE.txt reports/ALPHA11_PROMOTION_FAILURE_COMPARISON.json
+          rm -f reports/ALPHA11_PROMOTION_HEARTBEAT.txt reports/ALPHA11_PROMOTION_FAILURE.txt reports/ALPHA11_PROMOTION_FAILURE_COMPARISON.json reports/ALPHA11_PROMOTION_FAILURE_CI.json
 
           python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
           python scripts/generate_readme_assets.py
@@ -158,6 +164,7 @@ jobs:
           test ! -e reports/ALPHA11_PROMOTION_HEARTBEAT.txt
           test ! -e reports/ALPHA11_PROMOTION_FAILURE.txt
           test ! -e reports/ALPHA11_PROMOTION_FAILURE_COMPARISON.json
+          test ! -e reports/ALPHA11_PROMOTION_FAILURE_CI.json
           test -z "$(find reports -maxdepth 1 -type f \( -name '*CANDIDATE*' -o -name '*DIAGNOSTIC*' -o -name 'PERFORMANCE_V2_*' \) -print)"
           rm -rf build dist wheelhouse ./*.egg-info
           find reports/runtime -maxdepth 1 -type f ! -name README.md -delete
