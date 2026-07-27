@@ -1,4 +1,5 @@
 name: Diagnose README visual accessibility once
+# Triggered once to identify the failing visual-accessibility gate.
 
 on:
   push:
