@@ -103,8 +103,8 @@ def patch_compare() -> None:
 
 def patch_visual_generators() -> None:
     text = UIUX.read_text(encoding="utf-8")
-    old = '_text(1089, 335, "10.46×", size=25, fill=TEXT, weight=850, anchor="middle")'
-    new = '_text(1089, 335, "≥3× gate", size=22, fill=TEXT, weight=850, anchor="middle")'
+    old = 'text(1089, 335, "10.46×", size=25, fill=TEXT, weight=850, anchor="middle")'
+    new = 'text(1089, 335, "≥3× gate", size=22, fill=TEXT, weight=850, anchor="middle")'
     if new not in text:
         if text.count(old) != 1:
             raise SystemExit("UIUX batch-speed label changed unexpectedly")
