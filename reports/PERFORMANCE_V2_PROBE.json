@@ -1,0 +1,50 @@
+{
+  "schema": "TSAO-PERFORMANCE-V2-PROBE-1",
+  "baseline_version": "0.1.0-alpha.10",
+  "candidate_version": "0.1.0-alpha.10",
+  "results": [
+    {
+      "name": "epdm_parameter_scan_1000_batch",
+      "reference": "epdm_parameter_scan_1000_scalar",
+      "median_s": 0.0013738652000000683,
+      "minimum_s": 0.0013642070000003058,
+      "maximum_s": 0.0014500684000012143,
+      "speedup": 9.824474773798316,
+      "peak_memory_bytes": 628664,
+      "reference_peak_memory_bytes": 579881,
+      "memory_ratio": 1.0841258809997223,
+      "result_sha256": "3f4e853cc1f747b792c6a8d863119d53797851d78eecdb9cc8da15538a55e69b",
+      "reference_result_sha256": "47c16598331eeb5f4194b1871350c28f83eaa8457b3cb7a5273bde65f908070a"
+    },
+    {
+      "name": "epdm_semibatch_10000_steps_compiled",
+      "reference": "epdm_semibatch_10000_steps",
+      "median_s": 0.044741263000005915,
+      "minimum_s": 0.04433287599999858,
+      "maximum_s": 0.04661784900000043,
+      "speedup": 2.885786393647183,
+      "peak_memory_bytes": 4560032,
+      "reference_peak_memory_bytes": 4561256,
+      "memory_ratio": 0.9997316528605279,
+      "result_sha256": "08c79918e4c8e98973b020b9e1f3709b222a065ad071c91f57393d8930291b4b",
+      "reference_result_sha256": "332032ad6a46e769b2417acb5d3e54f6d4fc112455e8e749ccb0dbba20b052b4"
+    },
+    {
+      "name": "poe_rk4_10000_steps_terminal",
+      "reference": "poe_rk4_10000_steps",
+      "median_s": 0.14250875499999438,
+      "minimum_s": 0.14223056199999462,
+      "maximum_s": 0.14302996400000723,
+      "speedup": 2.4272319409429537,
+      "peak_memory_bytes": 5872,
+      "reference_peak_memory_bytes": 7610352,
+      "memory_ratio": 0.0007715806049444231,
+      "result_sha256": "27d8acb9fe9e88aa8e7ded58e4e23a1013773ef072ab9bb6e25845cf784d4503",
+      "reference_result_sha256": "ce9c3ddbd35226eefab4cc866f8f834091e1ab55935bfb886de39dce971c7223"
+    }
+  ],
+  "qualification_scope": "SOFTWARE_PERFORMANCE_ONLY",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
