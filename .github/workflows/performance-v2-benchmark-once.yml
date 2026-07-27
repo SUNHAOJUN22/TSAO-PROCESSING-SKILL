@@ -1,4 +1,5 @@
 name: Capture performance v2 benchmark evidence once
+# Triggered once after focused paths and parity checks passed.
 
 on:
   push:
