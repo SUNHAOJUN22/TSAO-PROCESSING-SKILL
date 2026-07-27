@@ -1,5 +1,5 @@
 name: Quick diagnose performance v2 once
-# Triggered once to separate code-contract failures from heavy benchmark runtime.
+# Rerun after incomplete-report comparison was made fail-closed.
 
 on:
   push:
