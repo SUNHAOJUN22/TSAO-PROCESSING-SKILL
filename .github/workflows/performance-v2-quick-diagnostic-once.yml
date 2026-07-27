@@ -1,5 +1,5 @@
 name: Quick diagnose performance v2 once
-# Rerun after incomplete-report comparison was made fail-closed.
+# Verify analytic/semantic parity contracts and the saved 20-workload comparison.
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             requirements.txt
-      - name: Diagnose code and contracts
+      - name: Verify contracts and candidate comparison
         shell: bash
         run: |
           set +e
@@ -40,14 +40,12 @@ jobs:
           }
           step install python -m pip install --quiet -e '.[dev]'
           step compile python -m compileall -q tsao skills scripts tests
-          step targeted python -m pytest -q tests/test_performance_v2_contract.py tests/test_performance_v2_reports.py
-          step ruff python -m ruff check skills/epdm/batch.py skills/epdm/process.py skills/poe/kinetics.py scripts/benchmark_performance.py scripts/benchmark_performance_v2.py scripts/compare_performance_v2.py tests/test_performance_v2_contract.py tests/test_performance_v2_reports.py
-          step batch_smoke python -c "from scripts.benchmark_performance_v2 import _epdm_parameter_scan_batch; r=_epdm_parameter_scan_batch(1000); assert r['scenario_count']==1000"
-          step trajectory_smoke python -c "from scripts.benchmark_performance_v2 import _epdm_semibatch_trajectory_compiled; r=_epdm_semibatch_trajectory_compiled(100); assert r['steps']==100"
-          step poe_smoke python -c "from scripts.benchmark_performance_v2 import _poe_rk4_terminal_10000; r=_poe_rk4_terminal_10000(); assert r['history_stored'] is False"
+          step targeted python -m pytest -q tests/test_performance_v2_contract.py tests/test_performance_v2_reports.py tests/test_performance_v2_numeric_parity.py
+          step ruff python -m ruff check skills/epdm/batch.py skills/epdm/process.py skills/poe/kinetics.py scripts/benchmark_performance.py scripts/benchmark_performance_v2.py scripts/compare_performance_v2.py tests/test_performance_v2_contract.py tests/test_performance_v2_reports.py tests/test_performance_v2_numeric_parity.py
+          step compare python scripts/compare_performance_v2.py --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json --current reports/PERFORMANCE_OPTIMIZED_ALPHA11_CANDIDATE.json --output reports/PERFORMANCE_COMPARISON_ALPHA11_CANDIDATE.json
           cp "$LOG" reports/PERFORMANCE_V2_QUICK_DIAGNOSTIC.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add reports/PERFORMANCE_V2_QUICK_DIAGNOSTIC.txt
-          git commit -m 'diagnostic: capture quick performance v2 results [skip ci]'
+          git add reports/PERFORMANCE_V2_QUICK_DIAGNOSTIC.txt reports/PERFORMANCE_COMPARISON_ALPHA11_CANDIDATE.json
+          git commit -m 'diagnostic: verify performance v2 parity contracts [skip ci]'
           git push origin HEAD:main
