@@ -1,4 +1,5 @@
 name: Generate performance README assets once
+# Triggered once for the two real alpha11 performance capabilities.
 
 on:
   push:
