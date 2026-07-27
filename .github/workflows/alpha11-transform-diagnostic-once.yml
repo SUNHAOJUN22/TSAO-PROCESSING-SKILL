@@ -61,6 +61,11 @@ jobs:
               printf 'failed_command=%s\n' "${failed_command}"
               printf 'exit_status=%s\n' "${status}"
               printf 'recorded_utc=%s\n' "$(date -u +%FT%TZ)"
+              if [[ -f /tmp/alpha11-prepare.log ]]; then
+                printf 'prepare_log_begin\n'
+                cat /tmp/alpha11-prepare.log
+                printf 'prepare_log_end\n'
+              fi
             } > reports/ALPHA11_PROMOTION_FAILURE.txt
             git add reports/ALPHA11_PROMOTION_FAILURE.txt
             git commit -m 'diagnostic: capture alpha11 promotion failure [skip ci]'
@@ -84,7 +89,13 @@ jobs:
 
           cp scripts/finalize_alpha11_once.py /tmp/finalize_alpha11_once.py
           python -m pip install --quiet -e '.[dev]'
-          python /tmp/finalize_alpha11_once.py prepare
+          set +e
+          python /tmp/finalize_alpha11_once.py prepare 2>&1 | tee /tmp/alpha11-prepare.log
+          prepare_status=${PIPESTATUS[0]}
+          set -e
+          if [[ ${prepare_status} -ne 0 ]]; then
+            false
+          fi
           rm -f reports/ALPHA11_PROMOTION_HEARTBEAT.txt reports/ALPHA11_PROMOTION_FAILURE.txt
 
           python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
