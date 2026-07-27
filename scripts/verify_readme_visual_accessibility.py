@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+# ruff: noqa: E402, I001
+
 import argparse
 import json
 import math
@@ -13,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.generate_uiux_readme_assets import (  # noqa: E402
+from scripts.generate_uiux_readme_assets import (
     AMBER,
     ASSETS,
     BG,
@@ -32,10 +34,19 @@ from scripts.generate_uiux_readme_assets import (  # noqa: E402
     TEXT,
     W,
 )
-from scripts.harden_readme_svg_accessibility import ROOT_ATTRIBUTES  # noqa: E402
+from scripts.harden_readme_svg_accessibility import ROOT_ATTRIBUTES
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
-FORBIDDEN_ELEMENTS = {"a", "animate", "animateMotion", "animateTransform", "foreignObject", "image", "script", "set"}
+FORBIDDEN_ELEMENTS = {
+    "a",
+    "animate",
+    "animateMotion",
+    "animateTransform",
+    "foreignObject",
+    "image",
+    "script",
+    "set",
+}
 EMOJI_PATTERN = re.compile("[\U0001F1E6-\U0001FAFF]")
 MINIMUM_TEXT_SIZE_PX = 12.0
 
