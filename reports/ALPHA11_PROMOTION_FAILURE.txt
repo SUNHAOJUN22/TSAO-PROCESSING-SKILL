@@ -1,0 +1,9 @@
+status=FAIL
+audit_baseline=92150eac35ded7eb001a261c8a05e21de4e01070
+orchestration_commit=4dbe21e86d0910bcf0c4ae57741bf335b01c7a88
+workflow_run_id=30248998580
+workflow_run_attempt=1
+failed_line=48
+failed_command=python /tmp/finalize_alpha11_once.py prepare
+exit_status=1
+recorded_utc=2026-07-27T08:12:53Z
