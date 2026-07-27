@@ -45,13 +45,15 @@ jobs:
         run: python -m pip check
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
-      - name: Verify deterministic README graphics
+      - name: Verify deterministic README graphics and visual contract
         run: |
           python scripts/generate_readme_assets.py
           python scripts/generate_extended_readme_assets.py
           python scripts/generate_decision_readme_assets.py
           python scripts/generate_performance_readme_assets.py
-          git diff --exit-code -- docs/assets/readme
+          python scripts/generate_uiux_readme_assets.py
+          python scripts/sync_readme_visuals.py --check
+          git diff --exit-code -- docs/assets/readme README.md README.zh-CN.md
       - name: Core, specialists, Ruff and coverage qualification
         run: python scripts/run_ci.py
       - name: Universal Skillpack closure
