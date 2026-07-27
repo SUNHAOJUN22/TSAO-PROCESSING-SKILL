@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from scripts.generate_uiux_readme_assets import ASSETS, OUT  # noqa: E402
 
+MINIMUM_TEXT_SIZE_PX = 12.0
 ROOT_ATTRIBUTES = {
     "focusable": "false",
     "preserveAspectRatio": "xMidYMid meet",
@@ -22,6 +23,14 @@ ROOT_ATTRIBUTES = {
     "data-design-version": "2",
 }
 _SVG_OPEN = re.compile(r"\A<svg\b(?P<attrs>[^>]*)>", re.DOTALL)
+_FONT_SIZE = re.compile(r'font-size="(?P<size>\d+(?:\.\d+)?)"')
+
+
+def _enforce_minimum_font_size(match: re.Match[str]) -> str:
+    size = float(match.group("size"))
+    if size >= MINIMUM_TEXT_SIZE_PX:
+        return match.group(0)
+    return f'font-size="{MINIMUM_TEXT_SIZE_PX:g}"'
 
 
 def harden_svg_text(text: str) -> str:
@@ -33,7 +42,8 @@ def harden_svg_text(text: str) -> str:
         attrs = re.sub(rf'\s+{re.escape(name)}="[^"]*"', "", attrs)
     additions = "".join(f' {name}="{value}"' for name, value in ROOT_ATTRIBUTES.items())
     replacement = f"<svg{attrs}{additions}>"
-    return replacement + text[match.end() :]
+    hardened = replacement + text[match.end() :]
+    return _FONT_SIZE.sub(_enforce_minimum_font_size, hardened)
 
 
 def harden_assets(directory: Path = OUT, *, check: bool = False) -> dict[str, object]:
@@ -69,6 +79,7 @@ def harden_assets(directory: Path = OUT, *, check: bool = False) -> dict[str, ob
         "asset_count": len(expected),
         "changed": changed,
         "check_mode": check,
+        "minimum_text_size_px": MINIMUM_TEXT_SIZE_PX,
         "root_attributes": ROOT_ATTRIBUTES,
         "errors": errors,
     }
