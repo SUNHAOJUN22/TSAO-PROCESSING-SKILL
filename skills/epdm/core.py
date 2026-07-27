@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .batch import batch_pseudo_first_order_screening
 from .kinetics import (
     GAS_CONSTANT_J_MOL_K,
     EpdmActivationEnergies,
@@ -29,6 +30,7 @@ from .process import (
     mooney_reference,
     recycle_poison_steady_state,
     semibatch_material_energy_step,
+    semibatch_trajectory,
 )
 from .qualification import validate_epdm_case
 
@@ -43,6 +45,7 @@ __all__ = [
     "architecture_metrics",
     "arrhenius_rate_constant",
     "audit_epdm_process_package",
+    "batch_pseudo_first_order_screening",
     "chain_moment_reference",
     "devolatilization_damkohler",
     "devolatilization_residual",
@@ -57,6 +60,7 @@ __all__ = [
     "pseudo_first_order_conversions",
     "recycle_poison_steady_state",
     "semibatch_material_energy_step",
+    "semibatch_trajectory",
     "temperature_adjusted_parameters",
     "three_level_kinetic_suite",
     "validate_epdm_case",
