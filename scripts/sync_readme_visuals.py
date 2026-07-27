@@ -43,7 +43,7 @@ def _english(text: str) -> str:
     text = _replace_once(
         text,
         "python scripts/generate_decision_readme_assets.py\npython scripts/run_ci.py",
-        "python scripts/generate_decision_readme_assets.py\npython scripts/generate_performance_readme_assets.py\npython scripts/generate_uiux_readme_assets.py\npython scripts/sync_readme_visuals.py --check\npython scripts/run_ci.py",
+        "python scripts/generate_decision_readme_assets.py\npython scripts/generate_performance_readme_assets.py\npython scripts/generate_uiux_readme_assets.py\npython scripts/harden_readme_svg_accessibility.py\npython scripts/verify_readme_visual_accessibility.py\npython scripts/sync_readme_visuals.py --check\npython scripts/run_ci.py",
         label="English generator commands",
     )
     text = _replace_once(
@@ -83,7 +83,7 @@ def _chinese(text: str) -> str:
     text = _replace_once(
         text,
         "python scripts/generate_decision_readme_assets.py\npython scripts/run_ci.py",
-        "python scripts/generate_decision_readme_assets.py\npython scripts/generate_performance_readme_assets.py\npython scripts/generate_uiux_readme_assets.py\npython scripts/sync_readme_visuals.py --check\npython scripts/run_ci.py",
+        "python scripts/generate_decision_readme_assets.py\npython scripts/generate_performance_readme_assets.py\npython scripts/generate_uiux_readme_assets.py\npython scripts/harden_readme_svg_accessibility.py\npython scripts/verify_readme_visual_accessibility.py\npython scripts/sync_readme_visuals.py --check\npython scripts/run_ci.py",
         label="Chinese generator commands",
     )
     text = _replace_once(
