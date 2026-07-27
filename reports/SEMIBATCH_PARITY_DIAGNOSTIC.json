@@ -1,0 +1,61 @@
+{
+  "schema": "TSAO-SEMIBATCH-PARITY-1",
+  "steps": 10000,
+  "history_lengths_match": true,
+  "first_exact_mismatch": null,
+  "field_maxima": {
+    "volume_L": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    },
+    "ethylene_mol": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    },
+    "propylene_mol": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    },
+    "diene_mol": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    },
+    "polymer_repeat_mol": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    },
+    "temperature_K": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    },
+    "heat_capacity_kJ_K": {
+      "absolute": 0.0,
+      "relative": 0.0,
+      "step": null
+    }
+  },
+  "summary_fields": {
+    "total_polymer_increment_mol": {
+      "scalar": 0.41111072584473446,
+      "compiled": 0.41111072584473446,
+      "absolute": 0.0,
+      "relative": 0.0,
+      "isclose_1e-15": true
+    },
+    "maximum_abs_molar_closure_residual": {
+      "scalar": 8.142114369877329e-15,
+      "compiled": 8.142114369877329e-15,
+      "absolute": 0.0,
+      "relative": 0.0,
+      "isclose_1e-15": true
+    }
+  },
+  "exact_object_match": true,
+  "scientific_technical_approval": "NOT_EVALUATED"
+}
