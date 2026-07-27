@@ -1,5 +1,5 @@
 name: Diagnose UIUX README visuals once
-# Exact diagnostic run for the UI/UX Pro Max-aligned visual system.
+# Rerun after capability, packaging and staged-release test alignment.
 
 on:
   push:
@@ -65,9 +65,10 @@ jobs:
           rm -f scripts/apply_uiux_visual_contract.py
           rm -f .github/workflows/finalize-uiux-readme-visuals-once.yml
           rm -f .github/workflows/diagnose-uiux-readme-visuals-once.yml
+          rm -f reports/UIUX_README_VISUAL_DIAGNOSTIC.txt
           step refresh_manifest python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
-          step targeted python -m pytest -q tests/test_readme_assets.py tests/test_release_convergence.py tests/test_skillpack_delivery.py tests/test_wheel_contract.py
-          step ruff python -m ruff check scripts/generate_uiux_readme_assets.py scripts/sync_readme_visuals.py tests/test_readme_assets.py tests/test_release_convergence.py tsao/skillpacks.py
+          step targeted python -m pytest -q tests/test_readme_assets.py tests/test_release_convergence.py tests/test_skillpack_delivery.py tests/test_wheel_contract.py tests/test_release_metadata_alpha10.py tests/test_repository_contracts.py
+          step ruff python -m ruff check scripts/generate_uiux_readme_assets.py scripts/sync_readme_visuals.py tests/test_readme_assets.py tests/test_release_convergence.py tests/test_repository_contracts.py tsao/skillpacks.py
           step run_ci python scripts/run_ci.py
           step skillpacks python -m tsao.skillpacks --root .
           rm -rf wheelhouse build dist
