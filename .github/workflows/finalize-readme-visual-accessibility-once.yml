@@ -1,4 +1,5 @@
 name: Finalize README visual accessibility once
+# Triggered once after the permanent accessibility gate was added.
 
 on:
   push:
