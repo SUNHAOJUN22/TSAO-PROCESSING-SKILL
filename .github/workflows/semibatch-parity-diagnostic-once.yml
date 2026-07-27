@@ -1,0 +1,91 @@
+name: Diagnose semibatch parity once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[SEMIBATCH-PARITY-DIAG]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - name: Compare full trajectories
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from scripts.benchmark_performance import _epdm_semibatch_trajectory_scalar
+          from scripts.benchmark_performance_v2 import _epdm_semibatch_trajectory_compiled
+
+          scalar = _epdm_semibatch_trajectory_scalar()
+          compiled = _epdm_semibatch_trajectory_compiled()
+          fields = (
+              'volume_L', 'ethylene_mol', 'propylene_mol', 'diene_mol',
+              'polymer_repeat_mol', 'temperature_K', 'heat_capacity_kJ_K'
+          )
+          first_mismatch = None
+          maxima = {field: {'absolute': 0.0, 'relative': 0.0, 'step': None} for field in fields}
+          scalar_history = scalar['history']
+          compiled_history = compiled['history']
+          for index, (before, after) in enumerate(zip(scalar_history, compiled_history, strict=True), start=1):
+              for field in fields:
+                  left = float(before[field])
+                  right = float(after[field])
+                  absolute = abs(left - right)
+                  relative = absolute / max(abs(left), abs(right), 1e-300)
+                  if absolute and first_mismatch is None:
+                      first_mismatch = {
+                          'step': index,
+                          'field': field,
+                          'scalar': left,
+                          'compiled': right,
+                          'absolute': absolute,
+                          'relative': relative,
+                      }
+                  if absolute > maxima[field]['absolute']:
+                      maxima[field] = {'absolute': absolute, 'relative': relative, 'step': index}
+          summary_fields = ('total_polymer_increment_mol', 'maximum_abs_molar_closure_residual')
+          summaries = {}
+          for field in summary_fields:
+              left = float(scalar[field])
+              right = float(compiled[field])
+              absolute = abs(left - right)
+              relative = absolute / max(abs(left), abs(right), 1e-300)
+              summaries[field] = {
+                  'scalar': left,
+                  'compiled': right,
+                  'absolute': absolute,
+                  'relative': relative,
+                  'isclose_1e-15': math.isclose(left, right, rel_tol=1e-15, abs_tol=1e-15),
+              }
+          report = {
+              'schema': 'TSAO-SEMIBATCH-PARITY-1',
+              'steps': len(scalar_history),
+              'history_lengths_match': len(scalar_history) == len(compiled_history),
+              'first_exact_mismatch': first_mismatch,
+              'field_maxima': maxima,
+              'summary_fields': summaries,
+              'exact_object_match': scalar == compiled,
+              'scientific_technical_approval': 'NOT_EVALUATED',
+          }
+          Path('reports/SEMIBATCH_PARITY_DIAGNOSTIC.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports/SEMIBATCH_PARITY_DIAGNOSTIC.json
+          git commit -m 'diagnostic: capture semibatch parity [skip ci]'
+          git push origin HEAD:main
