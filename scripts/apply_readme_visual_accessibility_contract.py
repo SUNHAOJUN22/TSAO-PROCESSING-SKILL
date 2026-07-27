@@ -51,8 +51,8 @@ def main() -> int:
 
     replace_once(
         "docs/CAPABILITY_MATRIX.md",
-        "18 deterministic SVGs, bilingual parity and XML tests",
-        "18 deterministic SVGs, WCAG contrast, explicit title/desc, minimum font size, no external resources, bilingual parity and XML tests",
+        "18 deterministic SVGs, persisted Scientific Midnight Bento design system, bilingual parity and XML accessibility tests",
+        "18 deterministic SVGs, persisted Scientific Midnight Bento design system, WCAG contrast, explicit title/desc, 12px minimum text, no external resources, bilingual parity and XML accessibility tests",
         "capability visual verification boundary",
     )
 
