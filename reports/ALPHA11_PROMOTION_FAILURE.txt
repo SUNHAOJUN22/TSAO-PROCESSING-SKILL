@@ -1,12 +1,12 @@
 status=FAIL
 audit_baseline=92150eac35ded7eb001a261c8a05e21de4e01070
-orchestration_commit=6a505cb8e10a6b1b2ae6bf784b5380de5d456bac
-workflow_run_id=30250749051
+orchestration_commit=c249470f639105f4ed7c734b256b28738d5b7c48
+workflow_run_id=30250997327
 workflow_run_attempt=1
-failed_line=67
-failed_command=python scripts/normalize_alpha11_transform_once.py restore
+failed_line=98
+failed_command=python scripts/run_ci.py
 exit_status=1
-recorded_utc=2026-07-27T08:40:04Z
+recorded_utc=2026-07-27T08:44:34Z
 prepare_log_begin
 prepared 0.1.0-alpha.11 performance release metadata
 fixed alpha11 release test and reports index
