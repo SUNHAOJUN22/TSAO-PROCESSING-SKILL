@@ -1,5 +1,4 @@
-name: Diagnose alpha11 release transformation once
-# Triggered once before the final alpha11 promotion.
+name: Promote alpha11 performance release once
 
 on:
   push:
@@ -7,12 +6,13 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
-  diagnose:
-    if: ${{ contains(github.event.head_commit.message, '[ALPHA11-TRANSFORM-DIAG]') }}
+  promote:
+    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-ALPHA11]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -25,40 +25,119 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             requirements.txt
-      - name: Apply and diagnose release transformation
+      - name: Promote and qualify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_BASE_SHA: 92150eac35ded7eb001a261c8a05e21de4e01070
         shell: bash
         run: |
-          set +e
-          LOG=/tmp/alpha11-transform-diagnostic.txt
-          : > "$LOG"
-          step() {
-            echo "" >> "$LOG"
-            echo "== $1 ==" >> "$LOG"
-            shift
-            "$@" >> "$LOG" 2>&1
-            echo "exit=$?" >> "$LOG"
-          }
-          step install python -m pip install --quiet -e '.[dev]'
-          step compile_apply python -m py_compile scripts/apply_alpha11_performance_release.py
-          step apply python scripts/apply_alpha11_performance_release.py
-          step placeholders python - <<'PY'
-          import json
-          from pathlib import Path
-          source = json.loads(Path('reports/PERFORMANCE_OPTIMIZED_ALPHA11_CANDIDATE.json').read_text())
-          source['version'] = '0.1.0-alpha.11'
-          Path('reports/PERFORMANCE_OPTIMIZED_ALPHA11.json').write_text(json.dumps(source, indent=2) + '\n')
-          comparison = json.loads(Path('reports/PERFORMANCE_COMPARISON_ALPHA11_CANDIDATE.json').read_text())
-          comparison['optimized_version'] = '0.1.0-alpha.11'
-          Path('reports/PERFORMANCE_COMPARISON_ALPHA11.json').write_text(json.dumps(comparison, indent=2) + '\n')
-          PY
-          step render python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
-          step graphics python scripts/generate_performance_readme_assets.py
-          step targeted python -m pytest -q tests/test_release_metadata_alpha11.py tests/test_readme_assets.py tests/test_release_convergence.py tests/test_skillpack_delivery.py tests/test_wheel_contract.py
-          step ruff python -m ruff check scripts/apply_alpha11_performance_release.py scripts/verify_wheel_contents.py tsao/skillpacks.py scripts/verify_wheel_runtime.py tests/test_release_metadata_alpha11.py tests/test_readme_assets.py tests/test_release_convergence.py
-          git reset --hard HEAD
-          cp "$LOG" reports/ALPHA11_TRANSFORM_DIAGNOSTIC.txt
+          set -euo pipefail
+          ORCHESTRATION_SHA="$(git rev-parse HEAD)"; export ORCHESTRATION_SHA
+          cp scripts/finalize_alpha11_once.py /tmp/finalize_alpha11_once.py
+          python -m pip install --quiet -e '.[dev]'
+          python /tmp/finalize_alpha11_once.py prepare
+
+          python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
+          python scripts/generate_readme_assets.py
+          python scripts/generate_extended_readme_assets.py
+          python scripts/generate_decision_readme_assets.py
+          python scripts/generate_performance_readme_assets.py
+          python scripts/generate_uiux_readme_assets.py
+          python scripts/harden_readme_svg_accessibility.py
+          python scripts/verify_readme_visual_accessibility.py
+          python scripts/sync_readme_visuals.py
+          python scripts/sync_readme_visuals.py --check
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+
+          rm -rf build dist wheelhouse ./*.egg-info
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python scripts/benchmark_performance_v2.py --repeats 5 --wheel-dir wheelhouse --output reports/PERFORMANCE_OPTIMIZED_ALPHA11.json
+          python scripts/compare_performance_v2.py --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json --current reports/PERFORMANCE_OPTIMIZED_ALPHA11.json --output reports/PERFORMANCE_COMPARISON_ALPHA11.json
+          python /tmp/finalize_alpha11_once.py stamp-performance
+          python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json
+          python scripts/generate_performance_readme_assets.py
+          python scripts/harden_readme_svg_accessibility.py
+          python scripts/verify_readme_visual_accessibility.py
+          python scripts/sync_readme_visuals.py
+          python scripts/sync_readme_visuals.py --check
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+
+          python scripts/run_ci.py
+          rm -rf build dist wheelhouse ./*.egg-info
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse > reports/runtime/ALPHA11_WHEEL_CONTENTS.json
+          cat reports/runtime/ALPHA11_WHEEL_CONTENTS.json
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse > reports/runtime/ALPHA11_WHEEL_RUNTIME.json
+          cat reports/runtime/ALPHA11_WHEEL_RUNTIME.json
+          python /tmp/finalize_alpha11_once.py record-local
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          rm -rf build dist wheelhouse ./*.egg-info
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python -m pytest -q tests/test_release_metadata_alpha11.py tests/test_repository_contracts.py tests/test_release_convergence.py tests/test_wheel_contract.py tests/test_performance_v2_numeric_parity.py
+          python -m ruff check tsao skills scripts tests
+          python -m tsao.cli doctor --root . --profile core
+          python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
+          git diff --check
+          test "$(find .github/workflows -maxdepth 1 -type f -name '*.yml' | wc -l)" -eq 1
+          test ! -e scripts/finalize_alpha11_once.py
+          test -z "$(find reports -maxdepth 1 -type f \( -name '*CANDIDATE*' -o -name '*DIAGNOSTIC*' -o -name 'PERFORMANCE_V2_*' \) -print)"
+          rm -rf build dist wheelhouse ./*.egg-info
+          find reports/runtime -maxdepth 1 -type f ! -name README.md -delete
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add reports/ALPHA11_TRANSFORM_DIAGNOSTIC.txt
-          git commit -m 'diagnostic: capture alpha11 transform results [skip ci]'
+          git add -A
+          git commit -m 'release(perf): promote 0.1.0-alpha.11 with measured qualification'
+          CANDIDATE_SHA="$(git rev-parse HEAD)"; export CANDIDATE_SHA
           git push origin HEAD:main
+
+          dispatch_wait() {
+            local sha="$1" label="$2" run_id="" info="" status="" conclusion=""
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" -f ref=main >/dev/null
+            for _ in $(seq 1 180); do
+              sleep 10
+              run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?event=workflow_dispatch&branch=main&per_page=30" | TARGET_SHA="$sha" python -c "import json,os,sys; d=json.load(sys.stdin); print(next((str(r['id']) for r in d.get('workflow_runs',[]) if r.get('head_sha')==os.environ['TARGET_SHA']),''))")"
+              [[ -n "$run_id" ]] && break
+            done
+            [[ -n "$run_id" ]] || { echo "missing $label run" >&2; return 1; }
+            for _ in $(seq 1 720); do
+              info="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
+              status="$(printf '%s' "$info" | python -c "import json,sys; print(json.load(sys.stdin).get('status',''))")"
+              [[ "$status" == completed ]] && break
+              sleep 10
+            done
+            conclusion="$(printf '%s' "$info" | python -c "import json,sys; print(json.load(sys.stdin).get('conclusion',''))")"
+            QUAL_RUN_URL="$(printf '%s' "$info" | python -c "import json,sys; print(json.load(sys.stdin).get('html_url',''))")"
+            [[ "$conclusion" == success ]] || { echo "$label failed: $conclusion $QUAL_RUN_URL" >&2; return 1; }
+            QUAL_RUN_ID="$run_id"; export QUAL_RUN_ID QUAL_RUN_URL
+          }
+
+          dispatch_wait "$CANDIDATE_SHA" candidate
+          CANDIDATE_RUN_ID="$QUAL_RUN_ID"; CANDIDATE_RUN_URL="$QUAL_RUN_URL"
+          export CANDIDATE_RUN_ID CANDIDATE_RUN_URL
+          python /tmp/finalize_alpha11_once.py record-cross
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          python -m tsao.cli doctor --root . --profile core
+          python -m pytest -q tests/test_release_metadata_alpha11.py tests/test_repository_contracts.py tests/test_release_convergence.py tests/test_wheel_contract.py
+          git add reports/ALPHA11_FINAL_QUALIFICATION.json reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m 'chore(release): close alpha11 cross-platform qualification evidence'
+          FINAL_SHA="$(git rev-parse HEAD)"; export FINAL_SHA
+          git push origin HEAD:main
+          dispatch_wait "$FINAL_SHA" final
+
+          mkdir -p reports/runtime
+          cat > reports/runtime/ALPHA11_PROMOTION_WORKFLOW.json <<JSON
+          {"audit_baseline":"${AUDIT_BASE_SHA}","orchestration_commit":"${ORCHESTRATION_SHA}","candidate_commit":"${CANDIDATE_SHA}","candidate_run_id":${CANDIDATE_RUN_ID},"candidate_run_url":"${CANDIDATE_RUN_URL}","final_commit":"${FINAL_SHA}","final_run_id":${QUAL_RUN_ID},"final_run_url":"${QUAL_RUN_URL}","status":"PASS"}
+          JSON
+      - name: Upload promotion evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tsao-alpha11-promotion-${{ github.sha }}
+          path: reports/runtime/ALPHA11_PROMOTION_WORKFLOW.json
+          if-no-files-found: warn
+          retention-days: 30
