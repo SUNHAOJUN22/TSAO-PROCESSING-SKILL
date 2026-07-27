@@ -1,9 +1,26 @@
 status=FAIL
 audit_baseline=92150eac35ded7eb001a261c8a05e21de4e01070
-orchestration_commit=4dbe21e86d0910bcf0c4ae57741bf335b01c7a88
-workflow_run_id=30248998580
+orchestration_commit=87030a26c902f10e6db54978f0ddb41bfb7e6ac9
+workflow_run_id=30249412231
 workflow_run_attempt=1
-failed_line=48
-failed_command=python /tmp/finalize_alpha11_once.py prepare
+failed_line=54
+failed_command=tee /tmp/alpha11-prepare.log
 exit_status=1
-recorded_utc=2026-07-27T08:12:53Z
+recorded_utc=2026-07-27T08:19:06Z
+prepare_log_begin
+docs/CAPABILITY_MATRIX.md: expected 1 occurrence(s) of '| README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, uncertainty, reactor, process and customer bridge | represented in platform/evidence views | represented in four-Skill delivery | 16 deterministic SVGs, bilingual parity and XML tests |', found 0
+Traceback (most recent call last):
+  File "/tmp/finalize_alpha11_once.py", line 162, in <module>
+    {"prepare": prepare, "stamp-performance": stamp_performance, "record-local": record_local, "record-cross": record_cross}[sys.argv[1]]()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/finalize_alpha11_once.py", line 73, in prepare
+    run(sys.executable, "scripts/apply_alpha11_performance_release.py")
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/finalize_alpha11_once.py", line 17, in run
+    subprocess.run(args, cwd=ROOT, check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.14.6/x64/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '('/opt/hostedtoolcache/Python/3.14.6/x64/bin/python', 'scripts/apply_alpha11_performance_release.py')' returned non-zero exit status 1.
+prepare_log_end
