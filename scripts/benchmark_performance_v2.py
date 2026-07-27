@@ -8,17 +8,16 @@ import numpy as np
 
 from scripts.benchmark_performance import (
     BenchmarkCase,
-    _epdm_semibatch_trajectory_scalar,
     _json_default,
     _measure,
     _reference_epdm_energies,
     _reference_epdm_parameters,
-    _reference_epdm_state,
     _reference_poe_initial,
     _reference_poe_parameters,
     run_benchmarks,
 )
 from skills.epdm.core import (
+    EpdmKineticParameters,
     SemibatchFeed,
     SemibatchInventory,
     batch_pseudo_first_order_screening,
@@ -68,7 +67,7 @@ def _epdm_semibatch_trajectory_compiled(steps: int = 10_000) -> object:
     result = semibatch_trajectory(
         SemibatchInventory(100.0, 12.0, 10.0, 0.4, 0.0, 323.15, 900.0),
         SemibatchFeed(0.0008, 0.0006, 0.00002, 0.0001),
-        _reference_epdm_parameters().__class__(0.2, 0.16, 0.05, 0.008, 0.002, 1.0),
+        EpdmKineticParameters(0.2, 0.16, 0.05, 0.008, 0.002, 1.0),
         steps=steps,
         active_site_mol_L=0.0001,
         poison_mol_L=1e-7,
@@ -131,17 +130,6 @@ def run_benchmarks_v2(*, repeats: int, wheel_dir: Path | None = None) -> dict[st
     report["schema"] = "TSAO-PERFORMANCE-2-OPTIMIZED"
     report["benchmark_count"] = len(benchmarks)
     report["optimized_extensions"] = [case.name for case in extra_cases]
-    report["scalar_semibatch_reference_digest"] = _measure(
-        BenchmarkCase(
-            "scalar_reference_digest_only",
-            _epdm_semibatch_trajectory_scalar,
-            1,
-            1,
-            warmups=0,
-            repeat_override=3,
-        ),
-        repeats=3,
-    )["result_sha256"]
     return report
 
 
