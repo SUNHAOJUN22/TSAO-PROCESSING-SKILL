@@ -77,10 +77,12 @@ python scripts/generate_extended_readme_assets.py
 python scripts/generate_decision_readme_assets.py
 python scripts/generate_performance_readme_assets.py
 python scripts/generate_uiux_readme_assets.py
+python scripts/harden_readme_svg_accessibility.py
+python scripts/verify_readme_visual_accessibility.py
 python scripts/sync_readme_visuals.py --check
 ```
 
-The four historical generators remain available for lineage and focused maintenance. `generate_uiux_readme_assets.py` runs last and is the final visual-normalization layer for all 18 files.
+The four historical generators remain available for lineage and focused maintenance. `generate_uiux_readme_assets.py` remains the master visual-normalization layer for all 18 files; `harden_readme_svg_accessibility.py` then adds stable responsive/rendering metadata, and `verify_readme_visual_accessibility.py` fail-closes on contrast, text size, external resources, emoji, missing title/description or inconsistent root attributes. The committed palette exceeds 4.5:1 for primary text and 3:1 for secondary text and semantic glyphs on the dark surfaces.
 
 ---
 

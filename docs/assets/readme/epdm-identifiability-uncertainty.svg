@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc"><title id="title">EPDM parameter identifiability and uncertainty</title><desc id="desc">Model fidelity advances only when experiments distinguish the parameters that drive the decision</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc" focusable="false" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" text-rendering="optimizeLegibility" data-design-system="scientific-midnight-bento" data-design-version="2"><title id="title">EPDM parameter identifiability and uncertainty</title><desc id="desc">Model fidelity advances only when experiments distinguish the parameters that drive the decision</desc>
 <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#07111F"/>

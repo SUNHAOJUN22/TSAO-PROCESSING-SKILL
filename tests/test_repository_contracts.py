@@ -99,6 +99,8 @@ _REQUIRED_PATHS = {
     "scripts/verify_wheel_contents.py",
     "scripts/verify_wheel_runtime.py",
     "scripts/generate_uiux_readme_assets.py",
+    "scripts/harden_readme_svg_accessibility.py",
+    "scripts/verify_readme_visual_accessibility.py",
     "scripts/sync_readme_visuals.py",
     "docs/README_VISUAL_SYSTEM.md",
     "schemas/work_package.schema.json",

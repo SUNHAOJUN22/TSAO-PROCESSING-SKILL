@@ -128,6 +128,8 @@ _MAINTENANCE_SCRIPTS = (
     "generate_decision_readme_assets.py",
     "generate_performance_readme_assets.py",
     "generate_uiux_readme_assets.py",
+    "harden_readme_svg_accessibility.py",
+    "verify_readme_visual_accessibility.py",
     "sync_readme_visuals.py",
     "run_ci.py",
     "verify_wheel_contents.py",

@@ -200,6 +200,8 @@ python scripts/generate_extended_readme_assets.py
 python scripts/generate_decision_readme_assets.py
 python scripts/generate_performance_readme_assets.py
 python scripts/generate_uiux_readme_assets.py
+python scripts/harden_readme_svg_accessibility.py
+python scripts/verify_readme_visual_accessibility.py
 python scripts/sync_readme_visuals.py --check
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
