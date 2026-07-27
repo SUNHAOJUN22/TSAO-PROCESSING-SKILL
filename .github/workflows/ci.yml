@@ -1,4 +1,4 @@
-name: TSAO alpha10 qualification
+name: TSAO alpha11 qualification
 
 on:
   push:
@@ -14,9 +14,12 @@ concurrency:
 
 jobs:
   qualification:
-    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[FINALIZE-ALPHA10]') }}
+    if: >-
+      ${{ github.event_name != 'push' ||
+          (!contains(github.event.head_commit.message, '[FINALIZE-ALPHA10]') &&
+           !contains(github.event.head_commit.message, '[FINALIZE-ALPHA11]')) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -47,6 +50,7 @@ jobs:
           python scripts/generate_readme_assets.py
           python scripts/generate_extended_readme_assets.py
           python scripts/generate_decision_readme_assets.py
+          python scripts/generate_performance_readme_assets.py
           git diff --exit-code -- docs/assets/readme
       - name: Core, specialists, Ruff and coverage qualification
         run: python scripts/run_ci.py
@@ -60,14 +64,19 @@ jobs:
         run: |
           python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
           python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-      - name: Performance regression gate
+      - name: Extended performance regression gate
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         run: |
-          python scripts/benchmark_performance.py --repeats 5 --output reports/runtime/PERFORMANCE_RESULTS.json
-          python scripts/compare_performance.py \
-            --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
-            --current reports/runtime/PERFORMANCE_RESULTS.json \
-            --output reports/runtime/PERFORMANCE_COMPARISON.json
+          python scripts/benchmark_performance_v2.py \
+            --repeats 3 \
+            --wheel-dir wheelhouse \
+            --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+          python scripts/compare_performance_v2.py \
+            --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
+            --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+            --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
       - name: CLI smoke
         run: |
           python -m tsao.cli doctor --root . --profile core
@@ -89,8 +98,8 @@ jobs:
           name: tsao-qualification-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}
           path: |
             reports/runtime/CI_RESULTS.json
-            reports/runtime/PERFORMANCE_RESULTS.json
-            reports/runtime/PERFORMANCE_COMPARISON.json
+            reports/runtime/PERFORMANCE_RESULTS_V2.json
+            reports/runtime/PERFORMANCE_COMPARISON_V2.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -110,12 +119,12 @@ jobs:
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
       - name: Build deterministic public-source snapshot
-        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.10.zip
+        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.11.zip
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tsao-source-alpha10-${{ github.sha }}
+          name: tsao-source-alpha11-${{ github.sha }}
           path: |
-            TSAO-PROCESSING-SKILL-source-alpha.10.zip
-            TSAO-PROCESSING-SKILL-source-alpha.10.zip.sha256
+            TSAO-PROCESSING-SKILL-source-alpha.11.zip
+            TSAO-PROCESSING-SKILL-source-alpha.11.zip.sha256
           if-no-files-found: error
           retention-days: 14
