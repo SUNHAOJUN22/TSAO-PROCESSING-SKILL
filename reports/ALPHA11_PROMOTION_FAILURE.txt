@@ -1,12 +1,12 @@
 status=FAIL
 audit_baseline=92150eac35ded7eb001a261c8a05e21de4e01070
-orchestration_commit=cf5fa24aa7aed8c7579f0187d20649ef9e9d7bf4
-workflow_run_id=30310928344
+orchestration_commit=638f22fcb45d4180a019889ed749123eea65983d
+workflow_run_id=30314725200
 workflow_run_attempt=1
-failed_line=104
-failed_command=python scripts/run_ci.py
-exit_status=1
-recorded_utc=2026-07-27T22:30:57Z
+failed_line=94
+failed_command=python scripts/compare_performance_v2.py --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json --current reports/PERFORMANCE_OPTIMIZED_ALPHA11.json --output reports/PERFORMANCE_COMPARISON_ALPHA11.json
+exit_status=2
+recorded_utc=2026-07-27T23:38:07Z
 prepare_log_begin
 prepared 0.1.0-alpha.11 performance release metadata
 fixed alpha11 release test and reports index
