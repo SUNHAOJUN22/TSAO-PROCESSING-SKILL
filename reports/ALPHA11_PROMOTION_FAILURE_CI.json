@@ -1,0 +1,174 @@
+{
+  "version": "0.1.0-alpha.11",
+  "pass": false,
+  "checks": [
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "compileall",
+        "-q",
+        "-j",
+        "0",
+        "tsao",
+        "scripts",
+        "skills"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.6164083890000001,
+      "output": ""
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "coverage",
+        "erase"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.36473112299999855,
+      "output": ""
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "coverage",
+        "run",
+        "--branch",
+        "--source=skills.poe,skills.epdm,tsao.process_package,tsao.skillpacks",
+        "--omit=skills/poe/scripts/*,skills/epdm/scripts/*",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests",
+        "skills/process-general/tests",
+        "skills/epdm/tests",
+        "skills/poe/tests",
+        "skills/polymer-general/tests"
+      ],
+      "returncode": 1,
+      "timed_out": false,
+      "duration_s": 8.687826264999998,
+      "output": "........................................................................ [ 32%]\n...............F.F..F.......F...........F............................... [ 64%]\n........................................................................ [ 96%]\n.........                                                                [100%]\n=================================== FAILURES ===================================\n________ test_source_checkout_has_no_generated_release_directory[build] ________\n\ndirectory = 'build'\n\n    @pytest.mark.parametrize(\"directory\", [\"build\", \"dist\", \"wheelhouse\", \"work\"])\n    def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:\n>       assert not (ROOT / directory).exists()\nE       AssertionError: assert not True\nE        +  where True = exists()\nE        +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'build').exists\n\ntests/test_provenance_completeness_alpha6.py:41: AssertionError\n_____ test_source_checkout_has_no_generated_release_directory[wheelhouse] ______\n\ndirectory = 'wheelhouse'\n\n    @pytest.mark.parametrize(\"directory\", [\"build\", \"dist\", \"wheelhouse\", \"work\"])\n    def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:\n>       assert not (ROOT / directory).exists()\nE       AssertionError: assert not True\nE        +  where True = exists()\nE        +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'wheelhouse').exists\n\ntests/test_provenance_completeness_alpha6.py:41: AssertionError\n_______ test_bilingual_readmes_reference_every_declared_local_svg_asset ________\n\n    def test_bilingual_readmes_reference_every_declared_local_svg_asset() -> None:\n        declared_names = declared_asset_names()\n        expected_names: set[str] | None = None\n        for readme_name in (\"README.md\", \"README.zh-CN.md\"):\n            readme_text = (ROOT / readme_name).read_text(encoding=\"utf-8\")\n            matches = ASSET_PATTERN.findall(readme_text)\n>           assert len(matches) == len(declared_names)\nE           AssertionError: assert 19 == 18\nE            +  where 19 = len([('TSAO Process Intelligence OS overview', 'docs/assets/readme/tsao-process-intelligence-os.svg'), ('Universal process...ffect.svg'), ('Simulator-neutral integration contract', 'docs/assets/readme/simulation-integration-contract.svg'), ...])\nE            +  and   18 = len({'batch-parameter-scan.svg', 'control-safety-cause-effect.svg', 'epdm-catalyst-kinetics-network.svg', 'epdm-identifiability-uncertainty.svg', 'epdm-multiscale-chain.svg', 'epdm-process-flowsheet.svg', ...})\n\ntests/test_readme_assets.py:37: AssertionError\n____________ test_ci_and_readmes_lock_eighteen_deterministic_assets ____________\n\n    def test_ci_and_readmes_lock_eighteen_deterministic_assets() -> None:\n        workflow = (ROOT / \".github/workflows/ci.yml\").read_text(encoding=\"utf-8\")\n        for generator in (\n            \"generate_readme_assets.py\",\n            \"generate_extended_readme_assets.py\",\n            \"generate_decision_readme_assets.py\",\n            \"generate_performance_readme_assets.py\",\n            \"generate_uiux_readme_assets.py\",\n        ):\n            assert generator in workflow\n        assert \"sync_readme_visuals.py --check\" in workflow\n    \n        for readme_name in (\"README.md\", \"README.zh-CN.md\"):\n            text = (ROOT / readme_name).read_text(encoding=\"utf-8\")\n>           assert len(ASSET_PATTERN.findall(text)) == 18\nE           AssertionError: assert 19 == 18\nE            +  where 19 = len(['![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)', '![Universal process...effect.svg)', '![Simulator-neutral integration contract](docs/assets/readme/simulation-integration-contract.svg)', ...])\nE            +    where ['![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)', '![Universal process...effect.svg)', '![Simulator-neutral integration contract](docs/assets/readme/simulation-integration-contract.svg)', ...] = <built-in method findall of re.Pattern object at 0x7f82379d3a00>('# TSAO Process Intelligence OS\\n\\n[![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.ym...ipment/relief design, HAZOP/LOPA/SIL, legal review, environmental permitting, customer trials or operating approval.\\n')\nE            +      where <built-in method findall of re.Pattern object at 0x7f82379d3a00> = re.compile('!\\\\[[^\\\\]]+\\\\]\\\\(docs/assets/readme/[^)]+\\\\.svg\\\\)').findall\n\ntests/test_release_convergence.py:40: AssertionError\n____ test_current_alpha10_source_uses_staged_alpha11_qualification_pipeline ____\n\n    def test_current_alpha10_source_uses_staged_alpha11_qualification_pipeline() -> None:\n        changelog = (ROOT / \"CHANGELOG.md\").read_text(encoding=\"utf-8\")\n        reports_index = (ROOT / \"reports/README.md\").read_text(encoding=\"utf-8\")\n        workflow = (ROOT / \".github/workflows/ci.yml\").read_text(encoding=\"utf-8\")\n        readme = (ROOT / \"README.md\").read_text(encoding=\"utf-8\")\n        readme_zh = (ROOT / \"README.zh-CN.md\").read_text(encoding=\"utf-8\")\n        matrix = (ROOT / \"docs/CAPABILITY_MATRIX.md\").read_text(encoding=\"utf-8\")\n    \n        assert changelog.index(\"## 0.1.0-alpha.11\") < changelog.index(\"## 0.1.0-alpha.10\")\n        assert \"Current alpha.11 identities\" in reports_index\n        assert \"ALPHA11_SOURCE_CORE_STATUS.json\" in reports_index\n        assert \"name: TSAO alpha11 qualification\" in workflow\n>       assert \"[FINALIZE-ALPHA11]\" in workflow\nE       AssertionError: assert '[FINALIZE-ALPHA11]' in 'name: TSAO alpha11 qualification\\n\\non:\\n  push:\\n  pull_request:\\n  workflow_dispatch:\\n\\npermissions:\\n  contents: ...  TSAO-PROCESSING-SKILL-source-alpha.11.zip.sha256\\n          if-no-files-found: error\\n          retention-days: 14\\n'\n\ntests/test_release_metadata_alpha11.py:100: AssertionError\n=========================== short test summary info ============================\nFAILED tests/test_provenance_completeness_alpha6.py::test_source_checkout_has_no_generated_release_directory[build] - AssertionError: assert not True\n +  where True = exists()\n +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'build').exists\nFAILED tests/test_provenance_completeness_alpha6.py::test_source_checkout_has_no_generated_release_directory[wheelhouse] - AssertionError: assert not True\n +  where True = exists()\n +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'wheelhouse').exists\nFAILED tests/test_readme_assets.py::test_bilingual_readmes_reference_every_declared_local_svg_asset - AssertionError: assert 19 == 18\n +  where 19 = len([('TSAO Process Intelligence OS overview', 'docs/assets/readme/tsao-process-intelligence-os.svg'), ('Universal process...ffect.svg'), ('Simulator-neutral integration contract', 'docs/assets/readme/simulation-integration-contract.svg'), ...])\n +  and   18 = len({'batch-parameter-scan.svg', 'control-safety-cause-effect.svg', 'epdm-catalyst-kinetics-network.svg', 'epdm-identifiability-uncertainty.svg', 'epdm-multiscale-chain.svg', 'epdm-process-flowsheet.svg', ...})\nFAILED tests/test_release_convergence.py::test_ci_and_readmes_lock_eighteen_deterministic_assets - AssertionError: assert 19 == 18\n +  where 19 = len(['![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)', '![Universal process...effect.svg)', '![Simulator-neutral integration contract](docs/assets/readme/simulation-integration-contract.svg)', ...])\n +    where ['![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)', '![Universal process...effect.svg)', '![Simulator-neutral integration contract](docs/assets/readme/simulation-integration-contract.svg)', ...] = <built-in method findall of re.Pattern object at 0x7f82379d3a00>('# TSAO Process Intelligence OS\\n\\n[![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.ym...ipment/relief design, HAZOP/LOPA/SIL, legal review, environmental permitting, customer trials or operating approval.\\n')\n +      where <built-in method findall of re.Pattern object at 0x7f82379d3a00> = re.compile('!\\\\[[^\\\\]]+\\\\]\\\\(docs/assets/readme/[^)]+\\\\.svg\\\\)').findall\nFAILED tests/test_release_metadata_alpha11.py::test_current_alpha10_source_uses_staged_alpha11_qualification_pipeline - AssertionError: assert '[FINALIZE-ALPHA11]' in 'name: TSAO alpha11 qualification\\n\\non:\\n  push:\\n  pull_request:\\n  workflow_dispatch:\\n\\npermissions:\\n  contents: ...  TSAO-PROCESSING-SKILL-source-alpha.11.zip.sha256\\n          if-no-files-found: error\\n          retention-days: 14\\n'\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "coverage",
+        "report",
+        "--fail-under=75"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.31483210000000383,
+      "output": "Name                           Stmts   Miss Branch BrPart  Cover\n----------------------------------------------------------------\nskills/epdm/__init__.py            2      0      0      0   100%\nskills/epdm/batch.py              44      5     10      3    85%\nskills/epdm/core.py                7      0      0      0   100%\nskills/epdm/kinetics.py          177     25     38     15    80%\nskills/epdm/package_audit.py      34      0     16      4    92%\nskills/epdm/process.py           172     19     40     17    83%\nskills/epdm/qualification.py      85     21     44     15    72%\nskills/poe/__init__.py             2      0      0      0   100%\nskills/poe/core.py                12      0      0      0   100%\nskills/poe/dynamics.py            67     11     26     11    76%\nskills/poe/estimation.py          94     19     36     11    72%\nskills/poe/governance.py         200     29    132     29    82%\nskills/poe/kinetics.py           134      8     26      7    91%\nskills/poe/model_passport.py      75      3     44      4    94%\nskills/poe/package_audit.py      285     65    164     37    75%\nskills/poe/properties.py          44      5     12      5    82%\nskills/poe/qualification.py      218     56    160     49    72%\nskills/poe/reactors.py            40      3      8      3    88%\nskills/poe/scaleup.py             43      5     10      3    85%\ntsao/process_package.py          253     68    148     44    72%\ntsao/skillpacks.py               123     26     40      9    76%\n----------------------------------------------------------------\nTOTAL                           2111    368    954    266    78%\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-c",
+        "from pathlib import Path; Path('.coverage').unlink(missing_ok=True); Path('coverage.xml').unlink(missing_ok=True)"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.032043098999992026,
+      "output": ""
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "scripts/audit_capabilities.py"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.11842813200000535,
+      "output": "{\n  \"pass\": true,\n  \"issues\": [],\n  \"gates\": 19,\n  \"workstreams\": 14,\n  \"maturity_levels\": 10,\n  \"subskills\": {\n    \"epdm\": {\n      \"files\": 34,\n      \"tests\": 3\n    },\n    \"poe\": {\n      \"files\": 115,\n      \"tests\": 8\n    },\n    \"polymer-general\": {\n      \"files\": 20,\n      \"tests\": 2\n    },\n    \"process-general\": {\n      \"files\": 30,\n      \"tests\": 2\n    }\n  },\n  \"universal_package_status\": \"EXECUTABLE_ALPHA\",\n  \"epdm_status\": \"EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE\",\n  \"poe_status\": \"EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE\",\n  \"technical_approval_status\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "skills/epdm/scripts/audit_epdm.py"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.5748972069999922,
+      "output": "{\n  \"status\": \"PASS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"module_registration\": \"14/14\",\n  \"requirement_registration\": \"20/20\",\n  \"reference_case\": \"PASS\",\n  \"reference_package\": \"PASS\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "skills/poe/scripts/audit_p0.py",
+        "--root",
+        "."
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.8284893060000087,
+      "output": "{\n  \"pass\": true,\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"asset_registry_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"requirement_trace_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"conflict_ledger_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"asset_registry\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"requirement_trace\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"conflict_ledger\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"open_blockers\": 7\n    },\n    \"modules\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"specialist_schemas\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"fixtures\": {\n      \"pass\": true,\n      \"errors\": []\n    }\n  },\n  \"asset_coverage\": \"139/139\",\n  \"requirement_registration_coverage\": \"18/18\",\n  \"conflict_registration\": \"7/7\",\n  \"module_count\": 12,\n  \"fixture_domain_count\": 11,\n  \"scientific_approval\": \"NOT_EVALUATED\",\n  \"engineering_approval\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "skills/poe/scripts/audit_p1.py",
+        "--root",
+        "."
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.47104113999999697,
+      "output": "{\n  \"status\": \"PASS_WITH_EXTERNAL_HOLDS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"holds\": [\n    \"model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment\"\n  ],\n  \"reference_level\": \"P1_REFERENCE_KERNEL_ALPHA\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "tsao.cli",
+        "doctor",
+        "--root",
+        ".",
+        "--profile",
+        "core"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.7213797750000026,
+      "output": "{\n  \"version\": \"0.1.0-alpha.11\",\n  \"profile\": \"core\",\n  \"pass\": true,\n  \"strict_source_clean\": false,\n  \"checks\": {\n    \"repository\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"version\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"schemas\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"capabilities\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"provenance\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"release_identity\": {\n      \"pass\": true,\n      \"issues\": []\n    }\n  },\n  \"issues\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"schemas\": 9,\n    \"specialists\": 4\n  },\n  \"artifact_software_qualification\": \"PASS\",\n  \"technical_approval_status\": \"NOT_EVALUATED\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.14.6/x64/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "tsao",
+        "tests",
+        "scripts",
+        "skills/process-general",
+        "skills/epdm",
+        "skills/poe",
+        "skills/polymer-general"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "duration_s": 0.16957794500000034,
+      "output": "All checks passed!\n"
+    }
+  ],
+  "wall_clock_sum_s": 12.899654480999999,
+  "artifact_software_qualification": "FAIL",
+  "universal_process_package_status": "HOLD",
+  "skillpack_delivery_status": "HOLD",
+  "epdm_software_status": "HOLD",
+  "poe_software_status": "HOLD",
+  "poe_scientific_execution": "UNDER_DISTILLATION",
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "customer_qualification": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED"
+}
