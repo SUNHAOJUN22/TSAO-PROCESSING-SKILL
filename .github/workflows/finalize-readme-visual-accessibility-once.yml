@@ -1,0 +1,101 @@
+name: Finalize README visual accessibility once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-readme-visual-accessibility
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    if: ${{ contains(github.event.head_commit.message, '[FINALIZE-README-VISUAL-A11Y]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Install development environment
+        run: |
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+      - name: Apply persistent visual accessibility contract
+        run: |
+          python -m py_compile \
+            scripts/apply_readme_visual_accessibility_contract.py \
+            scripts/harden_readme_svg_accessibility.py \
+            scripts/verify_readme_visual_accessibility.py
+          python scripts/apply_readme_visual_accessibility_contract.py
+      - name: Regenerate, harden and verify all README diagrams
+        run: |
+          python scripts/generate_readme_assets.py
+          python scripts/generate_extended_readme_assets.py
+          python scripts/generate_decision_readme_assets.py
+          python scripts/generate_performance_readme_assets.py
+          python scripts/generate_uiux_readme_assets.py
+          python scripts/harden_readme_svg_accessibility.py
+          python scripts/verify_readme_visual_accessibility.py
+          python scripts/sync_readme_visuals.py
+          python scripts/sync_readme_visuals.py --check
+          find docs/assets/readme -maxdepth 1 -name '*.svg' -print0 | sort -z | xargs -0 sha256sum > /tmp/readme-a11y-first.sha256
+          python scripts/generate_uiux_readme_assets.py
+          python scripts/harden_readme_svg_accessibility.py
+          python scripts/verify_readme_visual_accessibility.py
+          find docs/assets/readme -maxdepth 1 -name '*.svg' -print0 | sort -z | xargs -0 sha256sum > /tmp/readme-a11y-second.sha256
+          diff -u /tmp/readme-a11y-first.sha256 /tmp/readme-a11y-second.sha256
+          test "$(find docs/assets/readme -maxdepth 1 -name '*.svg' | wc -l)" -eq 18
+      - name: Build exact source identity without temporary files
+        run: |
+          rm scripts/apply_readme_visual_accessibility_contract.py
+          rm .github/workflows/finalize-readme-visual-accessibility-once.yml
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+      - name: Complete repository qualification
+        run: |
+          python scripts/run_ci.py
+          python -m tsao.skillpacks --root .
+          python -m pytest -q \
+            tests/test_readme_visual_accessibility.py \
+            tests/test_readme_assets.py \
+            tests/test_release_convergence.py \
+            tests/test_skillpack_delivery.py \
+            tests/test_wheel_contract.py \
+            tests/test_repository_contracts.py
+          python -m ruff check \
+            scripts/harden_readme_svg_accessibility.py \
+            scripts/verify_readme_visual_accessibility.py \
+            tests/test_readme_visual_accessibility.py \
+            tests/test_readme_assets.py \
+            tests/test_release_convergence.py \
+            tests/test_repository_contracts.py
+          python -m tsao.cli doctor --root . --profile core
+      - name: Build and verify Wheel
+        run: |
+          rm -rf wheelhouse build dist
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+      - name: Commit verified README visual accessibility regeneration
+        run: |
+          git checkout -- .github/workflows/finalize-readme-visual-accessibility-once.yml
+          rm -rf wheelhouse build dist
+          python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset -- .github/workflows/finalize-readme-visual-accessibility-once.yml
+          git commit -m "docs(ui): harden and regenerate eighteen accessible README diagrams"
+          git push origin HEAD:main
