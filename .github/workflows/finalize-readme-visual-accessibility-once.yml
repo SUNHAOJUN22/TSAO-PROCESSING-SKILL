@@ -1,5 +1,5 @@
 name: Finalize README visual accessibility once
-# Triggered once after the permanent accessibility gate was added.
+# Rerun after font, synchronization, matrix-anchor and Ruff fixes.
 
 on:
   push:
@@ -63,6 +63,8 @@ jobs:
         run: |
           rm scripts/apply_readme_visual_accessibility_contract.py
           rm .github/workflows/finalize-readme-visual-accessibility-once.yml
+          rm -f .github/workflows/diagnose-readme-visual-accessibility-once.yml
+          rm -f reports/README_VISUAL_ACCESSIBILITY_DIAGNOSTIC.txt
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
       - name: Complete repository qualification
         run: |
