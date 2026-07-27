@@ -1,4 +1,5 @@
 name: Capture alpha10 extended performance baseline once
+# Triggered once for the alpha10 expanded benchmark baseline.
 
 on:
   push:
