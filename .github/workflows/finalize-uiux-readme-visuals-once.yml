@@ -1,5 +1,5 @@
 name: Finalize UIUX README visuals once
-# Rerun after aligning capability, packaging and staged-release contracts.
+# Final run after all visual, packaging, release and lint contracts passed diagnosis.
 
 on:
   push:
