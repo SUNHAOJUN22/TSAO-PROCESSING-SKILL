@@ -57,19 +57,6 @@ def main() -> int:
     )
 
     replace_once(
-        ".github/workflows/ci.yml",
-        "          python scripts/generate_performance_readme_assets.py\n"
-        "          python scripts/generate_uiux_readme_assets.py\n"
-        "          git diff --exit-code -- docs/assets/readme",
-        "          python scripts/generate_performance_readme_assets.py\n"
-        "          python scripts/generate_uiux_readme_assets.py\n"
-        "          python scripts/harden_readme_svg_accessibility.py\n"
-        "          python scripts/verify_readme_visual_accessibility.py\n"
-        "          git diff --exit-code -- docs/assets/readme",
-        "permanent CI visual verification",
-    )
-
-    replace_once(
         "scripts/verify_wheel_contents.py",
         '    "generate_uiux_readme_assets.py",\n    "sync_readme_visuals.py",',
         '    "generate_uiux_readme_assets.py",\n'
