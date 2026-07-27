@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
 
-from scripts.benchmark_performance import (
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.benchmark_performance import (  # noqa: E402
     BenchmarkCase,
     _json_default,
     _measure,
@@ -16,14 +21,14 @@ from scripts.benchmark_performance import (
     _reference_poe_parameters,
     run_benchmarks,
 )
-from skills.epdm.core import (
+from skills.epdm.core import (  # noqa: E402
     EpdmKineticParameters,
     SemibatchFeed,
     SemibatchInventory,
     batch_pseudo_first_order_screening,
     semibatch_trajectory,
 )
-from skills.poe.kinetics import simulate_kinetics_terminal
+from skills.poe.kinetics import simulate_kinetics_terminal  # noqa: E402
 
 
 def _epdm_parameter_scan_batch(scenarios: int = 1_000) -> object:
