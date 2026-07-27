@@ -1,26 +1,13 @@
 status=FAIL
 audit_baseline=92150eac35ded7eb001a261c8a05e21de4e01070
-orchestration_commit=87030a26c902f10e6db54978f0ddb41bfb7e6ac9
-workflow_run_id=30249412231
+orchestration_commit=89f826f28101f4c647ed741d1eef61ec9be2ba2f
+workflow_run_id=30249679790
 workflow_run_attempt=1
-failed_line=54
-failed_command=tee /tmp/alpha11-prepare.log
+failed_line=61
+failed_command=python scripts/normalize_alpha11_transform_once.py restore
 exit_status=1
-recorded_utc=2026-07-27T08:19:06Z
+recorded_utc=2026-07-27T08:23:11Z
 prepare_log_begin
-docs/CAPABILITY_MATRIX.md: expected 1 occurrence(s) of '| README functional graphics | universal lifecycle, architecture, data, control and integration | mechanism, kinetics, uncertainty, reactor, process and customer bridge | represented in platform/evidence views | represented in four-Skill delivery | 16 deterministic SVGs, bilingual parity and XML tests |', found 0
-Traceback (most recent call last):
-  File "/tmp/finalize_alpha11_once.py", line 162, in <module>
-    {"prepare": prepare, "stamp-performance": stamp_performance, "record-local": record_local, "record-cross": record_cross}[sys.argv[1]]()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "/tmp/finalize_alpha11_once.py", line 73, in prepare
-    run(sys.executable, "scripts/apply_alpha11_performance_release.py")
-    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/finalize_alpha11_once.py", line 17, in run
-    subprocess.run(args, cwd=ROOT, check=True)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.14.6/x64/lib/python3.14/subprocess.py", line 578, in run
-    raise CalledProcessError(retcode, process.args,
-                             output=stdout, stderr=stderr)
-subprocess.CalledProcessError: Command '('/opt/hostedtoolcache/Python/3.14.6/x64/bin/python', 'scripts/apply_alpha11_performance_release.py')' returned non-zero exit status 1.
+prepared 0.1.0-alpha.11 performance release metadata
+fixed alpha11 release test and reports index
 prepare_log_end
