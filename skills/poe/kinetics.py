@@ -51,20 +51,64 @@ class KineticState:
 
 _PARAMETER_FIELDS = tuple(KineticParameters.__dataclass_fields__)
 _STATE_FIELDS = tuple(KineticState.__dataclass_fields__)
+StateVector = tuple[
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+]
+
+
+def _state_vector(state: KineticState) -> StateVector:
+    return (
+        state.monomer_a,
+        state.monomer_b,
+        state.dormant_sites,
+        state.live_chains,
+        state.live_a_units,
+        state.live_b_units,
+        state.live_second_moment,
+        state.dead_chains,
+        state.dead_a_units,
+        state.dead_b_units,
+        state.dead_second_moment,
+    )
+
+
+def _state_from_vector(values: StateVector) -> KineticState:
+    return KineticState(*values)
+
+
+def _state_dict_from_vector(values: StateVector) -> dict[str, float]:
+    return dict(zip(_STATE_FIELDS, values, strict=True))
 
 
 def _state_dict(state: KineticState) -> dict[str, float]:
-    return {name: getattr(state, name) for name in _STATE_FIELDS}
+    return _state_dict_from_vector(_state_vector(state))
 
 
-def _kinetic_derivative_validated(
-    state: KineticState, params: KineticParameters
-) -> KineticState:
-    a = state.monomer_a
-    b = state.monomer_b
-    dormant = state.dormant_sites
-    live_n = state.live_chains
-    live_m1 = state.live_a_units + state.live_b_units
+def _kinetic_derivative_vector(state: StateVector, params: KineticParameters) -> StateVector:
+    (
+        a,
+        b,
+        dormant,
+        live_n,
+        live_a,
+        live_b,
+        live_second,
+        _dead_n,
+        _dead_a,
+        _dead_b,
+        _dead_second,
+    ) = state
+    live_m1 = live_a + live_b
     avg_live_length = live_m1 / live_n if live_n > 0 else 0.0
 
     r_init = params.k_init * dormant * a
@@ -75,26 +119,32 @@ def _kinetic_derivative_validated(
     r_deact_dormant = params.k_deactivation * dormant
     loss = r_transfer + r_deact_live
 
-    frac_a = state.live_a_units / live_m1 if live_m1 > 0 else 0.0
-    frac_b = state.live_b_units / live_m1 if live_m1 > 0 else 0.0
+    frac_a = live_a / live_m1 if live_m1 > 0 else 0.0
+    frac_b = live_b / live_m1 if live_m1 > 0 else 0.0
     loss_a = loss * avg_live_length * frac_a
     loss_b = loss * avg_live_length * frac_b
-    loss_m2 = loss * (state.live_second_moment / live_n if live_n > 0 else 0.0)
+    loss_m2 = loss * (live_second / live_n if live_n > 0 else 0.0)
     propagation_m2 = (r_pa + r_pb) * (2.0 * avg_live_length + 1.0)
 
-    return KineticState(
-        monomer_a=-(r_init + r_pa),
-        monomer_b=-r_pb,
-        dormant_sites=-r_init + r_transfer - r_deact_dormant,
-        live_chains=r_init - loss,
-        live_a_units=r_init + r_pa - loss_a,
-        live_b_units=r_pb - loss_b,
-        live_second_moment=r_init + propagation_m2 - loss_m2,
-        dead_chains=loss,
-        dead_a_units=loss_a,
-        dead_b_units=loss_b,
-        dead_second_moment=loss_m2,
+    return (
+        -(r_init + r_pa),
+        -r_pb,
+        -r_init + r_transfer - r_deact_dormant,
+        r_init - loss,
+        r_init + r_pa - loss_a,
+        r_pb - loss_b,
+        r_init + propagation_m2 - loss_m2,
+        loss,
+        loss_a,
+        loss_b,
+        loss_m2,
     )
+
+
+def _kinetic_derivative_validated(
+    state: KineticState, params: KineticParameters
+) -> KineticState:
+    return _state_from_vector(_kinetic_derivative_vector(_state_vector(state), params))
 
 
 def kinetic_derivative(state: KineticState, params: KineticParameters) -> KineticState:
@@ -113,31 +163,63 @@ def kinetic_derivative(state: KineticState, params: KineticParameters) -> Kineti
     return _kinetic_derivative_validated(state, params)
 
 
-def _state_add(state: KineticState, derivative: KineticState, factor: float) -> KineticState:
+def _state_add_vector(state: StateVector, derivative: StateVector, factor: float) -> StateVector:
     values: list[float] = []
-    for name in _STATE_FIELDS:
-        value = getattr(state, name) + factor * getattr(derivative, name)
+    for index, name in enumerate(_STATE_FIELDS):
+        value = state[index] + factor * derivative[index]
         if value < -1e-10:
             raise ValueError(f"integration produced materially negative {name}: {value}")
         values.append(max(0.0, value))
-    return KineticState(*values)
+    return tuple(values)  # type: ignore[return-value]
 
 
-def _rk4_combined(
-    k1: KineticState, k2: KineticState, k3: KineticState, k4: KineticState
-) -> KineticState:
-    return KineticState(
-        *(
-            (
-                getattr(k1, name)
-                + 2.0 * getattr(k2, name)
-                + 2.0 * getattr(k3, name)
-                + getattr(k4, name)
-            )
-            / 6.0
-            for name in _STATE_FIELDS
-        )
-    )
+def _rk4_combined_vector(
+    k1: StateVector,
+    k2: StateVector,
+    k3: StateVector,
+    k4: StateVector,
+) -> StateVector:
+    return tuple(
+        (value1 + 2.0 * value2 + 2.0 * value3 + value4) / 6.0
+        for value1, value2, value3, value4 in zip(k1, k2, k3, k4, strict=True)
+    )  # type: ignore[return-value]
+
+
+def _validated_time_inputs(duration_s: float, step_s: float) -> tuple[float, float]:
+    duration = float(duration_s)
+    step = float(step_s)
+    if not math.isfinite(duration) or duration < 0:
+        raise ValueError("duration_s must be finite and non-negative")
+    if not math.isfinite(step) or step <= 0:
+        raise ValueError("step_s must be finite and positive")
+    return duration, step
+
+
+def _integrate_vectors(
+    initial: KineticState,
+    params: KineticParameters,
+    duration_s: float,
+    step_s: float,
+    *,
+    store_history: bool,
+) -> tuple[StateVector, list[dict[str, float]] | None]:
+    initial.validate()
+    params.validate()
+    duration, step = _validated_time_inputs(duration_s, step_s)
+    state = _state_vector(initial)
+    time_s = 0.0
+    history = [{"time_s": 0.0, **_state_dict_from_vector(state)}] if store_history else None
+    while time_s < duration - 1e-15:
+        h = min(step, duration - time_s)
+        k1 = _kinetic_derivative_vector(state, params)
+        k2 = _kinetic_derivative_vector(_state_add_vector(state, k1, h / 2.0), params)
+        k3 = _kinetic_derivative_vector(_state_add_vector(state, k2, h / 2.0), params)
+        k4 = _kinetic_derivative_vector(_state_add_vector(state, k3, h), params)
+        state = _state_add_vector(state, _rk4_combined_vector(k1, k2, k3, k4), h)
+        time_s += h
+        if history is not None:
+            history.append({"time_s": time_s, **_state_dict_from_vector(state)})
+    return state, history
 
 
 def simulate_kinetics(
@@ -146,29 +228,37 @@ def simulate_kinetics(
     duration_s: float,
     step_s: float,
 ) -> dict[str, Any]:
-    initial.validate()
-    params.validate()
-    if not math.isfinite(duration_s) or duration_s < 0:
-        raise ValueError("duration_s must be finite and non-negative")
-    if not math.isfinite(step_s) or step_s <= 0:
-        raise ValueError("step_s must be finite and positive")
-    state = initial
-    time_s = 0.0
-    history = [{"time_s": 0.0, **_state_dict(state)}]
-    while time_s < duration_s - 1e-15:
-        h = min(step_s, duration_s - time_s)
-        k1 = _kinetic_derivative_validated(state, params)
-        k2 = _kinetic_derivative_validated(_state_add(state, k1, h / 2.0), params)
-        k3 = _kinetic_derivative_validated(_state_add(state, k2, h / 2.0), params)
-        k4 = _kinetic_derivative_validated(_state_add(state, k3, h), params)
-        state = _state_add(state, _rk4_combined(k1, k2, k3, k4), h)
-        time_s += h
-        history.append({"time_s": time_s, **_state_dict(state)})
+    state_values, history = _integrate_vectors(
+        initial, params, duration_s, step_s, store_history=True
+    )
+    final = _state_from_vector(state_values)
+    assert history is not None
     return {
         "status": "CALCULATED_REFERENCE_ONLY",
-        "final": _state_dict(state),
-        "metrics": kinetic_metrics(initial, state, params),
+        "final": _state_dict_from_vector(state_values),
+        "metrics": kinetic_metrics(initial, final, params),
         "history": history,
+        "historical_matlab_reused": False,
+        "scientific_approval": "NOT_EVALUATED",
+    }
+
+
+def simulate_kinetics_terminal(
+    initial: KineticState,
+    params: KineticParameters,
+    duration_s: float,
+    step_s: float,
+) -> dict[str, Any]:
+    """Run the same RK4 reference model without allocating a time-history list."""
+    state_values, _ = _integrate_vectors(
+        initial, params, duration_s, step_s, store_history=False
+    )
+    final = _state_from_vector(state_values)
+    return {
+        "status": "CALCULATED_REFERENCE_ONLY",
+        "final": _state_dict_from_vector(state_values),
+        "metrics": kinetic_metrics(initial, final, params),
+        "history_stored": False,
         "historical_matlab_reused": False,
         "scientific_approval": "NOT_EVALUATED",
     }
