@@ -1,4 +1,5 @@
 name: Diagnose performance v2 optimization once
+# Triggered once for the alpha11 candidate diagnostic.
 
 on:
   push:
