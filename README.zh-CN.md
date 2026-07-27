@@ -7,7 +7,7 @@
 
 **面向化工工艺包的可追溯、默认失败关闭 Skill 平台；EPDM 是最深的旗舰路线，POE 是证据谱系最完整的专业路线。**
 
-[English](README.md) · [总体架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [科研诚信](docs/RESEARCH_INTEGRITY.md)
+[English](README.md) · [总体架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [科研诚信](docs/RESEARCH_INTEGRITY.md) · [README 视觉系统](docs/README_VISUAL_SYSTEM.md)
 
 ![TSAO 工艺智能操作系统总览](docs/assets/readme/tsao-process-intelligence-os.svg)
 
@@ -28,7 +28,7 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或至少 16 幅 README 图中缺少任何一项，库存检查都会失败关闭。
+四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 18 幅 README 图中缺少任何一项，库存检查都会失败关闭。
 
 ![通用工艺包生命周期](docs/assets/readme/universal-process-package.svg)
 
@@ -114,6 +114,12 @@ EPDM 在通用工艺包之上增加更深的“机理—结构—反应器—后
 
 活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。
 
+### 批量情景筛选
+
+![EPDM 批量参数扫描数据流](docs/assets/readme/batch-parameter-scan.svg)
+
+广播兼容的情景数组只在入口校验一次，同时保留明确维度、数值等价性和 `CALCULATED_REFERENCE_ONLY` 边界。
+
 ## 安装与运行
 
 ```bash
@@ -154,6 +160,8 @@ python -m tsao.cli poe reference-demo
 
 性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。
 
+![性能回归资格门](docs/assets/readme/performance-regression-gate.svg)
+
 ```bash
 python scripts/benchmark_performance.py --repeats 7 --output reports/runtime/PERFORMANCE_RESULTS.json
 python scripts/compare_performance.py \
@@ -190,6 +198,9 @@ python scripts/update_performance_readme.py \
 python scripts/generate_readme_assets.py
 python scripts/generate_extended_readme_assets.py
 python scripts/generate_decision_readme_assets.py
+python scripts/generate_performance_readme_assets.py
+python scripts/generate_uiux_readme_assets.py
+python scripts/sync_readme_visuals.py --check
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
@@ -201,7 +212,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
 Wheel 具有两道独立质量门：
 
-1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 16 幅图；
+1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 18 幅图；
 2. **安装门：**同时验证 `pip install --target` 与不继承系统 site-packages 的干净标准虚拟环境；TSAO、EPDM、POE 模块及 Skill 数据根必须全部位于所选安装根内，随后才允许通过安装态 README 与已知解检查。
 
 CI 覆盖 Ubuntu/Python 3.11–3.14，以及 Windows、macOS 的 Python 3.14；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。覆盖率完成后，独立审计并行执行；Ubuntu/Python 3.14 还强制执行版本化性能回归门。

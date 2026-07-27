@@ -54,7 +54,6 @@ _REQUIRED_PATHS = {
     "skills/epdm/STATUS.md",
     "skills/epdm/__init__.py",
     "skills/epdm/core.py",
-    "skills/epdm/core.py",
     "skills/epdm/kinetics.py",
     "skills/epdm/process.py",
     "skills/epdm/qualification.py",

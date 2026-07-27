@@ -7,7 +7,7 @@
 
 **A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
 
-[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md)
+[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md) · [README visual system](docs/README_VISUAL_SYSTEM.md)
 
 ![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)
 
@@ -28,7 +28,7 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and at least 16 README diagrams are present.
+The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 18 README diagrams are present.
 
 ![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
 
@@ -114,6 +114,12 @@ Parameters remain classified as measured, estimated, literature-prior, nuisance,
 
 The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.
 
+### Batch scenario screening
+
+![EPDM batch parameter-scan data flow](docs/assets/readme/batch-parameter-scan.svg)
+
+Broadcast-compatible scenario arrays are validated once and retain explicit dimensions, numerical parity and the `CALCULATED_REFERENCE_ONLY` boundary.
+
 ## Install and run
 
 ```bash
@@ -154,6 +160,8 @@ python -m tsao.cli poe reference-demo
 
 Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.
 
+![Performance regression qualification gate](docs/assets/readme/performance-regression-gate.svg)
+
 ```bash
 python scripts/benchmark_performance.py --repeats 7 --output reports/runtime/PERFORMANCE_RESULTS.json
 python scripts/compare_performance.py \
@@ -190,6 +198,9 @@ Decision-facing results retain source IDs, conditions, units, method boundaries,
 python scripts/generate_readme_assets.py
 python scripts/generate_extended_readme_assets.py
 python scripts/generate_decision_readme_assets.py
+python scripts/generate_performance_readme_assets.py
+python scripts/generate_uiux_readme_assets.py
+python scripts/sync_readme_visuals.py --check
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
@@ -201,7 +212,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
 Wheel verification has two independent gates:
 
-1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 16 diagrams;
+1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 18 diagrams;
 2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
 
 CI covers Ubuntu/Python 3.11–3.14 plus Windows and macOS on Python 3.14. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.

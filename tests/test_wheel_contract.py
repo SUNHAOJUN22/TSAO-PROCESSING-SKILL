@@ -69,7 +69,7 @@ def _valid_runtime_payload(install_root: Path) -> dict[str, object]:
             "pass": True,
             "delivery": "INSTALLED_SKILLPACK",
             "root": str(install_root / "share/tsao-processing-skill"),
-            "readme_svg_assets": 16,
+            "readme_svg_assets": 18,
             "process_general_modules_present": 14,
             "process_general_workflows_present": 6,
         },

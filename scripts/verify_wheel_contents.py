@@ -103,6 +103,7 @@ _POLYMER_SCRIPTS = (
     "scaleup_numbers.py",
 )
 _README_ASSETS = (
+    "batch-parameter-scan.svg",
     "control-safety-cause-effect.svg",
     "epdm-catalyst-kinetics-network.svg",
     "epdm-identifiability-uncertainty.svg",
@@ -114,6 +115,7 @@ _README_ASSETS = (
     "evidence-gate-system.svg",
     "process-package-architecture.svg",
     "process-package-data-model.svg",
+    "performance-regression-gate.svg",
     "recovery-recycle-risk-loop.svg",
     "simulation-integration-contract.svg",
     "tsao-process-intelligence-os.svg",
@@ -124,11 +126,16 @@ _MAINTENANCE_SCRIPTS = (
     "generate_readme_assets.py",
     "generate_extended_readme_assets.py",
     "generate_decision_readme_assets.py",
+    "generate_performance_readme_assets.py",
+    "generate_uiux_readme_assets.py",
+    "sync_readme_visuals.py",
     "run_ci.py",
     "verify_wheel_contents.py",
     "verify_wheel_runtime.py",
     "benchmark_performance.py",
     "compare_performance.py",
+    "benchmark_performance_v2.py",
+    "compare_performance_v2.py",
     "update_performance_readme.py",
 )
 _SHARE_ROOT = "share/tsao-processing-skill"
@@ -269,6 +276,7 @@ def verify(wheel: Path) -> dict[str, object]:
         f"{_SHARE_ROOT}/README.zh-CN.md",
         f"{_SHARE_ROOT}/pyproject.toml",
         f"{_SHARE_ROOT}/docs/CAPABILITY_MATRIX.md",
+        f"{_SHARE_ROOT}/docs/README_VISUAL_SYSTEM.md",
         f"{_SHARE_ROOT}/reports/QUALIFICATION_BOUNDARY.md",
         f"{_SHARE_ROOT}/reports/BRANCH_CONSOLIDATION_2026-07-23.md",
         f"{_SHARE_ROOT}/reports/FINAL_AUDIT_REPORT.md",
