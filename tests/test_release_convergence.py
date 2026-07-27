@@ -25,15 +25,21 @@ def test_python_support_statement_matches_ci_matrix() -> None:
 
 def test_ci_and_readmes_lock_eighteen_deterministic_assets() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-    assert "generate_decision_readme_assets.py" in workflow
-    assert "generate_extended_readme_assets.py" in workflow
-    assert "generate_performance_readme_assets.py" in workflow
-    assert "generate_readme_assets.py" in workflow
+    for generator in (
+        "generate_readme_assets.py",
+        "generate_extended_readme_assets.py",
+        "generate_decision_readme_assets.py",
+        "generate_performance_readme_assets.py",
+        "generate_uiux_readme_assets.py",
+    ):
+        assert generator in workflow
+    assert "sync_readme_visuals.py --check" in workflow
 
     for readme_name in ("README.md", "README.zh-CN.md"):
         text = (ROOT / readme_name).read_text(encoding="utf-8")
         assert len(ASSET_PATTERN.findall(text)) == 18
         assert "18" in text
+        assert "docs/README_VISUAL_SYSTEM.md" in text
 
 
 def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
@@ -64,6 +70,7 @@ def test_runtime_verifier_covers_isolated_install_schemes() -> None:
     assert "NO_SYSTEM_SITE_PACKAGES" in verifier
     assert "installed.files" in skillpacks
     assert "sysconfig.get_path" in skillpacks
+    assert "README_ASSET_MINIMUM = 18" in skillpacks
     delivery = manifest["delivery_verification"]
     assert delivery["standard_venv_isolation"] == "NO_SYSTEM_SITE_PACKAGES"
     assert delivery["installed_import_origin"] == "VERIFIED_INSIDE_INSTALL_ROOT"
@@ -84,5 +91,6 @@ def test_installed_readme_support_files_are_packaged() -> None:
         '"share/tsao-processing-skill/scripts"',
         '"reports/QUALIFICATION_BOUNDARY.md"',
         '"reports/BRANCH_CONSOLIDATION_2026-07-23.md"',
+        '"docs/README_VISUAL_SYSTEM.md"',
     ):
         assert required in pyproject_text
