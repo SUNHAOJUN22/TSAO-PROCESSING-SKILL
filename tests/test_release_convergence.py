@@ -23,16 +23,17 @@ def test_python_support_statement_matches_ci_matrix() -> None:
     assert 'python-version: "3.14"' in workflow
 
 
-def test_ci_and_readmes_lock_sixteen_deterministic_assets() -> None:
+def test_ci_and_readmes_lock_eighteen_deterministic_assets() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert "generate_decision_readme_assets.py" in workflow
     assert "generate_extended_readme_assets.py" in workflow
+    assert "generate_performance_readme_assets.py" in workflow
     assert "generate_readme_assets.py" in workflow
 
     for readme_name in ("README.md", "README.zh-CN.md"):
         text = (ROOT / readme_name).read_text(encoding="utf-8")
-        assert len(ASSET_PATTERN.findall(text)) == 16
-        assert "16" in text
+        assert len(ASSET_PATTERN.findall(text)) == 18
+        assert "18" in text
 
 
 def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
@@ -43,7 +44,9 @@ def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
     assert "standard virtual environment" in matrix
     assert "isolated import origin" in matrix
     assert "3.11–3.14" in matrix
-    assert "16 deterministic svg" in matrix
+    assert "18 deterministic svg" in matrix
+    assert "batch screening" in matrix
+    assert "performance regression" in matrix
 
 
 def test_runtime_verifier_covers_isolated_install_schemes() -> None:
