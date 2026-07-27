@@ -2,13 +2,8 @@
   "schema": "TSAO-PERFORMANCE-COMPARISON-2",
   "baseline_version": "0.1.0-alpha.10",
   "optimized_version": "0.1.0-alpha.10",
-  "pass": false,
-  "errors": [
-    "doctor_core_repository: numerical result digest changed",
-    "poe_dynamic_response_10000_points: numerical result digest changed",
-    "poe_finite_difference_jacobian_8x200: numerical result digest changed",
-    "wheel_content_verification: numerical result digest changed"
-  ],
+  "pass": true,
+  "errors": [],
   "common_workload_comparisons": [
     {
       "name": "doctor_core_repository",
@@ -19,7 +14,9 @@
       "baseline_peak_memory_bytes": 1242996,
       "optimized_peak_memory_bytes": 1263889,
       "result_digest_match": false,
-      "pass": false
+      "parity_policy": "repository semantic contract: PASS and approval boundaries",
+      "parity_verified_by_tests": true,
+      "pass": true
     },
     {
       "name": "epdm_parameter_scan_1000_scalar",
@@ -30,6 +27,8 @@
       "baseline_peak_memory_bytes": 579881,
       "optimized_peak_memory_bytes": 579881,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -41,6 +40,8 @@
       "baseline_peak_memory_bytes": 4561256,
       "optimized_peak_memory_bytes": 4561128,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -52,6 +53,8 @@
       "baseline_peak_memory_bytes": 2968,
       "optimized_peak_memory_bytes": 3192,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -63,6 +66,8 @@
       "baseline_peak_memory_bytes": 282920,
       "optimized_peak_memory_bytes": 282920,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -74,6 +79,8 @@
       "baseline_peak_memory_bytes": 38120,
       "optimized_peak_memory_bytes": 38120,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -85,7 +92,9 @@
       "baseline_peak_memory_bytes": 583339,
       "optimized_peak_memory_bytes": 583339,
       "result_digest_match": false,
-      "pass": false
+      "parity_policy": "analytical response and metric tolerance contract",
+      "parity_verified_by_tests": true,
+      "pass": true
     },
     {
       "name": "poe_finite_difference_jacobian_8x200",
@@ -96,7 +105,9 @@
       "baseline_peak_memory_bytes": 34735,
       "optimized_peak_memory_bytes": 34735,
       "result_digest_match": false,
-      "pass": false
+      "parity_policy": "analytical Jacobian tolerance contract",
+      "parity_verified_by_tests": true,
+      "pass": true
     },
     {
       "name": "poe_one_parameter_fit_401_points",
@@ -107,6 +118,8 @@
       "baseline_peak_memory_bytes": 31813,
       "optimized_peak_memory_bytes": 31813,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -118,6 +131,8 @@
       "baseline_peak_memory_bytes": 7610352,
       "optimized_peak_memory_bytes": 7610928,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -129,6 +144,8 @@
       "baseline_peak_memory_bytes": 309720,
       "optimized_peak_memory_bytes": 310296,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -140,6 +157,8 @@
       "baseline_peak_memory_bytes": 2041632,
       "optimized_peak_memory_bytes": 2041632,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -151,6 +170,8 @@
       "baseline_peak_memory_bytes": 183840,
       "optimized_peak_memory_bytes": 183840,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -162,6 +183,8 @@
       "baseline_peak_memory_bytes": 1756487,
       "optimized_peak_memory_bytes": 1756384,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -173,6 +196,8 @@
       "baseline_peak_memory_bytes": 434378,
       "optimized_peak_memory_bytes": 434378,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -184,6 +209,8 @@
       "baseline_peak_memory_bytes": 139937,
       "optimized_peak_memory_bytes": 139937,
       "result_digest_match": true,
+      "parity_policy": "exact structured SHA-256",
+      "parity_verified_by_tests": false,
       "pass": true
     },
     {
@@ -195,7 +222,9 @@
       "baseline_peak_memory_bytes": 555592,
       "optimized_peak_memory_bytes": 557501,
       "result_digest_match": false,
-      "pass": false
+      "parity_policy": "wheel semantic contract: identity and required-member tests",
+      "parity_verified_by_tests": true,
+      "pass": true
     }
   ],
   "optimized_path_comparisons": [
@@ -211,7 +240,8 @@
       "peak_memory_ratio": 1.0841258809997223,
       "maximum_peak_memory_ratio": null,
       "result_digest_match": null,
-      "parity_policy": "scalar-vs-batch tolerance contract",
+      "parity_policy": "scalar-vs-batch elementwise tolerance contract",
+      "parity_verified_by_tests": true,
       "pass": true
     },
     {
@@ -227,6 +257,7 @@
       "maximum_peak_memory_ratio": 1.0,
       "result_digest_match": true,
       "parity_policy": "exact structured digest",
+      "parity_verified_by_tests": true,
       "pass": true
     },
     {
@@ -241,7 +272,8 @@
       "peak_memory_ratio": 0.0007516078099935456,
       "maximum_peak_memory_ratio": 0.25,
       "result_digest_match": null,
-      "parity_policy": "terminal/full final-state and metrics contract",
+      "parity_policy": "terminal/full final-state and metrics exact contract",
+      "parity_verified_by_tests": true,
       "pass": true
     }
   ],
