@@ -1,4 +1,5 @@
 name: Diagnose UIUX README visuals once
+# Exact diagnostic run for the UI/UX Pro Max-aligned visual system.
 
 on:
   push:
