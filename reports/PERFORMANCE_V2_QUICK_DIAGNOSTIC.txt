@@ -1,0 +1,65 @@
+
+== install ==
+exit=0
+
+== compile ==
+exit=0
+
+== targeted ==
+.......F                                                                 [100%]
+=================================== FAILURES ===================================
+___________________ test_v2_comparator_rejects_digest_drift ____________________
+
+    def test_v2_comparator_rejects_digest_drift() -> None:
+        baseline = {
+            "schema": "TSAO-PERFORMANCE-2",
+            "version": "old",
+            "benchmarks": [_row("epdm_three_level_64_site_families", 1.0, "old")],
+        }
+        current = {
+            "schema": "TSAO-PERFORMANCE-2-OPTIMIZED",
+            "version": "new",
+            "benchmarks": [_row("epdm_three_level_64_site_families", 0.5, "new")],
+        }
+>       result = compare_reports(baseline, current)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_performance_v2_reports.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/compare_performance_v2.py:177: in compare_reports
+    _scale_check(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rows = {'epdm_three_level_64_site_families': {'name': 'epdm_three_level_64_site_families', 'median_s_per_call': 0.5, 'peak_memory_bytes': 1000, 'result_sha256': 'new'}}
+small = 'epdm_three_level_64_site_families'
+large = 'epdm_three_level_512_site_families', size_ratio = 8.0, limit = 1.25
+
+    def _scale_check(
+        rows: dict[str, dict[str, object]],
+        *,
+        small: str,
+        large: str,
+        size_ratio: float,
+        limit: float,
+    ) -> dict[str, object]:
+>       normalized_ratio = (_time(rows[large]) / _time(rows[small])) / size_ratio
+                                  ^^^^^^^^^^^
+E       KeyError: 'epdm_three_level_512_site_families'
+
+scripts/compare_performance_v2.py:61: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_performance_v2_reports.py::test_v2_comparator_rejects_digest_drift - KeyError: 'epdm_three_level_512_site_families'
+exit=1
+
+== ruff ==
+All checks passed!
+exit=0
+
+== batch_smoke ==
+exit=0
+
+== trajectory_smoke ==
+exit=0
+
+== poe_smoke ==
+exit=0
