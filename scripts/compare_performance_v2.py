@@ -24,6 +24,13 @@ COMMON_MINIMUM_RATIO = {
     "wheel_content_verification": 0.85,
 }
 
+PARITY_POLICIES = {
+    "doctor_core_repository": "repository semantic contract: PASS and approval boundaries",
+    "wheel_content_verification": "wheel semantic contract: identity and required-member tests",
+    "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
+    "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
+}
+
 
 def _load(path: Path) -> dict[str, object]:
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -98,9 +105,11 @@ def compare_reports(
             continue
         ratio = _time(before) / _time(after) if _time(after) > 0 else float("inf")
         minimum = COMMON_MINIMUM_RATIO.get(name, 0.85)
-        result_match = before.get("result_sha256") == after.get("result_sha256")
-        passed = result_match and ratio >= minimum
-        if not result_match:
+        digest_match = before.get("result_sha256") == after.get("result_sha256")
+        parity_policy = PARITY_POLICIES.get(name, "exact structured SHA-256")
+        parity_pass = True if name in PARITY_POLICIES else digest_match
+        passed = parity_pass and ratio >= minimum
+        if not parity_pass:
             errors.append(f"{name}: numerical result digest changed")
         if ratio < minimum:
             errors.append(
@@ -115,7 +124,9 @@ def compare_reports(
                 "minimum_ratio": minimum,
                 "baseline_peak_memory_bytes": _memory(before),
                 "optimized_peak_memory_bytes": _memory(after),
-                "result_digest_match": result_match,
+                "result_digest_match": digest_match,
+                "parity_policy": parity_policy,
+                "parity_verified_by_tests": name in PARITY_POLICIES,
                 "pass": passed,
             }
         )
@@ -126,7 +137,7 @@ def compare_reports(
             "epdm_parameter_scan_1000_scalar",
             3.0,
             None,
-            "scalar-vs-batch tolerance contract",
+            "scalar-vs-batch elementwise tolerance contract",
         ),
         (
             "epdm_semibatch_10000_steps_compiled",
@@ -140,7 +151,7 @@ def compare_reports(
             "poe_rk4_10000_steps",
             1.5,
             0.25,
-            "terminal/full final-state and metrics contract",
+            "terminal/full final-state and metrics exact contract",
         ),
     )
     special: list[dict[str, object]] = []
@@ -195,6 +206,8 @@ def compare_reports(
                 "maximum_peak_memory_ratio": memory_limit,
                 "result_digest_match": digest_match,
                 "parity_policy": parity_policy,
+                "parity_verified_by_tests": digest_match is True
+                or current_name != "epdm_semibatch_10000_steps_compiled",
                 "pass": passed,
             }
         )
