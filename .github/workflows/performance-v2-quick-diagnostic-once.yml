@@ -1,0 +1,52 @@
+name: Quick diagnose performance v2 once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[PERF-V2-QUICK-DIAG]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Diagnose code and contracts
+        shell: bash
+        run: |
+          set +e
+          LOG=/tmp/performance-v2-quick-diagnostic.txt
+          : > "$LOG"
+          step() {
+            echo "" >> "$LOG"
+            echo "== $1 ==" >> "$LOG"
+            shift
+            "$@" >> "$LOG" 2>&1
+            echo "exit=$?" >> "$LOG"
+          }
+          step install python -m pip install --quiet -e '.[dev]'
+          step compile python -m compileall -q tsao skills scripts tests
+          step targeted python -m pytest -q tests/test_performance_v2_contract.py tests/test_performance_v2_reports.py
+          step ruff python -m ruff check skills/epdm/batch.py skills/epdm/process.py skills/poe/kinetics.py scripts/benchmark_performance.py scripts/benchmark_performance_v2.py scripts/compare_performance_v2.py tests/test_performance_v2_contract.py tests/test_performance_v2_reports.py
+          step batch_smoke python -c "from scripts.benchmark_performance_v2 import _epdm_parameter_scan_batch; r=_epdm_parameter_scan_batch(1000); assert r['scenario_count']==1000"
+          step trajectory_smoke python -c "from scripts.benchmark_performance_v2 import _epdm_semibatch_trajectory_compiled; r=_epdm_semibatch_trajectory_compiled(100); assert r['steps']==100"
+          step poe_smoke python -c "from scripts.benchmark_performance_v2 import _poe_rk4_terminal_10000; r=_poe_rk4_terminal_10000(); assert r['history_stored'] is False"
+          cp "$LOG" reports/PERFORMANCE_V2_QUICK_DIAGNOSTIC.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports/PERFORMANCE_V2_QUICK_DIAGNOSTIC.txt
+          git commit -m 'diagnostic: capture quick performance v2 results [skip ci]'
+          git push origin HEAD:main
