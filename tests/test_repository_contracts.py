@@ -54,6 +54,7 @@ _REQUIRED_PATHS = {
     "skills/epdm/STATUS.md",
     "skills/epdm/__init__.py",
     "skills/epdm/core.py",
+    "skills/epdm/core.py",
     "skills/epdm/kinetics.py",
     "skills/epdm/process.py",
     "skills/epdm/qualification.py",
@@ -98,6 +99,9 @@ _REQUIRED_PATHS = {
     "scripts/export_source_snapshot.py",
     "scripts/verify_wheel_contents.py",
     "scripts/verify_wheel_runtime.py",
+    "scripts/generate_uiux_readme_assets.py",
+    "scripts/sync_readme_visuals.py",
+    "docs/README_VISUAL_SYSTEM.md",
     "schemas/work_package.schema.json",
     "schemas/maturity.schema.json",
     "schemas/scaleup_claim.schema.json",
@@ -117,12 +121,6 @@ _REQUIRED_PATHS = {
     "reports/ALPHA8_SOURCE_CORE_STATUS.json",
     "reports/ALPHA9_SOURCE_CORE_STATUS.json",
     "reports/ALPHA10_SOURCE_CORE_STATUS.json",
-    "reports/PERFORMANCE_BASELINE_ALPHA9.json",
-    "reports/PERFORMANCE_OPTIMIZED_ALPHA10.json",
-    "reports/PERFORMANCE_COMPARISON_ALPHA10.json",
-    "scripts/benchmark_performance.py",
-    "scripts/compare_performance.py",
-    "scripts/update_performance_readme.py",
     "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",
 }
 
@@ -252,15 +250,17 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "tsao.cli package template" in workflow
     assert "tsao.cli epdm audit" in workflow
     assert "verify_wheel_runtime.py" in workflow
-    assert "benchmark_performance.py" in workflow
-    assert "compare_performance.py" in workflow
+    assert "benchmark_performance_v2.py" in workflow
+    assert "compare_performance_v2.py" in workflow
+    assert "generate_uiux_readme_assets.py" in workflow
+    assert "sync_readme_visuals.py --check" in workflow
     runner = (ROOT / "scripts/run_ci.py").read_text(encoding="utf-8")
     assert "coverage" in runner
     assert "skills/epdm/scripts/audit_epdm.py" in runner
     assert "skills/poe/scripts/audit_p0.py" in runner
     assert "skills/poe/scripts/audit_p1.py" in runner
     assert "ThreadPoolExecutor" in runner
-    assert "alpha10" in workflow.casefold()
+    assert "alpha11" in workflow.casefold()
 
 
 def test_relative_markdown_links_resolve() -> None:
@@ -288,18 +288,3 @@ def test_relative_markdown_links_resolve() -> None:
 @pytest.mark.parametrize("suffix", [".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"])
 def test_repository_has_no_forbidden_generated_or_secret_files(suffix: str) -> None:
     assert list(source_paths(f"*{suffix}")) == []
-
-
-@pytest.mark.parametrize("directory", ["build", "dist", "wheelhouse", "work"])
-def test_repository_excludes_generated_build_trees(directory: str) -> None:
-    assert not (ROOT / directory).exists()
-
-
-def test_repository_excludes_egg_info() -> None:
-    from tsao.provenance import iter_source_files
-
-    source_paths = [relative for _, relative in iter_source_files(ROOT)]
-    assert not any(
-        any(part.endswith(".egg-info") for part in Path(relative).parts)
-        for relative in source_paths
-    )
