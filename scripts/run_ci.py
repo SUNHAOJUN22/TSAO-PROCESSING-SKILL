@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -35,6 +36,7 @@ RUFF_PATHS = (
     "skills/poe",
     "skills/polymer-general",
 )
+GENERATED_RELEASE_DIRECTORIES = ("build", "dist", "wheelhouse")
 
 
 def _terminate_process_tree(process: subprocess.Popen[object]) -> None:
@@ -128,8 +130,17 @@ def _run_command(command: list[str], root: Path) -> dict[str, Any]:
     return run(command, cwd=root)
 
 
+def _remove_generated_release_directories(root: Path) -> None:
+    """Start the qualification suite from a source-clean repository tree."""
+    for name in GENERATED_RELEASE_DIRECTORIES:
+        shutil.rmtree(root / name, ignore_errors=True)
+    for path in root.glob("*.egg-info"):
+        shutil.rmtree(path, ignore_errors=True)
+
+
 def main() -> int:
     root = ROOT
+    _remove_generated_release_directories(root)
     checks = [
         run(
             [sys.executable, "-m", "compileall", "-q", "-j", "0", "tsao", "scripts", "skills"],
