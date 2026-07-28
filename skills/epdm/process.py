@@ -66,13 +66,7 @@ class SemibatchFeed:
         return SemibatchFeed(*values)
 
 
-@dataclass(frozen=True)
-class _SemibatchOperatingInputs:
-    active_site_mol_L: float
-    poison_mol_L: float
-    step_s: float
-    reaction_enthalpy_kJ_mol: float
-    heat_removal_kW: float
+_SemibatchOperatingInputs = tuple[float, float, float, float, float]
 
 
 def _validated_semibatch_inputs(
@@ -92,7 +86,7 @@ def _validated_semibatch_inputs(
     )
     if min(values) < 0:
         raise ValueError("semibatch operating inputs must be non-negative")
-    return _SemibatchOperatingInputs(*values)
+    return values
 
 
 def heat_removal_margin(generation_kW: float, removal_capacity_kW: float) -> float:
@@ -210,7 +204,7 @@ def _semibatch_step_kernel(
     float,
     float,
 ]:
-    duration = operating.step_s
+    active_site, poison, duration, reaction_enthalpy, heat_removal = operating
     volume = inventory.volume_L + feed.liquid_volume_L_s * duration
     ethylene_available = inventory.ethylene_mol + feed.ethylene_mol_s * duration
     propylene_available = inventory.propylene_mol + feed.propylene_mol_s * duration
@@ -219,8 +213,8 @@ def _semibatch_step_kernel(
         ethylene_available / volume,
         propylene_available / volume,
         diene_available / volume,
-        operating.active_site_mol_L,
-        operating.poison_mol_L,
+        active_site,
+        poison,
     )
     rates = _insertion_rates_validated(state, parameters)
     ethylene_consumed = min(ethylene_available, rates["ethylene"] * volume * duration)
@@ -230,8 +224,8 @@ def _semibatch_step_kernel(
     propylene_remaining = propylene_available - propylene_consumed
     diene_remaining = diene_available - diene_consumed
     polymer_increment = ethylene_consumed + propylene_consumed + diene_consumed
-    heat_generated_kJ = polymer_increment * operating.reaction_enthalpy_kJ_mol
-    heat_removed_kJ = operating.heat_removal_kW * duration
+    heat_generated_kJ = polymer_increment * reaction_enthalpy
+    heat_removed_kJ = heat_removal * duration
     temperature = inventory.temperature_K + (
         heat_generated_kJ - heat_removed_kJ
     ) / inventory.heat_capacity_kJ_K
