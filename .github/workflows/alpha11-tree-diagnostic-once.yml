@@ -1,0 +1,56 @@
+name: Diagnose alpha11 tracked tree once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[DIAG-ALPHA11-TREE]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Record tracked-tree hygiene blockers
+        env:
+          QUALIFIED_SOURCE_SHA: 8309aa46663316f574a0269b4a5301ab672a08ac
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git ls-tree -r --name-only "${QUALIFIED_SOURCE_SHA}" > /tmp/tracked.txt
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          paths = Path('/tmp/tracked.txt').read_text(encoding='utf-8').splitlines()
+          workflows = sorted(path for path in paths if path.startswith('.github/workflows/'))
+          suspicious = sorted(
+              path
+              for path in paths
+              if '-once.yml' in Path(path).name
+              or 'CANDIDATE' in Path(path).name
+              or 'DIAGNOSTIC' in Path(path).name
+          )
+          payload = {
+              'schema': 'TSAO-ALPHA11-TREE-DIAGNOSTIC-1',
+              'qualified_source_commit': os.environ['QUALIFIED_SOURCE_SHA'],
+              'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'workflows': workflows,
+              'suspicious_tracked_files': suspicious,
+          }
+          Path('reports/ALPHA11_TREE_DIAGNOSTIC.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+          git add reports/ALPHA11_TREE_DIAGNOSTIC.json
+          git commit -m 'diagnostic: record alpha11 tracked-tree blockers [skip ci]'
+          git push origin HEAD:main
