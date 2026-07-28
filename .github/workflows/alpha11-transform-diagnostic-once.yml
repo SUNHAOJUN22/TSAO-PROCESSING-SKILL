@@ -169,55 +169,25 @@ jobs:
           rm -rf build dist wheelhouse ./*.egg-info
           find reports/runtime -maxdepth 1 -type f ! -name README.md -delete
 
+          mkdir -p reports/runtime
+          cp .github/workflows/ci.yml reports/runtime/ALPHA11_FINAL_CI.yml
+          git checkout "${ORCHESTRATION_SHA}" -- .github/workflows
           git add -A
-          git commit -m 'release(perf): promote 0.1.0-alpha.11 with measured qualification'
+          git commit -m 'release(perf): promote 0.1.0-alpha.11 with measured qualification [FINALIZE-ALPHA11]'
           CANDIDATE_SHA="$(git rev-parse HEAD)"; export CANDIDATE_SHA
           git push origin HEAD:main
 
-          dispatch_wait() {
-            local sha="$1" label="$2" run_id="" info="" status="" conclusion=""
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" -f ref=main >/dev/null
-            for _ in $(seq 1 180); do
-              sleep 10
-              run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?event=workflow_dispatch&branch=main&per_page=30" | TARGET_SHA="$sha" python -c "import json,os,sys; d=json.load(sys.stdin); print(next((str(r['id']) for r in d.get('workflow_runs',[]) if r.get('head_sha')==os.environ['TARGET_SHA']),''))")"
-              [[ -n "$run_id" ]] && break
-            done
-            [[ -n "$run_id" ]] || { echo "missing $label run" >&2; return 1; }
-            for _ in $(seq 1 720); do
-              info="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
-              status="$(printf '%s' "$info" | python -c "import json,sys; print(json.load(sys.stdin).get('status',''))")"
-              [[ "$status" == completed ]] && break
-              sleep 10
-            done
-            conclusion="$(printf '%s' "$info" | python -c "import json,sys; print(json.load(sys.stdin).get('conclusion',''))")"
-            QUAL_RUN_URL="$(printf '%s' "$info" | python -c "import json,sys; print(json.load(sys.stdin).get('html_url',''))")"
-            [[ "$conclusion" == success ]] || { echo "$label failed: $conclusion $QUAL_RUN_URL" >&2; return 1; }
-            QUAL_RUN_ID="$run_id"; export QUAL_RUN_ID QUAL_RUN_URL
-          }
-
-          dispatch_wait "$CANDIDATE_SHA" candidate
-          CANDIDATE_RUN_ID="$QUAL_RUN_ID"; CANDIDATE_RUN_URL="$QUAL_RUN_URL"
-          export CANDIDATE_RUN_ID CANDIDATE_RUN_URL
-          python /tmp/finalize_alpha11_once.py record-cross
-          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
-          python -m tsao.cli doctor --root . --profile core
-          python -m pytest -q tests/test_release_metadata_alpha11.py tests/test_repository_contracts.py tests/test_release_convergence.py tests/test_wheel_contract.py
-          git add reports/ALPHA11_FINAL_QUALIFICATION.json reports/SOURCE_CORE_MANIFEST.tsv
-          git commit -m 'chore(release): close alpha11 cross-platform qualification evidence'
-          FINAL_SHA="$(git rev-parse HEAD)"; export FINAL_SHA
-          git push origin HEAD:main
-          dispatch_wait "$FINAL_SHA" final
-
-          mkdir -p reports/runtime
-          cat > reports/runtime/ALPHA11_PROMOTION_WORKFLOW.json <<JSON
-          {"audit_baseline":"${AUDIT_BASE_SHA}","orchestration_commit":"${ORCHESTRATION_SHA}","candidate_commit":"${CANDIDATE_SHA}","candidate_run_id":${CANDIDATE_RUN_ID},"candidate_run_url":"${CANDIDATE_RUN_URL}","final_commit":"${FINAL_SHA}","final_run_id":${QUAL_RUN_ID},"final_run_url":"${QUAL_RUN_URL}","status":"PASS"}
+          cat > reports/runtime/ALPHA11_CANDIDATE_HANDOFF.json <<JSON
+          {"audit_baseline":"${AUDIT_BASE_SHA}","orchestration_commit":"${ORCHESTRATION_SHA}","candidate_commit":"${CANDIDATE_SHA}","local_qualification":"PASS","performance_gate":"PASS","workflow_run_id":${GITHUB_RUN_ID},"status":"READY_FOR_CONNECTOR_WORKFLOW_FINALIZATION"}
           JSON
           trap - ERR
-      - name: Upload promotion evidence
+      - name: Upload candidate handoff
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tsao-alpha11-promotion-${{ github.sha }}
-          path: reports/runtime/ALPHA11_PROMOTION_WORKFLOW.json
+          name: tsao-alpha11-candidate-handoff-${{ github.sha }}
+          path: |
+            reports/runtime/ALPHA11_CANDIDATE_HANDOFF.json
+            reports/runtime/ALPHA11_FINAL_CI.yml
           if-no-files-found: warn
           retention-days: 30
