@@ -79,7 +79,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         run: |
           python scripts/benchmark_performance_v2.py \
-            --repeats 3 \
+            --repeats 7 \
             --wheel-dir wheelhouse \
             --output reports/runtime/PERFORMANCE_RESULTS_V2.json
           python scripts/compare_performance_v2.py \
