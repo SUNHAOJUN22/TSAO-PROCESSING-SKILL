@@ -105,7 +105,14 @@ def prepare() -> None:
     review = ROOT / "reports/PERFORMANCE_TECHNOLOGY_REVIEW.md"
     text = review.read_text(encoding="utf-8").replace(
         "Baseline: `0.1.0-alpha.10` / `3069e2bce162a361f9dadda7635206804581a6aa`  ",
-        f"Frozen performance baseline: `0.1.0-alpha.10` / `3069e2bce162a361f9dadda7635206804581a6aa`  \nExecution audit baseline: remote `main` / `{os.environ['AUDIT_BASE_SHA']}`  \nPromotion orchestration commit: `{os.environ['ORCHESTRATION_SHA']}`  ", 1)
+        (
+            "Frozen performance baseline: `0.1.0-alpha.10` / "
+            "`3069e2bce162a361f9dadda7635206804581a6aa`\n\n"
+            f"Execution audit baseline: remote `main` / `{os.environ['AUDIT_BASE_SHA']}`\n\n"
+            f"Promotion orchestration commit: `{os.environ['ORCHESTRATION_SHA']}`"
+        ),
+        1,
+    )
     text += "\n\n## Additional official-source checks\n\n- CPython free-threading, Cython, PyPy, Numba, JAX and process parallelism remain deferred pending separate crossover and three-platform qualification.\n- BLAS thread controls remain deployment tuning, not a package default.\n- Pinned Actions, artifact v4, dependency caches and read-only permanent permissions are retained; caches are not evidence.\n"
     review.write_text(text, encoding="utf-8")
     for p in (ROOT / ".github/workflows").glob("*-once.yml"):
