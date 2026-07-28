@@ -1,8 +1,0 @@
-{
-  "schema": "TSAO-ALPHA11-CROSS-PLATFORM-HEARTBEAT-1",
-  "qualified_source_commit": "076e732a8ae257699379a4465dd88dc8adc65410",
-  "observer_commit": "f4a2d6f5510a10f1afa7416ef8a32dd22d2125e6",
-  "workflow_run_id": 30324467737,
-  "workflow_run_attempt": 1,
-  "status": "RUNNING"
-}
