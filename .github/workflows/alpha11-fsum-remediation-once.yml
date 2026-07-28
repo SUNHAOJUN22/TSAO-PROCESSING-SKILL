@@ -1,0 +1,98 @@
+name: Remediate alpha11 Python 3.11 summation once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsao-alpha11-fsum-remediation
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    if: ${{ contains(github.event.head_commit.message, '[FIX-ALPHA11-FSUM]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Apply deterministic floating-point summation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('skills/epdm/kinetics.py')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              '    multiplier_mean = sum(\n': '    multiplier_mean = math.fsum(\n',
+              '    multiplier_variance = sum(\n': '    multiplier_variance = math.fsum(\n',
+          }
+          for old, new in replacements.items():
+              if new in text:
+                  continue
+              if text.count(old) != 1:
+                  raise SystemExit(f'unexpected summation anchor: {old!r}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Verify Python 3.11 exact result identity
+        run: |
+          python -m pip install --quiet -e '.[dev]'
+          python -m pytest -q tests/test_performance_contract.py::test_epdm_suite_preserves_baseline_result_and_validates_once
+          python - <<'PY'
+          import hashlib
+          import json
+          import math
+
+          from skills.epdm.kinetics import (
+              EpdmActivationEnergies,
+              EpdmKineticParameters,
+              EpdmKineticState,
+              three_level_kinetic_suite,
+          )
+
+          families = 64
+          result = three_level_kinetic_suite(
+              EpdmKineticState(1.2, 1.0, 0.04, 0.001, 1e-6),
+              EpdmKineticParameters(2.0, 1.6, 0.5, 0.08, 0.02, 10.0),
+              EpdmActivationEnergies(35_000, 37_000, 42_000, 28_000, 45_000, 20_000),
+              temperature_K=323.15,
+              residence_time_s=300.0,
+              site_family_fractions=tuple(1.0 / families for _ in range(families)),
+              site_activity_multipliers=tuple(
+                  0.55 + 0.9 * index / (families - 1) for index in range(families)
+              ),
+          )
+          payload = json.dumps(result, sort_keys=True, separators=(',', ':'), default=str)
+          digest = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+          expected = 'b7e48a748bcc6b81e892ecc80a43d81c3315b59e5fe899ca44257cda2bbabc94'
+          if digest != expected:
+              raise SystemExit(f'digest mismatch after fsum remediation: {digest}')
+          cv = result['detailed_heterogeneous_site_reference']['site_activity_cv']
+          if not math.isclose(cv, 0.2638993314558738, rel_tol=0.0, abs_tol=0.0):
+              raise SystemExit(f'unexpected site activity CV: {cv!r}')
+          PY
+      - name: Commit verified source remediation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add skills/epdm/kinetics.py
+          git diff --cached --check
+          git commit -m 'fix(epdm): make site statistics deterministic on Python 3.11-3.14 [skip ci]'
+          git push origin HEAD:main
