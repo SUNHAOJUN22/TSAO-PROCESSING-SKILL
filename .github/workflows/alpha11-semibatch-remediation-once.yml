@@ -9,7 +9,7 @@ permissions:
 
 concurrency:
   group: tsao-alpha11-semibatch-remediation
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   remediate:
@@ -28,6 +28,24 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             requirements.txt
+      - name: Record observable remediation run
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json <<JSON
+          {
+            "schema": "TSAO-ALPHA11-SEMIBATCH-REMEDIATION-HEARTBEAT-1",
+            "workflow_run_id": ${GITHUB_RUN_ID},
+            "workflow_run_attempt": ${GITHUB_RUN_ATTEMPT},
+            "source_commit": "${GITHUB_SHA}",
+            "status": "RUNNING"
+          }
+          JSON
+          git add reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json
+          git commit -m 'chore: record semibatch remediation heartbeat [skip ci]'
+          git push origin HEAD:main
       - name: Remove single-step operating dataclass overhead
         shell: bash
         run: |
@@ -90,8 +108,10 @@ jobs:
           python - <<'PY'
           import hashlib
           import json
+          import os
           import statistics
           import timeit
+          from pathlib import Path
 
           from scripts.benchmark_performance import _epdm_semibatch_step_case
 
@@ -103,12 +123,33 @@ jobs:
               raise SystemExit(f'semibatch digest changed: {digest}')
 
           number = 1_000
-          samples = [value / number for value in timeit.repeat(_epdm_semibatch_step_case, number=number, repeat=9)]
+          samples = [
+              value / number
+              for value in timeit.repeat(_epdm_semibatch_step_case, number=number, repeat=9)
+          ]
           median = statistics.median(samples)
           baseline = 1.324074799998698e-05
           minimum_ratio = 0.90
           ratio = baseline / median
-          print({'samples_s': samples, 'median_s': median, 'performance_ratio': ratio})
+          evidence = {
+              'schema': 'TSAO-ALPHA11-SEMIBATCH-MICROBENCHMARK-1',
+              'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'python': os.sys.version,
+              'number_per_repeat': number,
+              'repeats': len(samples),
+              'samples_s_per_call': samples,
+              'median_s_per_call': median,
+              'baseline_s_per_call': baseline,
+              'performance_ratio': ratio,
+              'minimum_ratio': minimum_ratio,
+              'result_sha256': digest,
+              'pass': ratio >= minimum_ratio,
+          }
+          Path('/tmp/semibatch-remediation-evidence.json').write_text(
+              json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(evidence, indent=2))
           if ratio < minimum_ratio:
               raise SystemExit(
                   f'semibatch performance ratio {ratio:.3f}x is below {minimum_ratio:.3f}x'
@@ -120,7 +161,33 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add skills/epdm/process.py
+          rm -f reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json
+          git add skills/epdm/process.py reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json
           git diff --cached --check
           git commit -m 'perf(epdm): remove single-step operating object overhead [skip ci]'
+          git push origin HEAD:main
+      - name: Record remediation failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git reset --hard origin/main
+          rm -f reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json
+          if [[ -f /tmp/semibatch-remediation-evidence.json ]]; then
+            cp /tmp/semibatch-remediation-evidence.json reports/ALPHA11_SEMIBATCH_REMEDIATION_FAILURE.json
+          else
+            cat > reports/ALPHA11_SEMIBATCH_REMEDIATION_FAILURE.json <<JSON
+          {
+            "schema": "TSAO-ALPHA11-SEMIBATCH-REMEDIATION-FAILURE-1",
+            "workflow_run_id": ${GITHUB_RUN_ID},
+            "workflow_run_attempt": ${GITHUB_RUN_ATTEMPT},
+            "status": "FAIL_BEFORE_MICROBENCHMARK_EVIDENCE"
+          }
+          JSON
+          fi
+          git add reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json reports/ALPHA11_SEMIBATCH_REMEDIATION_FAILURE.json
+          git commit -m 'diagnostic: capture semibatch remediation failure [skip ci]'
           git push origin HEAD:main
