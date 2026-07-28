@@ -16,7 +16,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.6163923430000011,
+      "duration_s": 0.5186542280000026,
       "output": ""
     },
     {
@@ -28,7 +28,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.2645357159999975,
+      "duration_s": 0.3144800559999936,
       "output": ""
     },
     {
@@ -53,7 +53,7 @@
       ],
       "returncode": 1,
       "timed_out": false,
-      "duration_s": 7.538924416,
+      "duration_s": 8.086443166999999,
       "output": "........................................................................ [ 32%]\n...............F.F...................................................... [ 64%]\n........................................................................ [ 96%]\n.........                                                                [100%]\n=================================== FAILURES ===================================\n________ test_source_checkout_has_no_generated_release_directory[build] ________\n\ndirectory = 'build'\n\n    @pytest.mark.parametrize(\"directory\", [\"build\", \"dist\", \"wheelhouse\", \"work\"])\n    def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:\n>       assert not (ROOT / directory).exists()\nE       AssertionError: assert not True\nE        +  where True = exists()\nE        +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'build').exists\n\ntests/test_provenance_completeness_alpha6.py:41: AssertionError\n_____ test_source_checkout_has_no_generated_release_directory[wheelhouse] ______\n\ndirectory = 'wheelhouse'\n\n    @pytest.mark.parametrize(\"directory\", [\"build\", \"dist\", \"wheelhouse\", \"work\"])\n    def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:\n>       assert not (ROOT / directory).exists()\nE       AssertionError: assert not True\nE        +  where True = exists()\nE        +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'wheelhouse').exists\n\ntests/test_provenance_completeness_alpha6.py:41: AssertionError\n=========================== short test summary info ============================\nFAILED tests/test_provenance_completeness_alpha6.py::test_source_checkout_has_no_generated_release_directory[build] - AssertionError: assert not True\n +  where True = exists()\n +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'build').exists\nFAILED tests/test_provenance_completeness_alpha6.py::test_source_checkout_has_no_generated_release_directory[wheelhouse] - AssertionError: assert not True\n +  where True = exists()\n +    where exists = (PosixPath('/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL') / 'wheelhouse').exists\n"
     },
     {
@@ -66,7 +66,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.3146500329999924,
+      "duration_s": 0.3144902179999889,
       "output": "Name                           Stmts   Miss Branch BrPart  Cover\n----------------------------------------------------------------\nskills/epdm/__init__.py            2      0      0      0   100%\nskills/epdm/batch.py              44      5     10      3    85%\nskills/epdm/core.py                7      0      0      0   100%\nskills/epdm/kinetics.py          177     25     38     15    80%\nskills/epdm/package_audit.py      34      0     16      4    92%\nskills/epdm/process.py           172     19     40     17    83%\nskills/epdm/qualification.py      85     21     44     15    72%\nskills/poe/__init__.py             2      0      0      0   100%\nskills/poe/core.py                12      0      0      0   100%\nskills/poe/dynamics.py            67     11     26     11    76%\nskills/poe/estimation.py          94     19     36     11    72%\nskills/poe/governance.py         200     29    132     29    82%\nskills/poe/kinetics.py           134      8     26      7    91%\nskills/poe/model_passport.py      75      3     44      4    94%\nskills/poe/package_audit.py      285     65    164     37    75%\nskills/poe/properties.py          44      5     12      5    82%\nskills/poe/qualification.py      218     56    160     49    72%\nskills/poe/reactors.py            40      3      8      3    88%\nskills/poe/scaleup.py             43      5     10      3    85%\ntsao/process_package.py          253     68    148     44    72%\ntsao/skillpacks.py               123     26     40      9    76%\n----------------------------------------------------------------\nTOTAL                           2111    368    954    266    78%\n"
     },
     {
@@ -77,7 +77,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.031933004000009646,
+      "duration_s": 0.03200334899999291,
       "output": ""
     },
     {
@@ -87,7 +87,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.16684611399999483,
+      "duration_s": 0.16754999100000134,
       "output": "{\n  \"pass\": true,\n  \"issues\": [],\n  \"gates\": 19,\n  \"workstreams\": 14,\n  \"maturity_levels\": 10,\n  \"subskills\": {\n    \"epdm\": {\n      \"files\": 34,\n      \"tests\": 3\n    },\n    \"poe\": {\n      \"files\": 115,\n      \"tests\": 8\n    },\n    \"polymer-general\": {\n      \"files\": 20,\n      \"tests\": 2\n    },\n    \"process-general\": {\n      \"files\": 30,\n      \"tests\": 2\n    }\n  },\n  \"universal_package_status\": \"EXECUTABLE_ALPHA\",\n  \"epdm_status\": \"EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE\",\n  \"poe_status\": \"EXECUTABLE_SPECIALIST_ALPHA_P1_REFERENCE\",\n  \"technical_approval_status\": \"NOT_EVALUATED\"\n}\n"
     },
     {
@@ -97,7 +97,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.5215402789999928,
+      "duration_s": 0.5687354660000068,
       "output": "{\n  \"status\": \"PASS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"module_registration\": \"14/14\",\n  \"requirement_registration\": \"20/20\",\n  \"reference_case\": \"PASS\",\n  \"reference_package\": \"PASS\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\"\n}\n"
     },
     {
@@ -109,7 +109,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.7219110890000024,
+      "duration_s": 0.824321378999997,
       "output": "{\n  \"pass\": true,\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"asset_registry_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"requirement_trace_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"conflict_ledger_schema\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"asset_registry\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"requirement_trace\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"coverage\": 1.0\n    },\n    \"conflict_ledger\": {\n      \"status\": \"PASS\",\n      \"pass\": true,\n      \"errors\": [],\n      \"open_blockers\": 7\n    },\n    \"modules\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"specialist_schemas\": {\n      \"pass\": true,\n      \"errors\": []\n    },\n    \"fixtures\": {\n      \"pass\": true,\n      \"errors\": []\n    }\n  },\n  \"asset_coverage\": \"139/139\",\n  \"requirement_registration_coverage\": \"18/18\",\n  \"conflict_registration\": \"7/7\",\n  \"module_count\": 12,\n  \"fixture_domain_count\": 11,\n  \"scientific_approval\": \"NOT_EVALUATED\",\n  \"engineering_approval\": \"NOT_EVALUATED\"\n}\n"
     },
     {
@@ -121,7 +121,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.4726572170000054,
+      "duration_s": 0.4730038350000001,
       "output": "{\n  \"status\": \"PASS_WITH_EXTERNAL_HOLDS\",\n  \"pass\": true,\n  \"errors\": [],\n  \"holds\": [\n    \"model passport: POE-MODEL-001: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-002: model has not been re-executed and qualified in the active environment\",\n    \"model passport: POE-MODEL-003: model has not been re-executed and qualified in the active environment\"\n  ],\n  \"reference_level\": \"P1_REFERENCE_KERNEL_ALPHA\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
     },
     {
@@ -137,7 +137,7 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.7245601509999915,
+      "duration_s": 0.673201418000005,
       "output": "{\n  \"version\": \"0.1.0-alpha.11\",\n  \"profile\": \"core\",\n  \"pass\": true,\n  \"strict_source_clean\": false,\n  \"checks\": {\n    \"repository\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"version\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"schemas\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"capabilities\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"provenance\": {\n      \"pass\": true,\n      \"issues\": []\n    },\n    \"release_identity\": {\n      \"pass\": true,\n      \"issues\": []\n    }\n  },\n  \"issues\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"schemas\": 9,\n    \"specialists\": 4\n  },\n  \"artifact_software_qualification\": \"PASS\",\n  \"technical_approval_status\": \"NOT_EVALUATED\",\n  \"scientific_technical_approval\": \"NOT_EVALUATED\",\n  \"engineering_design_approval\": \"NOT_EVALUATED\",\n  \"customer_qualification\": \"NOT_EVALUATED\",\n  \"industrial_performance_guarantee\": \"NOT_EVALUATED\"\n}\n"
     },
     {
@@ -156,11 +156,11 @@
       ],
       "returncode": 0,
       "timed_out": false,
-      "duration_s": 0.11963501699999313,
+      "duration_s": 0.16721325099999262,
       "output": "All checks passed!\n"
     }
   ],
-  "wall_clock_sum_s": 11.493585378999981,
+  "wall_clock_sum_s": 12.14009635799998,
   "artifact_software_qualification": "FAIL",
   "universal_process_package_status": "HOLD",
   "skillpack_delivery_status": "HOLD",
