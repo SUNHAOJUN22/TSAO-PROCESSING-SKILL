@@ -41,7 +41,7 @@ jobs:
         run: python -m pip check
       - name: Verify permanent repository hygiene
         run: >-
-          python -c "from pathlib import Path; w=sorted(p.name for p in Path('.github/workflows').glob('*.yml')); assert w==['ci.yml'],w; f=[p.as_posix() for p in Path('.').rglob('*') if p.is_file() and ('-once.yml' in p.name or 'CANDIDATE' in p.name or 'DIAGNOSTIC' in p.name)]; assert not f,f"
+          python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name]; assert not f,f"
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
       - name: Verify deterministic README graphics and visual contract
