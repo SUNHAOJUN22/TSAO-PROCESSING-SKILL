@@ -1,0 +1,73 @@
+{
+  "schema": "TSAO-ALPHA11-V5-RUN-DIAGNOSTIC-1",
+  "target_run_id": 30324467737,
+  "run_status": "completed",
+  "run_conclusion": "failure",
+  "jobs": [
+    {
+      "id": 90166823620,
+      "name": "announce",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90166848485,
+      "name": "qualification (3.12, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90166848486,
+      "name": "qualification (macos-latest, 3.14)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90166848503,
+      "name": "qualification (3.13, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90166848505,
+      "name": "qualification (3.14, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90166848516,
+      "name": "qualification (windows-latest, 3.14)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90166848526,
+      "name": "qualification (3.11, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90167038964,
+      "name": "source-snapshot",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 90167092032,
+      "name": "assemble-final-evidence",
+      "status": "completed",
+      "conclusion": "failure",
+      "failed_steps": [
+        "Build exact final evidence worktree"
+      ]
+    }
+  ]
+}
