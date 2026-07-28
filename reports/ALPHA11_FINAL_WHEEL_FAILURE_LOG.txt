@@ -1,0 +1,220 @@
+2026-07-28T03:08:43.0852528Z     "provenance": {
+2026-07-28T03:08:43.0853056Z       "pass": true,
+2026-07-28T03:08:43.0853325Z       "issues": []
+2026-07-28T03:08:43.0853578Z     },
+2026-07-28T03:08:43.0853820Z     "release_identity": {
+2026-07-28T03:08:43.0854115Z       "pass": true,
+2026-07-28T03:08:43.0854370Z       "issues": []
+2026-07-28T03:08:43.0854616Z     }
+2026-07-28T03:08:43.0854835Z   },
+2026-07-28T03:08:43.0855063Z   "issues": [],
+2026-07-28T03:08:43.0855316Z   "warnings": [],
+2026-07-28T03:08:43.0855574Z   "metrics": {
+2026-07-28T03:08:43.0855817Z     "schemas": 9,
+2026-07-28T03:08:43.0856074Z     "specialists": 4
+2026-07-28T03:08:43.0856338Z   },
+2026-07-28T03:08:43.0856606Z   "artifact_software_qualification": "PASS",
+2026-07-28T03:08:43.0857030Z   "technical_approval_status": "NOT_EVALUATED",
+2026-07-28T03:08:43.0857766Z   "scientific_technical_approval": "NOT_EVALUATED",
+2026-07-28T03:08:43.0858230Z   "engineering_design_approval": "NOT_EVALUATED",
+2026-07-28T03:08:43.0858641Z   "customer_qualification": "NOT_EVALUATED",
+2026-07-28T03:08:43.0859069Z   "industrial_performance_guarantee": "NOT_EVALUATED"
+2026-07-28T03:08:43.0859460Z }
+2026-07-28T03:08:44.1229914Z .....................................                                    [100%]
+2026-07-28T03:08:44.2358491Z All checks passed!
+2026-07-28T03:08:44.3508767Z ##[group]Run set -euo pipefail
+2026-07-28T03:08:44.3509143Z [36;1mset -euo pipefail[0m
+2026-07-28T03:08:44.3509444Z [36;1mrm -rf build dist wheelhouse ./*.egg-info[0m
+2026-07-28T03:08:44.3509887Z [36;1mpython -m pip wheel --no-deps --no-build-isolation . -w wheelhouse[0m
+2026-07-28T03:08:44.3510419Z [36;1mpython scripts/verify_wheel_contents.py --wheel-dir wheelhouse[0m
+2026-07-28T03:08:44.3510910Z [36;1mpython scripts/verify_wheel_runtime.py --wheel-dir wheelhouse[0m
+2026-07-28T03:08:44.3511422Z [36;1mwheel="$(find wheelhouse -maxdepth 1 -type f -name '*.whl' -print -quit)"[0m
+2026-07-28T03:08:44.3511908Z [36;1msha256sum "${wheel}" > reports/ALPHA11_FINAL_WHEEL.sha256[0m
+2026-07-28T03:08:44.3512305Z [36;1mpython scripts/export_source_snapshot.py \[0m
+2026-07-28T03:08:44.3512634Z [36;1m  --root . \[0m
+2026-07-28T03:08:44.3512947Z [36;1m  --out TSAO-PROCESSING-SKILL-source-alpha.11-final.zip[0m
+2026-07-28T03:08:44.3558732Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-07-28T03:08:44.3559081Z env:
+2026-07-28T03:08:44.3559350Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.6/x64
+2026-07-28T03:08:44.3559775Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.6/x64/lib/pkgconfig
+2026-07-28T03:08:44.3560196Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.6/x64
+2026-07-28T03:08:44.3560562Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.6/x64
+2026-07-28T03:08:44.3560935Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.6/x64
+2026-07-28T03:08:44.3561308Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.6/x64/lib
+2026-07-28T03:08:44.3561642Z ##[endgroup]
+2026-07-28T03:08:45.2114019Z Processing ./.
+2026-07-28T03:08:45.2140304Z   Preparing metadata (pyproject.toml): started
+2026-07-28T03:08:45.4746152Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-07-28T03:08:45.4789456Z Building wheels for collected packages: tsao-processing-skill
+2026-07-28T03:08:45.4796092Z   Building wheel for tsao-processing-skill (pyproject.toml): started
+2026-07-28T03:08:46.0051636Z   Building wheel for tsao-processing-skill (pyproject.toml): finished with status 'done'
+2026-07-28T03:08:46.0068780Z   Created wheel for tsao-processing-skill: filename=tsao_processing_skill-0.1.0a11-py3-none-any.whl size=593813 sha256=f4980ebd202691aa373736fbaa8bc6496172e2b8e16f6a8ec5da78047f8ad57b
+2026-07-28T03:08:46.0079047Z   Stored in directory: /home/runner/.cache/pip/wheels/4c/01/48/b3d13d995607b5b8e41ce2c652da12bae8e84ed0d83d133ae1
+2026-07-28T03:08:46.0120307Z Successfully built tsao-processing-skill
+2026-07-28T03:08:46.1403522Z {
+2026-07-28T03:08:46.1404102Z   "wheel": "wheelhouse/tsao_processing_skill-0.1.0a11-py3-none-any.whl",
+2026-07-28T03:08:46.1404589Z   "pass": true,
+2026-07-28T03:08:46.1404837Z   "errors": [],
+2026-07-28T03:08:46.1405398Z   "identity": {
+2026-07-28T03:08:46.1405698Z     "expected_name": "tsao-processing-skill",
+2026-07-28T03:08:46.1406079Z     "expected_version": "0.1.0a11",
+2026-07-28T03:08:46.1406406Z     "console_scripts": {
+2026-07-28T03:08:46.1406705Z       "tsao": "tsao.cli:main",
+2026-07-28T03:08:46.1407038Z       "tsao-skillpacks": "tsao.skillpacks:main"
+2026-07-28T03:08:46.1407756Z     },
+2026-07-28T03:08:46.1408055Z     "metadata_name": "tsao-processing-skill",
+2026-07-28T03:08:46.1408429Z     "metadata_version": "0.1.0a11"
+2026-07-28T03:08:46.1408733Z   },
+2026-07-28T03:08:46.1408960Z   "poe_members": 72,
+2026-07-28T03:08:46.1409228Z   "epdm_members": 20,
+2026-07-28T03:08:46.1409506Z   "poe_module_count": 12,
+2026-07-28T03:08:46.1409809Z   "process_general_module_count": 14,
+2026-07-28T03:08:46.1410159Z   "process_general_workflow_count": 6,
+2026-07-28T03:08:46.1410495Z   "readme_asset_count": 20,
+2026-07-28T03:08:46.1410810Z   "maintenance_script_count": 19,
+2026-07-28T03:08:46.1411146Z   "installed_skillpack_members": 209
+2026-07-28T03:08:46.1411482Z }
+2026-07-28T03:08:56.6908092Z {
+2026-07-28T03:08:56.6909131Z   "wheel": "wheelhouse/tsao_processing_skill-0.1.0a11-py3-none-any.whl",
+2026-07-28T03:08:56.6910478Z   "pass": true,
+2026-07-28T03:08:56.6910972Z   "errors": [],
+2026-07-28T03:08:56.6911434Z   "runtimes": {
+2026-07-28T03:08:56.6911880Z     "PIP_TARGET": {
+2026-07-28T03:08:56.6912848Z       "tsao_module_path": "/tmp/tsao-wheel-runtime-jp68_cw7/target-site/tsao/__init__.py",
+2026-07-28T03:08:56.6914419Z       "epdm_module_path": "/tmp/tsao-wheel-runtime-jp68_cw7/target-site/skills/epdm/__init__.py",
+2026-07-28T03:08:56.6915809Z       "poe_module_path": "/tmp/tsao-wheel-runtime-jp68_cw7/target-site/skills/poe/__init__.py",
+2026-07-28T03:08:56.6916836Z       "python_prefix": "/opt/hostedtoolcache/Python/3.14.6/x64",
+2026-07-28T03:08:56.6917782Z       "pfr": 0.6321205588285577,
+2026-07-28T03:08:56.6918266Z       "fit": 0.2,
+2026-07-28T03:08:56.6918673Z       "response": [
+2026-07-28T03:08:56.6918973Z         0.0,
+2026-07-28T03:08:56.6919216Z         0.3934693402873666,
+2026-07-28T03:08:56.6919501Z         0.9932620530009145
+2026-07-28T03:08:56.6919767Z       ],
+2026-07-28T03:08:56.6920029Z       "passport_status": "HOLD",
+2026-07-28T03:08:56.6920345Z       "active_site": 0.6,
+2026-07-28T03:08:56.6920636Z       "heat_margin": 0.2,
+2026-07-28T03:08:56.6920923Z       "epdm_status": "PASS",
+2026-07-28T03:08:56.6921232Z       "package_status": "PASS",
+2026-07-28T03:08:56.6921539Z       "skillpacks": {
+2026-07-28T03:08:56.6921806Z         "pass": true,
+2026-07-28T03:08:56.6922287Z         "root": "/tmp/tsao-wheel-runtime-jp68_cw7/target-site/share/tsao-processing-skill",
+2026-07-28T03:08:56.6922881Z         "delivery": "INSTALLED_SKILLPACK",
+2026-07-28T03:08:56.6923248Z         "version": "0.1.0-alpha.11",
+2026-07-28T03:08:56.6923573Z         "subskills": [
+2026-07-28T03:08:56.6923841Z           "epdm",
+2026-07-28T03:08:56.6924089Z           "poe",
+2026-07-28T03:08:56.6924352Z           "polymer-general",
+2026-07-28T03:08:56.6924670Z           "process-general"
+2026-07-28T03:08:56.6924950Z         ],
+2026-07-28T03:08:56.6925264Z         "process_general_modules_present": 14,
+2026-07-28T03:08:56.6925681Z         "process_general_modules_expected": 14,
+2026-07-28T03:08:56.6926080Z         "process_general_workflows_present": 6,
+2026-07-28T03:08:56.6926418Z         "process_general_workflows_expected": 6,
+2026-07-28T03:08:56.6926732Z         "polymer_general_scripts_present": 6,
+2026-07-28T03:08:56.6927039Z         "polymer_general_scripts_expected": 6,
+2026-07-28T03:08:56.6927323Z         "readme_svg_assets": 18,
+2026-07-28T03:08:56.6927895Z         "readme_svg_assets_expected_minimum": 18,
+2026-07-28T03:08:56.6928186Z         "errors": [],
+2026-07-28T03:08:56.6928452Z         "scientific_technical_approval": "NOT_EVALUATED",
+2026-07-28T03:08:56.6928801Z         "engineering_design_approval": "NOT_EVALUATED",
+2026-07-28T03:08:56.6929178Z         "industrial_performance_guarantee": "NOT_EVALUATED"
+2026-07-28T03:08:56.6929746Z       },
+2026-07-28T03:08:56.6929949Z       "installed_readme_link_failures": []
+2026-07-28T03:08:56.6950527Z     },
+2026-07-28T03:08:56.6950893Z     "STANDARD_VENV": {
+2026-07-28T03:08:56.6951770Z       "tsao_module_path": "/tmp/tsao-wheel-runtime-jp68_cw7/standard-venv/lib/python3.14/site-packages/tsao/__init__.py",
+2026-07-28T03:08:56.6952666Z       "epdm_module_path": "/tmp/tsao-wheel-runtime-jp68_cw7/standard-venv/lib/python3.14/site-packages/skills/epdm/__init__.py",
+2026-07-28T03:08:56.6953523Z       "poe_module_path": "/tmp/tsao-wheel-runtime-jp68_cw7/standard-venv/lib/python3.14/site-packages/skills/poe/__init__.py",
+2026-07-28T03:08:56.6954183Z       "python_prefix": "/tmp/tsao-wheel-runtime-jp68_cw7/standard-venv",
+2026-07-28T03:08:56.6954566Z       "pfr": 0.6321205588285577,
+2026-07-28T03:08:56.6954801Z       "fit": 0.2,
+2026-07-28T03:08:56.6954999Z       "response": [
+2026-07-28T03:08:56.6955197Z         0.0,
+2026-07-28T03:08:56.6955383Z         0.3934693402873666,
+2026-07-28T03:08:56.6955612Z         0.9932620530009145
+2026-07-28T03:08:56.6955822Z       ],
+2026-07-28T03:08:56.6956020Z       "passport_status": "HOLD",
+2026-07-28T03:08:56.6956272Z       "active_site": 0.6,
+2026-07-28T03:08:56.6956734Z       "heat_margin": 0.2,
+2026-07-28T03:08:56.6956973Z       "epdm_status": "PASS",
+2026-07-28T03:08:56.6957218Z       "package_status": "PASS",
+2026-07-28T03:08:56.6957778Z       "skillpacks": {
+2026-07-28T03:08:56.6957996Z         "pass": true,
+2026-07-28T03:08:56.6958385Z         "root": "/tmp/tsao-wheel-runtime-jp68_cw7/standard-venv/share/tsao-processing-skill",
+2026-07-28T03:08:56.6958841Z         "delivery": "INSTALLED_SKILLPACK",
+2026-07-28T03:08:56.6959122Z         "version": "0.1.0-alpha.11",
+2026-07-28T03:08:56.6959374Z         "subskills": [
+2026-07-28T03:08:56.6959577Z           "epdm",
+2026-07-28T03:08:56.6959775Z           "poe",
+2026-07-28T03:08:56.6959983Z           "polymer-general",
+2026-07-28T03:08:56.6960219Z           "process-general"
+2026-07-28T03:08:56.6960439Z         ],
+2026-07-28T03:08:56.6960662Z         "process_general_modules_present": 14,
+2026-07-28T03:08:56.6960965Z         "process_general_modules_expected": 14,
+2026-07-28T03:08:56.6961276Z         "process_general_workflows_present": 6,
+2026-07-28T03:08:56.6961575Z         "process_general_workflows_expected": 6,
+2026-07-28T03:08:56.6961877Z         "polymer_general_scripts_present": 6,
+2026-07-28T03:08:56.6962172Z         "polymer_general_scripts_expected": 6,
+2026-07-28T03:08:56.6962458Z         "readme_svg_assets": 18,
+2026-07-28T03:08:56.6962725Z         "readme_svg_assets_expected_minimum": 18,
+2026-07-28T03:08:56.6963010Z         "errors": [],
+2026-07-28T03:08:56.6963273Z         "scientific_technical_approval": "NOT_EVALUATED",
+2026-07-28T03:08:56.6963637Z         "engineering_design_approval": "NOT_EVALUATED",
+2026-07-28T03:08:56.6963994Z         "industrial_performance_guarantee": "NOT_EVALUATED"
+2026-07-28T03:08:56.6964309Z       },
+2026-07-28T03:08:56.6964512Z       "installed_readme_link_failures": []
+2026-07-28T03:08:56.6964786Z     }
+2026-07-28T03:08:56.6964963Z   },
+2026-07-28T03:08:56.6965142Z   "install_modes": [
+2026-07-28T03:08:56.6965352Z     "PIP_TARGET",
+2026-07-28T03:08:56.6965554Z     "STANDARD_VENV"
+2026-07-28T03:08:56.6965749Z   ],
+2026-07-28T03:08:56.6965942Z   "import_origin_check": "ENFORCED",
+2026-07-28T03:08:56.6966245Z   "standard_venv_isolation": "NO_SYSTEM_SITE_PACKAGES"
+2026-07-28T03:08:56.6966533Z }
+2026-07-28T03:08:56.7897362Z Traceback (most recent call last):
+2026-07-28T03:08:56.7911302Z   File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/export_source_snapshot.py", line 31, in <module>
+2026-07-28T03:08:56.7912210Z     raise SystemExit(main())
+2026-07-28T03:08:56.7912532Z                      ~~~~^^
+2026-07-28T03:08:56.7913322Z   File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/export_source_snapshot.py", line 25, in main
+2026-07-28T03:08:56.7914208Z     result = _build_source_snapshot(Path(args.root), Path(args.out))
+2026-07-28T03:08:56.7915536Z   File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/scripts/export_source_snapshot.py", line 17, in _build_source_snapshot
+2026-07-28T03:08:56.7916434Z     return build_source_snapshot(root, output)
+2026-07-28T03:08:56.7917252Z   File "/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/tsao/snapshot.py", line 40, in build_source_snapshot
+2026-07-28T03:08:56.7918448Z     raise ValueError("source manifest verification failed: " + "; ".join(issues))
+2026-07-28T03:08:56.7919097Z ValueError: source manifest verification failed: unlisted source file: reports/ALPHA11_FINAL_WHEEL.sha256
+2026-07-28T03:08:56.8043780Z ##[error]Process completed with exit code 1.
+2026-07-28T03:08:56.8189406Z Post job cleanup.
+2026-07-28T03:08:56.9086436Z [command]/usr/bin/git version
+2026-07-28T03:08:56.9146288Z git version 2.54.0
+2026-07-28T03:08:56.9190780Z Temporarily overriding HOME='/home/runner/work/_temp/59499c17-57fa-4ddb-9394-87366105068f' before making global git config changes
+2026-07-28T03:08:56.9191880Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-28T03:08:56.9197101Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL
+2026-07-28T03:08:56.9233210Z Removing SSH command configuration
+2026-07-28T03:08:56.9240763Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-28T03:08:56.9279988Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-28T03:08:56.9538230Z Removing HTTP extra header
+2026-07-28T03:08:56.9541662Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-28T03:08:56.9584917Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-28T03:08:56.9845058Z Removing includeIf entries pointing to credentials config files
+2026-07-28T03:08:56.9855580Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-28T03:08:56.9892491Z includeif.gitdir:/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/.git.path
+2026-07-28T03:08:56.9893856Z includeif.gitdir:/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/.git/worktrees/*.path
+2026-07-28T03:08:56.9895041Z includeif.gitdir:/github/workspace/.git.path
+2026-07-28T03:08:56.9895935Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-07-28T03:08:56.9903102Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/.git.path
+2026-07-28T03:08:56.9941904Z /home/runner/work/_temp/git-credentials-8c13319c-079d-408e-b53b-35198714f755.config
+2026-07-28T03:08:56.9954715Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-8c13319c\-079d\-408e\-b53b\-35198714f755\.config
+2026-07-28T03:08:57.0008386Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/.git/worktrees/*.path
+2026-07-28T03:08:57.0042359Z /home/runner/work/_temp/git-credentials-8c13319c-079d-408e-b53b-35198714f755.config
+2026-07-28T03:08:57.0052691Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/TSAO-PROCESSING-SKILL/TSAO-PROCESSING-SKILL/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-8c13319c\-079d\-408e\-b53b\-35198714f755\.config
+2026-07-28T03:08:57.0103312Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-07-28T03:08:57.0132931Z /github/runner_temp/git-credentials-8c13319c-079d-408e-b53b-35198714f755.config
+2026-07-28T03:08:57.0142022Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-8c13319c\-079d\-408e\-b53b\-35198714f755\.config
+2026-07-28T03:08:57.0180878Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-07-28T03:08:57.0208528Z /github/runner_temp/git-credentials-8c13319c-079d-408e-b53b-35198714f755.config
+2026-07-28T03:08:57.0218220Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-8c13319c\-079d\-408e\-b53b\-35198714f755\.config
+2026-07-28T03:08:57.0262439Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-07-28T03:08:57.0497937Z Removing credentials config '/home/runner/work/_temp/git-credentials-8c13319c-079d-408e-b53b-35198714f755.config'
+2026-07-28T03:08:57.0658497Z Cleaning up orphan processes
