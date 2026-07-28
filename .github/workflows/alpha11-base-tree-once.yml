@@ -1,0 +1,34 @@
+name: Record alpha11 qualified base tree once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    if: ${{ contains(github.event.head_commit.message, '[RECORD-ALPHA11-BASE-TREE]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Record qualified source tree SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          tree_sha="$(git rev-parse 076e732a8ae257699379a4465dd88dc8adc65410^{tree})"
+          cat > reports/ALPHA11_BASE_TREE_SHA.json <<JSON
+          {
+            "qualified_source_commit": "076e732a8ae257699379a4465dd88dc8adc65410",
+            "tree_sha": "${tree_sha}"
+          }
+          JSON
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports/ALPHA11_BASE_TREE_SHA.json
+          git commit -m 'chore: record alpha11 qualified base tree [skip ci]'
+          git push origin HEAD:main
