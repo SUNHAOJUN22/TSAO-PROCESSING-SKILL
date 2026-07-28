@@ -339,11 +339,11 @@ def three_level_kinetic_suite(
 
     family_records: list[dict[str, object]] = []
     weighted_rates = {name: 0.0 for name in _PROPAGATION_NAMES}
-    multiplier_mean = sum(
+    multiplier_mean = math.fsum(
         weight * multiplier
         for weight, multiplier in zip(fractions, multipliers, strict=True)
     )
-    multiplier_variance = sum(
+    multiplier_variance = math.fsum(
         weight * (multiplier - multiplier_mean) ** 2
         for weight, multiplier in zip(fractions, multipliers, strict=True)
     )
