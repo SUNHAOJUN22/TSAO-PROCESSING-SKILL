@@ -1,7 +1,11 @@
 # TSAO performance technology review
 
 Date: 2026-07-27  
-Baseline: `0.1.0-alpha.10` / `3069e2bce162a361f9dadda7635206804581a6aa`  
+Frozen performance baseline: `0.1.0-alpha.10` / `3069e2bce162a361f9dadda7635206804581a6aa`
+
+Execution audit baseline: remote `main` / `92150eac35ded7eb001a261c8a05e21de4e01070`
+
+Promotion orchestration commit: `44028e32ffae51a5747b155df69acbb13f92a5a4`
 Scope: software performance and numerical reproducibility only
 
 This review records the primary technical sources consulted for the second performance pass. It does not claim exhaustive indexing of the public internet. Priority was given to official project documentation and peer-reviewed numerical-modeling literature.
@@ -42,3 +46,10 @@ This review records the primary technical sources consulted for the second perfo
 ## Qualification boundary
 
 The sources above justify candidate algorithms and implementation choices. They do not provide EPDM parameters, validate a reactor model, approve equipment, close HAZOP/LOPA/SIL work, qualify customer performance or establish an industrial guarantee. Those states remain `NOT_EVALUATED`.
+
+
+## Additional official-source checks
+
+- CPython free-threading, Cython, PyPy, Numba, JAX and process parallelism remain deferred pending separate crossover and three-platform qualification.
+- BLAS thread controls remain deployment tuning, not a package default.
+- Pinned Actions, artifact v4, dependency caches and read-only permanent permissions are retained; caches are not evidence.

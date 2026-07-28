@@ -121,7 +121,7 @@ _REQUIRED_PATHS = {
     "reports/poe/POE_ALPHA7_P1_REMEDIATION.md",
     "reports/ALPHA8_SOURCE_CORE_STATUS.json",
     "reports/ALPHA9_SOURCE_CORE_STATUS.json",
-    "reports/ALPHA10_SOURCE_CORE_STATUS.json",
+    "reports/ALPHA11_SOURCE_CORE_STATUS.json",
     "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",
 }
 
@@ -175,8 +175,8 @@ def test_version_metadata_is_consistent() -> None:
     reference = json.loads(
         (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
     )
-    assert tsao.__version__ == "0.1.0-alpha.10"
-    assert pyproject["project"]["version"] == "0.1.0a10"
+    assert tsao.__version__ == "0.1.0-alpha.11"
+    assert pyproject["project"]["version"] == "0.1.0a11"
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
     assert root_skill["version"] == tsao.__version__
@@ -184,7 +184,7 @@ def test_version_metadata_is_consistent() -> None:
     assert reference["version"] == tsao.__version__
     assert reference["qualification"] == "NOT_EVALUATED"
     assert identity["complete_distribution"]["qualification"] == "NOT_EVALUATED"
-    assert "## 0.1.0-alpha.10" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "## 0.1.0-alpha.11" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
 
 

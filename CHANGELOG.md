@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.11 — 2026-07-27
+
+- Added NumPy-broadcast EPDM screening for temperature, residence-time, active-site and propagation-multiplier scenario grids.
+- Added a once-validated full-history EPDM semibatch trajectory and a POE terminal-only RK4 execution path.
+- Replaced POE RK4 inner-loop dataclass dispatch with a fixed-state numerical kernel while preserving public result identity.
+- Expanded performance evidence to 20 workloads with warm-ups, medians, variability, cProfile hotspots, peak traced memory and scale checks.
+- Added exact, analytical-tolerance and semantic parity contracts instead of applying an invalid cross-version digest rule to every workload.
+- Added primary-source technology review and an explicit non-adoption record for SciPy, Numba, JAX and process parallelism.
+- Added deterministic batch-scan and performance-regression diagrams, bringing the bilingual README contract to eighteen assets.
+- Upgraded the permanent CI to the alpha.11 v2 performance gate while retaining Python 3.11–3.14 and isolated Wheel installation checks.
+
 ## 0.1.0-alpha.10 — 2026-07-27
 
 - Added deterministic `timeit`/`cProfile` performance evidence with exact-result SHA-256 parity and fail-closed regression thresholds.

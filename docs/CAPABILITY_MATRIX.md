@@ -1,4 +1,4 @@
-# TSAO capability matrix — 0.1.0-alpha.10
+# TSAO capability matrix — 0.1.0-alpha.11
 
 | Capability | `process-general` | EPDM flagship | POE specialist | `polymer-general` | Verification boundary |
 |---|---|---|---|---|---|
@@ -15,8 +15,9 @@
 | Wheel/runtime | complete installed Skill tree | runtime verified | runtime verified | installed Skill verified | content gate + `pip install --target` + isolated standard virtual environment + installed README-link audit |
 | Installed data-root discovery | distribution `RECORD` plus installation-scheme fallback | inherited | inherited | inherited | must resolve both target-directory and prefix/share layouts |
 | Isolated import origin | installed runtime only | EPDM module origin checked | POE module origin checked | Skillpack root origin checked | every imported module and data root must remain inside the selected install root; host editable imports fail |
-| Computational efficiency | validated numerics reused in balance loops | vectorized batch screening, site-family and semibatch fast paths | POE RK4, terminal-only, fitting and linear settling analysis | reusable scripts unchanged | exact/tolerance/semantic parity + timing, memory and scale Gates |
 | Performance regression | package-scale non-regression | batch/trajectory speed and parity | RK4 speed and terminal memory | inherited | frozen baseline, median timing, peak memory, three tenfold scale checks and fail-closed comparison |
+| Computational efficiency | validated numerics reused in balance loops | vectorized batch screening, site-family and semibatch fast paths | POE RK4, terminal-only, fitting and linear settling analysis | reusable scripts unchanged | exact/tolerance/semantic parity + timing, memory and scale Gates |
+| Performance regression | package-scale non-regression | batch/trajectory speed and parity | POE RK4 speed and terminal memory | inherited | frozen baseline, median timing, peak memory, three tenfold scale checks and fail-closed comparison |
 | Source/CI efficiency | one-read canonical identity and pruned walk | inherited | inherited | inherited | Doctor scan reuse; independent audits run in parallel after coverage |
 | Supported Python | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | Ubuntu 3.11–3.14; Windows/macOS 3.14 |
 

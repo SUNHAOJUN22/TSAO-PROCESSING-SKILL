@@ -3,7 +3,7 @@
 Date: 2026-07-27  
 Authoritative branch: `main`  
 Repository: `SUNHAOJUN22/TSAO-PROCESSING-SKILL`  
-Release identity: `0.1.0-alpha.10`
+Release identity: `0.1.0-alpha.11`
 
 ## Final result
 
@@ -118,3 +118,9 @@ The alpha.10 pass profiles before changing code, preserves exact result digests 
 ## Responsibility boundary
 
 This software does not establish fitted industrial kinetics, licensed thermodynamic properties, qualified CFD, equipment or relief design, HAZOP/LOPA/SIL approval, customer qualification or industrial performance. Those states remain explicitly outside software self-certification.
+
+## Alpha.11 performance convergence
+
+The second performance pass added NumPy broadcast screening, a once-validated EPDM semibatch trajectory and a fixed-state POE RK4 kernel with an optional terminal-only result. The release evidence covers twenty workloads, peak traced memory and three tenfold scale checks. Stable records retain exact SHA-256 parity; floating-point array/LAPACK paths use named analytical tolerance tests; Doctor and Wheel use semantic contracts. SciPy, Numba, JAX and process parallelism remain documented candidates rather than unqualified base dependencies.
+
+The bilingual README contains eighteen deterministic functional SVGs. The open Wheel packages the alpha.10 extended baseline, alpha.11 optimized/comparison reports and the technology review. All scientific, engineering, HSE, customer and industrial approvals remain outside software self-qualification.

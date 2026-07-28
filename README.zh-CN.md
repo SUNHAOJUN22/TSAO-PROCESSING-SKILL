@@ -3,7 +3,7 @@
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.10-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[![Status](https://img.shields.io/badge/status-alpha.11-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
 **面向化工工艺包的可追溯、默认失败关闭 Skill 平台；EPDM 是最深的旗舰路线，POE 是证据谱系最完整的专业路线。**
 
@@ -94,6 +94,12 @@ EPDM 在通用工艺包之上增加更深的“机理—结构—反应器—后
 | 二级——工程 | Arrhenius 修正、停留时间转化、守恒型半连续物料—能量步进、移热/混合、循环毒物和脱挥 Damköhler 数 | 流程研究与实验规划 |
 | 三级——详细参考 | 多活性位族、链矩/分散系数、支化/凝胶、Flory–Huggins 稳定性和传热熵产 | 判断是否值得进入 PBM/CFD/EOS 高保真工作 |
 
+### 批量筛选与长轨迹
+
+![EPDM 广播参数扫描流水线](docs/assets/readme/batch-parameter-scan.svg)
+
+`batch_pseudo_first_order_screening` 对温度、停留时间、活性位浓度和增长速率倍数执行真正的广播计算，不经过 Python 情景循环；`semibatch_trajectory` 只在模型边界校验一次，同时保留完整步进历史；POE 在在线循环不需要历史时提供具名的仅终态 RK4 路径。标量 API 继续作为等价性锚点。
+
 ![EPDM 反应器模式决策图](docs/assets/readme/epdm-reactor-mode-map.svg)
 
 所有层级均输出 `CALCULATED_REFERENCE_ONLY`，不冒充已拟合动力学、商业热力学包、合格 CFD、设备设计、HAZOP/LOPA/SIL、客户认证或工业性能保证。
@@ -114,11 +120,6 @@ EPDM 在通用工艺包之上增加更深的“机理—结构—反应器—后
 
 活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。
 
-### 批量情景筛选
-
-![EPDM 批量参数扫描数据流](docs/assets/readme/batch-parameter-scan.svg)
-
-广播兼容的情景数组只在入口校验一次，同时保留明确维度、数值等价性和 `CALCULATED_REFERENCE_ONLY` 边界。
 
 ## 安装与运行
 
@@ -158,31 +159,55 @@ python -m tsao.cli poe reference-demo
 
 ## 实测性能与可复现性
 
+![失败关闭性能回归门](docs/assets/readme/performance-regression-gate.svg)
+
 性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。
 
-![性能回归资格门](docs/assets/readme/performance-regression-gate.svg)
 
 ```bash
-python scripts/benchmark_performance.py --repeats 7 --output reports/runtime/PERFORMANCE_RESULTS.json
-python scripts/compare_performance.py \
-  --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
-  --current reports/runtime/PERFORMANCE_RESULTS.json \
-  --output reports/runtime/PERFORMANCE_COMPARISON.json
+python scripts/benchmark_performance_v2.py \
+  --repeats 5 --wheel-dir wheelhouse \
+  --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+python scripts/compare_performance_v2.py \
+  --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
+  --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+  --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
 python scripts/update_performance_readme.py \
-  --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+  --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
 ```
 
 <!-- PERFORMANCE_RESULTS_START -->
-| 负载 | 基线中位耗时 | 优化后中位耗时 | 加速比 | 结果身份 |
-|---|---:|---:|---:|---|
-| EPDM 三级模型，64 个位点族 | 596.09 µs | 129.38 µs | 4.61× | 一致 |
-| EPDM 半连续物料—能量步进 | 21.78 µs | 13.29 µs | 1.64× | 一致 |
-| POE RK4，400 步 | 31.76 ms | 13.76 ms | 2.31× | 一致 |
-| 通用工艺包，500 台设备 | 4.18 ms | 4.42 ms | 0.95× | 一致 |
-| 源身份，300 文件构建与核验 | 45.13 ms | 23.21 ms | 1.94× | 一致 |
+| 负载 | 基线中位耗时 | 优化后中位耗时 | 比率 | 峰值内存 | 等价合同 |
+|---|---:|---:|---:|---:|---|
+| EPDM 三级模型，64 个位点族 | 129.96 µs | 131.24 µs | 0.99× | 37.23 KiB | 精确一致 |
+| EPDM 三级模型，512 个位点族 | 937.65 µs | 946.63 µs | 0.99× | 276.29 KiB | 精确一致 |
+| EPDM 半连续物料—能量单步 | 13.24 µs | 14.34 µs | 0.92× | 3.12 KiB | 精确一致 |
+| EPDM 半连续轨迹，10,000 次公共单步 | 129.11 ms | 142.58 ms | 0.91× | 4.35 MiB | 精确一致 |
+| EPDM 筛选，1,000 组标量情景 | 13.50 ms | 13.61 ms | 0.99× | 566.29 KiB | 精确一致 |
+| POE RK4，400 步 | 13.93 ms | 6.64 ms | 2.10× | 303.02 KiB | 精确一致 |
+| POE RK4，10,000 步 | 345.90 ms | 165.92 ms | 2.08× | 7.26 MiB | 精确一致 |
+| POE 有限差分 Jacobian，8 × 200 | 503.52 µs | 493.41 µs | 1.02× | 33.92 KiB | 精确一致 |
+| POE 单参数拟合，401 点 | 1.00 ms | 1.01 ms | 0.99× | 31.07 KiB | 精确一致 |
+| POE 动态响应，10,000 点 | 241.69 µs | 241.34 µs | 1.00× | 569.67 KiB | 精确一致 |
+| 通用工艺包，500 台设备 | 4.43 ms | 4.38 ms | 1.01× | 179.53 KiB | 精确一致 |
+| 通用工艺包，5,000 台设备 | 44.28 ms | 44.12 ms | 1.00× | 1.95 MiB | 精确一致 |
+| 源身份，300 文件构建与核验 | 25.91 ms | 24.80 ms | 1.04× | 424.10 KiB | 精确一致 |
+| 源身份，3,000 文件构建与核验 | 228.88 ms | 229.13 ms | 1.00× | 1.68 MiB | 精确一致 |
+| 仓库 Doctor，core 配置 | 126.28 ms | 129.83 ms | 0.97× | 1.29 MiB | 容差 / 语义一致 |
+| 四 Skill 库存 | 5.95 ms | 6.35 ms | 0.94× | 137.26 KiB | 容差 / 语义一致 |
+| Wheel 内容核验 | 2.93 ms | 3.13 ms | 0.94× | 593.27 KiB | 容差 / 语义一致 |
+| EPDM 筛选，1,000 组广播情景 | 13.50 ms | 1.41 ms | 9.56× | 613.93 KiB | 容差 / 语义一致 |
+| EPDM 半连续轨迹，一次校验 10,000 步 | 129.11 ms | 47.21 ms | 2.73× | 4.35 MiB | 精确一致 |
+| POE RK4 仅终态，10,000 步 | 345.90 ms | 143.77 ms | 2.41× | 5.59 KiB | 容差 / 语义一致 |
+
+| 尺度对 | 归一化耗时比 | 上限 | Gate |
+|---|---:|---:|---|
+| EPDM 三级模型，64 个位点族 → EPDM 三级模型，512 个位点族 | 0.902 | 1.25 | 通过 |
+| 通用工艺包，500 台设备 → 通用工艺包，5,000 台设备 | 1.006 | 1.25 | 通过 |
+| 源身份，300 文件构建与核验 → 源身份，3,000 文件构建与核验 | 0.924 | 1.25 | 通过 |
 <!-- PERFORMANCE_RESULTS_END -->
 
-性能门要求结果摘要完全一致；EPDM 位点族与半连续负载、POE RK4 和源身份核验还必须达到明确最低加速比，500 台设备通用工艺包负载则设有“不得实质退化”底线。
+v2 性能门保护 17 个共用负载和 3 条新增优化路径。结构稳定的结果继续要求精确 SHA-256；浮点数组和 LAPACK 路径采用具名解析容差测试；Doctor 与 Wheel 采用语义合同；同时约束峰值内存和 10 倍尺度效率。NumPy 仍是唯一必需加速依赖，SciPy、Numba 和 JAX 只有在独立跨平台资格证明净收益后才会成为可选后端。
 
 ## 证据与资格门
 

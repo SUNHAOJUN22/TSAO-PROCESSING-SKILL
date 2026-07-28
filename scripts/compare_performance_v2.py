@@ -26,6 +26,10 @@ COMMON_MINIMUM_RATIO = {
 
 PARITY_POLICIES = {
     "doctor_core_repository": "repository semantic contract: PASS and approval boundaries",
+    "skillpack_inventory": (
+        "skillpack semantic contract: four Skills, 14/6/6 inventory, "
+        "README assets and approval boundaries"
+    ),
     "wheel_content_verification": "wheel semantic contract: identity and required-member tests",
     "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
     "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",

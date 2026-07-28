@@ -3,7 +3,7 @@
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.10-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[![Status](https://img.shields.io/badge/status-alpha.11-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
 **A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
 
@@ -94,6 +94,12 @@ application / CQA
 | 2 — engineering | Arrhenius adjustment, residence-time conversion, conservative semibatch material/energy step, heat/mixing, recycle poison and devolatilization Damköhler number | flowsheet studies and experiment planning |
 | 3 — detailed reference | heterogeneous site families, chain moments/dispersity, branching/gel, Flory–Huggins stability and heat-transfer entropy generation | deciding whether PBM/CFD/EOS work is justified |
 
+### Batch screening and long trajectories
+
+![EPDM broadcast parameter-scan pipeline](docs/assets/readme/batch-parameter-scan.svg)
+
+`batch_pseudo_first_order_screening` broadcasts temperature, residence time, active-site concentration and propagation multipliers without Python-loop dispatch. `semibatch_trajectory` validates the model boundary once while preserving the complete step history, and POE offers an explicitly named terminal-only RK4 path when online loops do not need history allocation. Scalar APIs remain the reference parity anchors.
+
 ![EPDM reactor-mode decision map](docs/assets/readme/epdm-reactor-mode-map.svg)
 
 Every level returns `CALCULATED_REFERENCE_ONLY`. It does not claim fitted kinetics, licensed thermodynamics, qualified CFD, equipment design, HAZOP/LOPA/SIL approval, customer qualification or an industrial guarantee.
@@ -114,11 +120,6 @@ Parameters remain classified as measured, estimated, literature-prior, nuisance,
 
 The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.
 
-### Batch scenario screening
-
-![EPDM batch parameter-scan data flow](docs/assets/readme/batch-parameter-scan.svg)
-
-Broadcast-compatible scenario arrays are validated once and retain explicit dimensions, numerical parity and the `CALCULATED_REFERENCE_ONLY` boundary.
 
 ## Install and run
 
@@ -158,31 +159,55 @@ python -m tsao.cli poe reference-demo
 
 ## Measured performance and reproducibility
 
+![Fail-closed performance regression gate](docs/assets/readme/performance-regression-gate.svg)
+
 Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.
 
-![Performance regression qualification gate](docs/assets/readme/performance-regression-gate.svg)
 
 ```bash
-python scripts/benchmark_performance.py --repeats 7 --output reports/runtime/PERFORMANCE_RESULTS.json
-python scripts/compare_performance.py \
-  --baseline reports/PERFORMANCE_BASELINE_ALPHA9.json \
-  --current reports/runtime/PERFORMANCE_RESULTS.json \
-  --output reports/runtime/PERFORMANCE_COMPARISON.json
+python scripts/benchmark_performance_v2.py \
+  --repeats 5 --wheel-dir wheelhouse \
+  --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+python scripts/compare_performance_v2.py \
+  --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
+  --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+  --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
 python scripts/update_performance_readme.py \
-  --comparison reports/PERFORMANCE_COMPARISON_ALPHA10.json --check
+  --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
 ```
 
 <!-- PERFORMANCE_RESULTS_START -->
-| Workload | Baseline median | Optimized median | Speedup | Result identity |
-|---|---:|---:|---:|---|
-| EPDM three-level model, 64 site families | 596.09 µs | 129.38 µs | 4.61× | match |
-| EPDM semibatch material-energy step | 21.78 µs | 13.29 µs | 1.64× | match |
-| POE RK4, 400 steps | 31.76 ms | 13.76 ms | 2.31× | match |
-| Universal process package, 500 equipment items | 4.18 ms | 4.42 ms | 0.95× | match |
-| Source identity, 300 files build + verify | 45.13 ms | 23.21 ms | 1.94× | match |
+| Workload | Baseline median | Optimized median | Ratio | Peak memory | Parity |
+|---|---:|---:|---:|---:|---|
+| EPDM three-level model, 64 site families | 129.96 µs | 131.24 µs | 0.99× | 37.23 KiB | exact |
+| EPDM three-level model, 512 site families | 937.65 µs | 946.63 µs | 0.99× | 276.29 KiB | exact |
+| EPDM semibatch material-energy step | 13.24 µs | 14.34 µs | 0.92× | 3.12 KiB | exact |
+| EPDM semibatch trajectory, 10,000 public steps | 129.11 ms | 142.58 ms | 0.91× | 4.35 MiB | exact |
+| EPDM screening, 1,000 scalar scenarios | 13.50 ms | 13.61 ms | 0.99× | 566.29 KiB | exact |
+| POE RK4, 400 steps | 13.93 ms | 6.64 ms | 2.10× | 303.02 KiB | exact |
+| POE RK4, 10,000 steps | 345.90 ms | 165.92 ms | 2.08× | 7.26 MiB | exact |
+| POE finite-difference Jacobian, 8 × 200 | 503.52 µs | 493.41 µs | 1.02× | 33.92 KiB | exact |
+| POE one-parameter fit, 401 points | 1.00 ms | 1.01 ms | 0.99× | 31.07 KiB | exact |
+| POE dynamic response, 10,000 points | 241.69 µs | 241.34 µs | 1.00× | 569.67 KiB | exact |
+| Universal process package, 500 equipment items | 4.43 ms | 4.38 ms | 1.01× | 179.53 KiB | exact |
+| Universal process package, 5,000 equipment items | 44.28 ms | 44.12 ms | 1.00× | 1.95 MiB | exact |
+| Source identity, 300 files build + verify | 25.91 ms | 24.80 ms | 1.04× | 424.10 KiB | exact |
+| Source identity, 3,000 files build + verify | 228.88 ms | 229.13 ms | 1.00× | 1.68 MiB | exact |
+| Repository Doctor, core profile | 126.28 ms | 129.83 ms | 0.97× | 1.29 MiB | tolerance / semantic |
+| Four-Skill inventory | 5.95 ms | 6.35 ms | 0.94× | 137.26 KiB | tolerance / semantic |
+| Wheel content verification | 2.93 ms | 3.13 ms | 0.94× | 593.27 KiB | tolerance / semantic |
+| EPDM screening, 1,000 broadcast scenarios | 13.50 ms | 1.41 ms | 9.56× | 613.93 KiB | tolerance / semantic |
+| EPDM semibatch trajectory, once-validated 10,000 steps | 129.11 ms | 47.21 ms | 2.73× | 4.35 MiB | exact |
+| POE RK4 terminal-only, 10,000 steps | 345.90 ms | 143.77 ms | 2.41× | 5.59 KiB | tolerance / semantic |
+
+| Scale pair | Normalized time ratio | Limit | Gate |
+|---|---:|---:|---|
+| EPDM three-level model, 64 site families → EPDM three-level model, 512 site families | 0.902 | 1.25 | PASS |
+| Universal process package, 500 equipment items → Universal process package, 5,000 equipment items | 1.006 | 1.25 | PASS |
+| Source identity, 300 files build + verify → Source identity, 3,000 files build + verify | 0.924 | 1.25 | PASS |
 <!-- PERFORMANCE_RESULTS_END -->
 
-The gate requires identical result digests. EPDM site-family and semibatch workloads, POE RK4 and source-identity verification also have explicit minimum speedups; the 500-equipment universal package workload has a no-material-regression floor.
+The v2 gate protects 17 common workloads and three optimized paths. Stable structures retain exact SHA-256 identity; floating-point array/LAPACK paths use named analytical tolerance tests; Doctor and Wheel use semantic contracts. The gate also enforces peak-memory and 10× scale-efficiency limits. NumPy remains the only required acceleration dependency; SciPy, Numba and JAX remain optional research candidates until separate cross-platform qualification proves a net benefit.
 
 ## Evidence and qualification
 

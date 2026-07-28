@@ -912,7 +912,7 @@ def render_batch_scan() -> str:
             parts.append(line(x + 215, 375, x + 245, 375, stroke=DIM, width=2, arrow=True))
     parts.append(rect(1030, 225, 118, 300, fill="#0D2038", stroke=AMBER, radius=20, shadow=True))
     parts.append(text(1089, 265, "GATE", size=13, fill=AMBER, mono=True, weight=800, anchor="middle"))
-    parts.append(text(1089, 335, "10.46×", size=25, fill=TEXT, weight=850, anchor="middle"))
+    parts.append(text(1089, 335, "≥3× gate", size=22, fill=TEXT, weight=850, anchor="middle"))
     parts.append(text(1089, 364, "1,000 cases", size=11, fill=MUTED, mono=True, anchor="middle"))
     parts.append(pill(1045, 405, "PARITY", GREEN, width=88))
     parts.append(pill(1045, 447, "NO DRIFT", BLUE, width=88))
