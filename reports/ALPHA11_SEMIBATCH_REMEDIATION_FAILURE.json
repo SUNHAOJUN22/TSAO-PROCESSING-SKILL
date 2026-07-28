@@ -1,0 +1,6 @@
+{
+  "schema": "TSAO-ALPHA11-SEMIBATCH-REMEDIATION-FAILURE-1",
+  "workflow_run_id": 30324081550,
+  "workflow_run_attempt": 1,
+  "status": "FAIL_BEFORE_MICROBENCHMARK_EVIDENCE"
+}
