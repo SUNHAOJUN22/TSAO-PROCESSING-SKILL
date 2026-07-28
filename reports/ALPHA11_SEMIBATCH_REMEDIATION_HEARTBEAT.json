@@ -1,0 +1,7 @@
+{
+  "schema": "TSAO-ALPHA11-SEMIBATCH-REMEDIATION-HEARTBEAT-1",
+  "workflow_run_id": 30324207572,
+  "workflow_run_attempt": 1,
+  "source_commit": "e0c0856c7fb90fc14580177aa20a706c0fd5a3c3",
+  "status": "RUNNING"
+}
