@@ -102,6 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --quiet -e '.[dev]'
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
           python -m pytest -q \
             tests/test_performance_contract.py::test_epdm_semibatch_preserves_baseline_result_without_state_revalidation \
             tests/test_performance_v2_numeric_parity.py
@@ -162,7 +163,11 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           rm -f reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json
-          git add skills/epdm/process.py reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json
+          rm -f reports/ALPHA11_SEMIBATCH_REMEDIATION_FAILURE.json
+          git add \
+            skills/epdm/process.py \
+            reports/ALPHA11_SEMIBATCH_REMEDIATION_HEARTBEAT.json \
+            reports/ALPHA11_SEMIBATCH_REMEDIATION_FAILURE.json
           git diff --cached --check
           git commit -m 'perf(epdm): remove single-step operating object overhead [skip ci]'
           git push origin HEAD:main
