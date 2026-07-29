@@ -1,0 +1,74 @@
+name: Observe EPDM Phase A0 run once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  observe:
+    if: ${{ contains(github.event.head_commit.message, '[OBSERVE-EPDM-A0]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - name: Discover qualification run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: d1a3819057b33303ee5de0375f4ec4791beeda5c
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          target = os.environ['TARGET_SHA']
+          raw = subprocess.check_output(
+              ['gh', 'api', f'/repos/{repo}/actions/runs?head_sha={target}&per_page=100'],
+              text=True,
+          )
+          runs = json.loads(raw).get('workflow_runs', [])
+          matches = [run for run in runs if run.get('name') == 'Qualify EPDM Phase A0 once']
+          if not matches:
+              raise SystemExit('qualification run not found')
+          run = sorted(matches, key=lambda item: item.get('created_at') or '', reverse=True)[0]
+          report = {
+              'schema': 'TSAO-EPDM-PHASE-A0-RUN-OBSERVATION-1',
+              'target_commit': target,
+              'run_id': run['id'],
+              'status': run.get('status'),
+              'conclusion': run.get('conclusion'),
+              'event': run.get('event'),
+              'workflow_name': run.get('name'),
+              'run_url': run.get('html_url'),
+              'created_at': run.get('created_at'),
+              'updated_at': run.get('updated_at'),
+          }
+          Path('reports/EPDM_PHASE_A0_RUN_OBSERVATION.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+      - name: Remove observer, refresh identity and commit observation
+        run: |
+          rm .github/workflows/epdm-a0-observe-once.yml
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          python -m tsao.cli doctor --root . --profile core
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports/EPDM_PHASE_A0_RUN_OBSERVATION.json reports/SOURCE_CORE_MANIFEST.tsv .github/workflows/epdm-a0-observe-once.yml
+          git commit -m 'chore: record EPDM Phase A0 run observation'
+          git push origin HEAD:main
