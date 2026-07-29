@@ -11,12 +11,18 @@ from .kinetics import (
 from .process import heat_removal_margin, recycle_poison_steady_state
 
 _RECOGNIZED_DIENES = {"ENB", "DCPD", "VNB"}
+_ALLOWED_CASE_KINDS = {"SYNTHETIC_REFERENCE_TEST", "PROJECT_CASE"}
 _ALLOWED_PARAMETER_BASES = {
     "SYNTHETIC_REFERENCE_TEST",
     "LITERATURE_PRIOR",
     "LAB_FIT",
     "PILOT_FIT",
     "PLANT_FIT",
+}
+_ALLOWED_REACTOR_MODES = {"CONTINUOUS", "SEMIBATCH", "BATCH"}
+_ALLOWED_ACTIVE_SITE_BASES = {
+    "FIXED_CONCENTRATION_REFERENCE",
+    "EXTENSIVE_SITE_BALANCE",
 }
 _SYNTHETIC_CASE_KIND = "SYNTHETIC_REFERENCE_TEST"
 
@@ -38,11 +44,32 @@ def _object_section(
 
 
 def _valid_evidence_ids(value: object) -> bool:
-    return (
-        isinstance(value, list)
-        and bool(value)
-        and all(isinstance(item, str) and item.strip() for item in value)
-    )
+    if not isinstance(value, list) or not value:
+        return False
+    normalized: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            return False
+        normalized.append(item.strip())
+    return len(normalized) == len(set(normalized))
+
+
+def _require_evidence(
+    payload: dict[str, Any], field: str, message: str, holds: list[str]
+) -> None:
+    if not _valid_evidence_ids(payload.get(field)):
+        holds.append(message)
+
+
+def _validate_case_kind(case: dict[str, Any], errors: list[str], holds: list[str]) -> None:
+    case_kind = case.get("case_kind")
+    if case_kind is None:
+        holds.append(
+            "case_kind is missing; software-fixture and project evidence boundaries "
+            "are unresolved"
+        )
+    elif not isinstance(case_kind, str) or case_kind not in _ALLOWED_CASE_KINDS:
+        errors.append("case_kind must be SYNTHETIC_REFERENCE_TEST or PROJECT_CASE")
 
 
 def _validate_parameter_provenance(
@@ -50,11 +77,56 @@ def _validate_parameter_provenance(
 ) -> None:
     basis = kinetic.get("parameter_basis")
     if not isinstance(basis, str) or basis not in _ALLOWED_PARAMETER_BASES:
-        holds.append("kinetic parameter basis is missing or outside the recognized reference set")
+        holds.append(
+            "kinetic parameter basis is missing or outside the recognized reference set"
+        )
     elif basis == "SYNTHETIC_REFERENCE_TEST" and case.get("case_kind") != _SYNTHETIC_CASE_KIND:
-        holds.append("synthetic reference parameters are only valid for a declared software fixture")
+        holds.append(
+            "synthetic reference parameters are only valid for a declared software fixture"
+        )
     if not _valid_evidence_ids(kinetic.get("parameter_evidence_ids")):
         holds.append("kinetic parameters are not anchored to evidence")
+
+
+def _validate_semibatch_basis(reactor: dict[str, Any], holds: list[str]) -> None:
+    mode = reactor.get("mode")
+    if mode is None:
+        holds.append("reactor.mode is missing")
+        return
+    if mode not in _ALLOWED_REACTOR_MODES or mode != "SEMIBATCH":
+        return
+    basis = reactor.get("active_site_basis")
+    if basis not in _ALLOWED_ACTIVE_SITE_BASES:
+        holds.append("semibatch active-site basis is missing or unrecognized")
+    elif basis == "FIXED_CONCENTRATION_REFERENCE":
+        holds.append(
+            "semibatch fixed active-site concentration is a V1 reference assumption, "
+            "not an extensive site balance"
+        )
+    elif not _valid_evidence_ids(reactor.get("active_site_balance_evidence_ids")):
+        holds.append("semibatch extensive active-site balance is not anchored to evidence")
+
+
+def _base_result(
+    *,
+    status: str,
+    errors: list[str],
+    holds: list[str],
+    metrics: dict[str, Any],
+    internal_error: bool = False,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "pass": status == "PASS",
+        "errors": sorted(set(errors)),
+        "holds": sorted(set(holds)),
+        "metrics": metrics,
+        "internal_error": internal_error,
+        "evidence_resolution": "DECLARED_ONLY_CASE_LEVEL",
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
+        "customer_qualification": "NOT_EVALUATED",
+    }
 
 
 def _validate_epdm_case(case: object) -> dict[str, Any]:
@@ -62,14 +134,14 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
     holds: list[str] = []
     metrics: dict[str, Any] = {}
     if not isinstance(case, dict):
-        return {
-            "status": "FAIL",
-            "pass": False,
-            "errors": ["EPDM case root must be an object"],
-            "holds": [],
-            "metrics": {},
-        }
+        return _base_result(
+            status="FAIL",
+            errors=["EPDM case root must be an object"],
+            holds=[],
+            metrics={},
+        )
 
+    _validate_case_kind(case, errors, holds)
     catalyst = _object_section(case, "catalyst", errors)
     monomers = _object_section(case, "monomers", errors)
     kinetic = _object_section(case, "kinetics", errors)
@@ -84,10 +156,19 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
             errors.append("catalyst.family is required")
         benchmark = catalyst.get("vanadium_benchmark")
         retirement = catalyst.get("benchmark_retirement")
-        if benchmark is not True and not (
+        if benchmark is True:
+            _require_evidence(
+                catalyst,
+                "vanadium_benchmark_evidence_ids",
+                "vanadium benchmark declaration is not anchored to evidence",
+                holds,
+            )
+        elif not (
             isinstance(retirement, dict)
             and retirement.get("status") == "APPROVED"
-            and retirement.get("approver")
+            and isinstance(retirement.get("approver"), str)
+            and retirement.get("approver", "").strip()
+            and _valid_evidence_ids(retirement.get("evidence_ids"))
         ):
             holds.append("vanadium industrial benchmark is missing or not formally retired")
         try:
@@ -96,8 +177,12 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
             )
         except ValueError as exc:
             errors.append(str(exc))
-        if not _valid_evidence_ids(catalyst.get("active_site_evidence_ids")):
-            holds.append("active-site concentration is not anchored to evidence")
+        _require_evidence(
+            catalyst,
+            "active_site_evidence_ids",
+            "active-site concentration is not anchored to evidence",
+            holds,
+        )
 
     if monomers is not None:
         diene = monomers.get("diene")
@@ -109,9 +194,20 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
                 errors.append(f"monomers.{field} must be non-negative numeric")
         if monomers.get("diene_topology_measured") is not True:
             holds.append("diene topology or retained-unsaturation measurement is missing")
+        else:
+            _require_evidence(
+                monomers,
+                "diene_topology_evidence_ids",
+                "diene topology measurement is not anchored to evidence",
+                holds,
+            )
 
     reactor_volume: float | None = None
     if reactor is not None:
+        mode = reactor.get("mode")
+        if mode is not None and mode not in _ALLOWED_REACTOR_MODES:
+            errors.append("reactor.mode must be CONTINUOUS, SEMIBATCH, or BATCH")
+        _validate_semibatch_basis(reactor, holds)
         volume = reactor.get("volume_L")
         if isinstance(volume, bool) or not isinstance(volume, (int, float)) or volume <= 0:
             errors.append("reactor.volume_L must be positive numeric")
@@ -130,8 +226,22 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
             errors.append(str(exc))
         if reactor.get("phase_stable") is not True:
             holds.append("polymer-solution phase stability is not demonstrated")
+        else:
+            _require_evidence(
+                reactor,
+                "phase_stability_evidence_ids",
+                "phase-stability declaration is not anchored to evidence",
+                holds,
+            )
         if reactor.get("mixing_qualified") is not True:
             holds.append("high-viscosity mixing is not qualified")
+        else:
+            _require_evidence(
+                reactor,
+                "mixing_evidence_ids",
+                "mixing qualification is not anchored to evidence",
+                holds,
+            )
 
     if kinetic is not None:
         _validate_parameter_provenance(case, kinetic, holds)
@@ -175,9 +285,11 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
             )
             metrics["steady_poison_mol_h"] = poison
             maximum = recovery.get("max_poison_mol_h")
-            if isinstance(maximum, bool) or not isinstance(maximum, (int, float)):
-                errors.append("recovery.max_poison_mol_h must be non-negative numeric")
-            elif maximum < 0:
+            if (
+                isinstance(maximum, bool)
+                or not isinstance(maximum, (int, float))
+                or maximum < 0
+            ):
                 errors.append("recovery.max_poison_mol_h must be non-negative numeric")
             elif poison > float(maximum):
                 errors.append("recycle poison steady state exceeds the declared limit")
@@ -187,9 +299,23 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
             holds.append(
                 "devolatilization is represented without a qualified non-equilibrium basis"
             )
+        else:
+            _require_evidence(
+                recovery,
+                "devolatilization_evidence_ids",
+                "non-equilibrium devolatilization declaration is not anchored to evidence",
+                holds,
+            )
 
     if product_bridge is not None:
-        for stage in ("raw_polymer", "fixed_compound", "cure", "part_durability", "customer_line"):
+        stages = (
+            "raw_polymer",
+            "fixed_compound",
+            "cure",
+            "part_durability",
+            "customer_line",
+        )
+        for stage in stages:
             record = product_bridge.get(stage)
             if (
                 not isinstance(record, dict)
@@ -199,30 +325,18 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
                 holds.append(f"product bridge stage is not qualified: {stage}")
 
     status = "FAIL" if errors else "HOLD" if holds else "PASS"
-    return {
-        "status": status,
-        "pass": status == "PASS",
-        "errors": sorted(set(errors)),
-        "holds": sorted(set(holds)),
-        "metrics": metrics,
-        "scientific_technical_approval": "NOT_EVALUATED",
-        "engineering_design_approval": "NOT_EVALUATED",
-        "customer_qualification": "NOT_EVALUATED",
-    }
+    return _base_result(status=status, errors=errors, holds=holds, metrics=metrics)
 
 
 def validate_epdm_case(case: object) -> dict[str, Any]:
     """Fail closed for malformed EPDM payloads without leaking internal exceptions."""
     try:
         return _validate_epdm_case(case)
-    except Exception as exc:  # defensive public boundary; internal tests cover known malformed paths
-        return {
-            "status": "FAIL",
-            "pass": False,
-            "errors": [f"unexpected EPDM validation failure: {type(exc).__name__}"],
-            "holds": [],
-            "metrics": {},
-            "scientific_technical_approval": "NOT_EVALUATED",
-            "engineering_design_approval": "NOT_EVALUATED",
-            "customer_qualification": "NOT_EVALUATED",
-        }
+    except Exception as exc:  # defensive boundary; expected malformed paths are tested
+        return _base_result(
+            status="FAIL",
+            errors=[f"unexpected EPDM validation failure: {type(exc).__name__}"],
+            holds=[],
+            metrics={},
+            internal_error=True,
+        )

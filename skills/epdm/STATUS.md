@@ -1,16 +1,21 @@
-# EPDM flagship status — alpha.8
+# EPDM flagship status — alpha.11 / Phase A0 hardening
 
 | Field | Status |
 |---|---|
 | subskill version | `9.1.0-tsao.2` |
 | software implementation | `EXECUTABLE_FLAGSHIP_ALPHA_P1_REFERENCE` |
-| universal process-package adapter | `IMPLEMENTED` |
-| module contracts | `14_OF_14` |
-| requirement registry | `20_OF_20` |
-| active-site / ternary kinetics / architecture | `P1_REFERENCE_KERNEL_ALPHA` |
-| reactor / recovery / product bridge | `EXECUTABLE_VALIDATOR_ALPHA` |
-| process-package audit | `UNIVERSAL_PLUS_EPDM_AUDIT_ALPHA` |
-| historical EPDM project corpus | `NOT_REGISTERED_IN_THIS_RELEASE` |
+| V1 public API and golden numerics | `LOCKED` |
+| malformed-input handling | `FAIL_CLOSED_WITH_INTERNAL_ERROR_SIGNAL` |
+| parameter and scientific-declaration provenance | `REQUIRED` |
+| package evidence existence | `REQUIRED` |
+| package evidence status | `QUALIFIED_REQUIRED` |
+| retracted or superseded EPDM evidence | `FAIL` |
+| reported, calculated or HOLD EPDM evidence | `HOLD` |
+| evidence applicability | `CHECKED_AT_PACKAGE_GATE` |
+| variable-volume V1 semibatch active-site basis | `HOLD_FIXED_ACTIVE_SITE_CONCENTRATION` |
 | scientific/engineering/HSE/customer/industrial approval | `NOT_EVALUATED` |
 
-The open implementation is deliberately stronger than the generic routes, but it does not claim that historical catalyst experiments, commercial simulators, relief design, compounds or customer-line trials have been re-executed.
+The V1 numerical kernel remains a software reference. A passing software audit does not grant
+scientific, engineering, safety, customer or industrial approval. Current source-tree qualification
+is authoritative only when bound to a named commit and a successful permanent CI run in
+`reports/EPDM_PHASE_A0_QUALIFICATION.json`.

@@ -30,12 +30,14 @@ Every numerical layer is explicitly labelled `CALCULATED_REFERENCE_ONLY` until p
 - `skills/epdm/data/requirements.json`: twenty explicit Gate requirements;
 - `python -m tsao.cli epdm model-suite`: executable multi-level reference demonstration.
 
-## Phase A0 safety contracts
+## Phase A0 governed evidence and assumption contracts
 
-- V1 kinetic parameters must declare `parameter_basis` and non-empty `parameter_evidence_ids`; missing provenance returns `HOLD`.
-- `SYNTHETIC_REFERENCE_TEST` parameters are accepted only when the case itself is declared as a software fixture. This does not grant scientific or engineering approval.
-- Variable-volume V1 semibatch calculations retain the inherited fixed-active-site-concentration assumption so the public API and golden numerics remain unchanged. This behavior is locked as `CALCULATED_REFERENCE_ONLY`, cannot qualify engineering use, and must be replaced by an extensive active-site balance in V2.
-- The V1 public API and selected numerical outputs are locked by machine-readable contract and golden-output fixtures.
+- Every kinetic parameter basis and every scientific declaration used to clear a Gate must carry non-empty, unique evidence IDs.
+- Package-level evidence resolution requires `QUALIFIED` status, a locator and an applicability statement. `RETRACTED` or `SUPERSEDED` evidence is a hard `FAIL`; `REPORTED`, `CALCULATED` or `HOLD` evidence keeps the package on `HOLD`.
+- Synthetic fixtures may only use evidence whose applicability explicitly covers software, fixture or synthetic reference testing. Project cases cannot be qualified by synthetic-only evidence.
+- Variable-volume V1 semibatch calculations preserve the locked numerical and return contract. A governed `SEMIBATCH` case using `FIXED_CONCENTRATION_REFERENCE` is placed on `HOLD`; V2 must replace this with an extensive active-site balance.
+- Expected malformed payloads return specific validation errors with `internal_error=false`. The defensive public boundary marks unexpected programming failures with `internal_error=true`, so tests cannot treat hidden exceptions as normal validation success.
+- V1 public names, selected function signatures, return envelopes and golden numerical outputs are machine-locked.
 
 ## Non-negotiable holds
 
