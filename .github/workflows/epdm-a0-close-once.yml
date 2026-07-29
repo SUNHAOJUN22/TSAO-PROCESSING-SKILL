@@ -1,0 +1,115 @@
+name: Close EPDM Phase A0 hardening once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsao-epdm-a0-hardening-close-once
+  cancel-in-progress: false
+
+jobs:
+  close:
+    if: ${{ contains(github.event.head_commit.message, '[CLOSE-EPDM-A0-HARDENING]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+      - name: Install development environment
+        run: python -m pip install --quiet -e .[dev]
+      - name: Recover strict contracts from the verified carrier
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import base64
+          import gzip
+          import re
+          from pathlib import Path
+
+          carrier = Path('.github/workflows/epdm-a0-hardening-once.yml').read_text(encoding='utf-8')
+          outputs = {
+              'CASE_SCHEMA_GZIP_B64': Path('skills/epdm/schemas/epdm_case.schema.json'),
+              'TEST_MODULE_GZIP_B64': Path('skills/epdm/tests/test_epdm_phase_a0.py'),
+          }
+          for variable, destination in outputs.items():
+              match = re.search(rf'^\s+{variable}:\s+(\S+)\s*$', carrier, re.MULTILINE)
+              if match is None:
+                  raise SystemExit(f'carrier payload missing: {variable}')
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              destination.write_bytes(gzip.decompress(base64.b64decode(match.group(1))))
+          PY
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          expected = {
+              'skills/epdm/schemas/epdm_case.schema.json': '39a56189358f432a29b500bb83ce6cc882d4f6ab',
+              'skills/epdm/tests/test_epdm_phase_a0.py': '9faac94884d4fed07adbcd85bf3d62f4687be8f6',
+          }
+          for name, wanted in expected.items():
+              data = Path(name).read_bytes()
+              observed = hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest()
+              if observed != wanted:
+                  raise SystemExit(f'{name}: expected {wanted}, observed {observed}')
+          PY
+      - name: Stage repository closure before validation
+        run: |
+          rm -f .github/workflows/epdm-a0-finalize-once.yml
+          rm -f .github/workflows/epdm-a0-qualification-once.yml
+          rm -f .github/workflows/epdm-a0-hardening-once.yml
+          rm -f .github/workflows/epdm-a0-close-once.yml
+          rm -f reports/EPDM_PHASE_A0_RUN_OBSERVATION.json
+          git add -A
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          tracked = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
+          workflows = sorted(path for path in tracked if path.startswith('.github/workflows/'))
+          assert workflows == ['.github/workflows/ci.yml'], workflows
+          forbidden = [
+              path for path in tracked
+              if '-once.yml' in Path(path).name
+              or 'CANDIDATE' in Path(path).name
+              or 'DIAGNOSTIC' in Path(path).name
+              or path == 'reports/EPDM_PHASE_A0_RUN_OBSERVATION.json'
+          ]
+          assert not forbidden, forbidden
+          PY
+      - name: Rebuild and verify final source identity
+        run: |
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          git add reports/SOURCE_CORE_MANIFEST.tsv
+          python -m tsao.cli doctor --root . --profile core
+      - name: Full software qualification
+        run: python scripts/run_ci.py
+      - name: Skillpack, wheel and installed-runtime closure
+        run: |
+          python -m tsao.skillpacks --root .
+          python -m tsao.cli package template --family "generic process"
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python -m tsao.cli epdm status
+          python -m tsao.cli epdm audit
+          python -m tsao.cli epdm reference-demo
+      - name: Commit clean hardened tree
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(epdm): harden Phase A0 evidence and repository closure'
+          git push origin HEAD:main
