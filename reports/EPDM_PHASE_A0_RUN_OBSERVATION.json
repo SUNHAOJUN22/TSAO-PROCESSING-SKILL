@@ -1,5 +1,5 @@
 {
-  "schema": "TSAO-EPDM-PHASE-A0-HARDENING-TRIGGER-1",
-  "purpose": "Contents API trigger for the existing self-cleaning hardening workflow",
+  "schema": "TSAO-EPDM-PHASE-A0-CLOSE-TRIGGER-1",
+  "purpose": "Contents API trigger for the indexed self-cleaning closure workflow",
   "disposition": "DELETE_IN_HARDENING_COMMIT"
 }
