@@ -1,8 +1,9 @@
 {
   "valid_case": {
+    "case_kind": "SYNTHETIC_REFERENCE_TEST",
     "catalyst": {"family":"metallocene","vanadium_benchmark":true,"total_metal_mol":0.01,"active_site_mol":0.006,"active_site_evidence_ids":["E-ACTIVE"]},
     "monomers": {"ethylene_mol_L":1.2,"propylene_mol_L":1.0,"diene":"ENB","diene_mol_L":0.04,"diene_topology_measured":true},
-    "kinetics": {"parameters":{"kp_e_L_mol_s":2.0,"kp_p_L_mol_s":1.6,"kp_d_L_mol_s":0.5,"k_transfer_s":0.08,"k_deactivation_s":0.02,"k_poison_L_mol_s":10.0},"secondary_diene_insertion_probability":0.05,"branch_efficiency":0.5,"gel_critical_branch_index":1.0},
+    "kinetics": {"parameter_basis":"SYNTHETIC_REFERENCE_TEST","parameter_evidence_ids":["E-KINETICS"],"parameters":{"kp_e_L_mol_s":2.0,"kp_p_L_mol_s":1.6,"kp_d_L_mol_s":0.5,"k_transfer_s":0.08,"k_deactivation_s":0.02,"k_poison_L_mol_s":10.0},"secondary_diene_insertion_probability":0.05,"branch_efficiency":0.5,"gel_critical_branch_index":1.0},
     "impurities":{"poison_mol_L":1e-06},
     "reactor":{"volume_L":100.0,"heat_generation_kW":80.0,"heat_removal_capacity_kW":110.0,"phase_stable":true,"mixing_qualified":true},
     "recovery":{"fresh_poison_mol_h":1e-05,"recycle_fraction":0.8,"purge_fraction":0.05,"guard_removal_fraction":0.95,"max_poison_mol_h":2e-05,"non_equilibrium_devolatilization":true},
@@ -31,6 +32,7 @@
     "evidence_ledger":[
       {"evidence_id":"E-PFD","status":"QUALIFIED","locator":"synthetic fixture","applicability":"reference software test"},
       {"evidence_id":"E-ACTIVE","status":"QUALIFIED","locator":"synthetic EPDM fixture","applicability":"reference software test"},
+      {"evidence_id":"E-KINETICS","status":"QUALIFIED","locator":"synthetic EPDM fixture","applicability":"reference software test"},
       {"evidence_id":"E-CURE","status":"QUALIFIED","locator":"synthetic EPDM fixture","applicability":"reference software test"},
       {"evidence_id":"E-CUSTOMER_LINE","status":"QUALIFIED","locator":"synthetic EPDM fixture","applicability":"reference software test"},
       {"evidence_id":"E-FIXED_COMPOUND","status":"QUALIFIED","locator":"synthetic EPDM fixture","applicability":"reference software test"},
@@ -40,9 +42,10 @@
     "acceptance":[{"criterion_id":"ACC-1","description":"synthetic closure","status":"PASS","evidence_ids":["E-PFD"],"approver":"Synthetic Process Approver"}],
     "approvals":{"package_approver":"Synthetic Package Approver","process":"Synthetic Process Approver","controls":"Synthetic Controls Approver","hse":"Synthetic HSE Approver"},
     "epdm_case": {
+      "case_kind":"SYNTHETIC_REFERENCE_TEST",
       "catalyst":{"family":"metallocene","vanadium_benchmark":true,"total_metal_mol":0.01,"active_site_mol":0.006,"active_site_evidence_ids":["E-ACTIVE"]},
       "monomers":{"ethylene_mol_L":1.2,"propylene_mol_L":1.0,"diene":"ENB","diene_mol_L":0.04,"diene_topology_measured":true},
-      "kinetics":{"parameters":{"kp_e_L_mol_s":2.0,"kp_p_L_mol_s":1.6,"kp_d_L_mol_s":0.5,"k_transfer_s":0.08,"k_deactivation_s":0.02,"k_poison_L_mol_s":10.0},"secondary_diene_insertion_probability":0.05,"branch_efficiency":0.5,"gel_critical_branch_index":1.0},
+      "kinetics":{"parameter_basis":"SYNTHETIC_REFERENCE_TEST","parameter_evidence_ids":["E-KINETICS"],"parameters":{"kp_e_L_mol_s":2.0,"kp_p_L_mol_s":1.6,"kp_d_L_mol_s":0.5,"k_transfer_s":0.08,"k_deactivation_s":0.02,"k_poison_L_mol_s":10.0},"secondary_diene_insertion_probability":0.05,"branch_efficiency":0.5,"gel_critical_branch_index":1.0},
       "impurities":{"poison_mol_L":1e-06},
       "reactor":{"volume_L":100.0,"heat_generation_kW":80.0,"heat_removal_capacity_kW":110.0,"phase_stable":true,"mixing_qualified":true},
       "recovery":{"fresh_poison_mol_h":1e-05,"recycle_fraction":0.8,"purge_fraction":0.05,"guard_removal_fraction":0.95,"max_poison_mol_h":2e-05,"non_equilibrium_devolatilization":true},

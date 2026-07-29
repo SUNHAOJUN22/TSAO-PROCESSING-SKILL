@@ -1,1 +1,24 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tsao.example/schemas/epdm-package.schema.json","type":"object","required":["package_id","process_family","design_basis","streams","equipment","epdm_case"],"properties":{"epdm_case":{"$ref":"epdm_case.schema.json"}},"additionalProperties":true}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsao.example/schemas/epdm-package.schema.json",
+  "type": "object",
+  "required": [
+    "package_id",
+    "process_family",
+    "design_basis",
+    "streams",
+    "equipment",
+    "evidence_ledger",
+    "epdm_case"
+  ],
+  "properties": {
+    "package_id": {"type": "string", "minLength": 1},
+    "process_family": {"type": "string", "minLength": 1},
+    "design_basis": {"type": "object"},
+    "streams": {"type": "array"},
+    "equipment": {"type": "array"},
+    "evidence_ledger": {"type": "array"},
+    "epdm_case": {"$ref": "epdm_case.schema.json"}
+  },
+  "additionalProperties": true
+}

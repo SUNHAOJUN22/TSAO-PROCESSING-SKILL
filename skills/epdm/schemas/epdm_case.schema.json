@@ -1,1 +1,293 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://tsao.example/schemas/epdm-case.schema.json","type":"object","required":["catalyst","monomers","kinetics","reactor","recovery","product_bridge"],"properties":{"catalyst":{"type":"object","required":["family","total_metal_mol","active_site_mol"]},"monomers":{"type":"object","required":["ethylene_mol_L","propylene_mol_L","diene","diene_mol_L"]},"kinetics":{"type":"object","required":["parameters"]},"reactor":{"type":"object","required":["volume_L","heat_generation_kW","heat_removal_capacity_kW"]},"recovery":{"type":"object","required":["recycle_fraction","purge_fraction","guard_removal_fraction"]},"product_bridge":{"type":"object"}},"additionalProperties":true}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsao.example/schemas/epdm_case.schema.json",
+  "title": "TSAO EPDM V1 reference case",
+  "type": "object",
+  "required": [
+    "catalyst",
+    "monomers",
+    "kinetics",
+    "reactor",
+    "recovery",
+    "product_bridge"
+  ],
+  "properties": {
+    "case_kind": {
+      "type": "string",
+      "enum": [
+        "SYNTHETIC_REFERENCE_TEST",
+        "PROJECT_CASE"
+      ]
+    },
+    "catalyst": {
+      "type": "object",
+      "required": [
+        "family",
+        "total_metal_mol",
+        "active_site_mol",
+        "active_site_evidence_ids"
+      ],
+      "properties": {
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vanadium_benchmark": {
+          "type": "boolean"
+        },
+        "benchmark_retirement": {
+          "type": "object"
+        },
+        "total_metal_mol": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "active_site_mol": {
+          "type": "number",
+          "minimum": 0
+        },
+        "active_site_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "monomers": {
+      "type": "object",
+      "required": [
+        "ethylene_mol_L",
+        "propylene_mol_L",
+        "diene",
+        "diene_mol_L",
+        "diene_topology_measured"
+      ],
+      "properties": {
+        "ethylene_mol_L": {
+          "type": "number",
+          "minimum": 0
+        },
+        "propylene_mol_L": {
+          "type": "number",
+          "minimum": 0
+        },
+        "diene": {
+          "type": "string",
+          "enum": [
+            "ENB",
+            "DCPD",
+            "VNB"
+          ]
+        },
+        "diene_mol_L": {
+          "type": "number",
+          "minimum": 0
+        },
+        "diene_topology_measured": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "kinetics": {
+      "type": "object",
+      "required": [
+        "parameters",
+        "parameter_basis",
+        "parameter_evidence_ids"
+      ],
+      "properties": {
+        "parameter_basis": {
+          "type": "string",
+          "enum": [
+            "SYNTHETIC_REFERENCE_TEST",
+            "LITERATURE_PRIOR",
+            "LAB_FIT",
+            "PILOT_FIT",
+            "PLANT_FIT"
+          ]
+        },
+        "parameter_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "required": [
+            "kp_e_L_mol_s",
+            "kp_p_L_mol_s",
+            "kp_d_L_mol_s",
+            "k_transfer_s",
+            "k_deactivation_s"
+          ],
+          "properties": {
+            "kp_e_L_mol_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "kp_p_L_mol_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "kp_d_L_mol_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "k_transfer_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "k_deactivation_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "k_poison_L_mol_s": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "secondary_diene_insertion_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "branch_efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gel_critical_branch_index": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "impurities": {
+      "type": "object",
+      "properties": {
+        "poison_mol_L": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "reactor": {
+      "type": "object",
+      "required": [
+        "volume_L",
+        "heat_generation_kW",
+        "heat_removal_capacity_kW",
+        "phase_stable",
+        "mixing_qualified"
+      ],
+      "properties": {
+        "volume_L": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "heat_generation_kW": {
+          "type": "number",
+          "minimum": 0
+        },
+        "heat_removal_capacity_kW": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "phase_stable": {
+          "type": "boolean"
+        },
+        "mixing_qualified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "recovery": {
+      "type": "object",
+      "required": [
+        "fresh_poison_mol_h",
+        "recycle_fraction",
+        "purge_fraction",
+        "guard_removal_fraction",
+        "max_poison_mol_h",
+        "non_equilibrium_devolatilization"
+      ],
+      "properties": {
+        "fresh_poison_mol_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "recycle_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "purge_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "guard_removal_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_poison_mol_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "non_equilibrium_devolatilization": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "product_bridge": {
+      "type": "object",
+      "required": [
+        "raw_polymer",
+        "fixed_compound",
+        "cure",
+        "part_durability",
+        "customer_line"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "status",
+          "evidence_ids"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,55 @@
+{
+  "schema": "TSAO-EPDM-V1-API-CONTRACT-1",
+  "model_generation": "V1_LUMPED_REFERENCE",
+  "public_names": [
+    "GAS_CONSTANT_J_MOL_K",
+    "EpdmActivationEnergies",
+    "EpdmKineticParameters",
+    "EpdmKineticState",
+    "SemibatchFeed",
+    "SemibatchInventory",
+    "active_site_fraction",
+    "architecture_metrics",
+    "arrhenius_rate_constant",
+    "audit_epdm_process_package",
+    "batch_pseudo_first_order_screening",
+    "chain_moment_reference",
+    "devolatilization_damkohler",
+    "devolatilization_residual",
+    "entropy_generation_heat_transfer_kW_K",
+    "flory_huggins_stability_margin",
+    "grade_transition_offspec_fraction",
+    "heat_removal_margin",
+    "insertion_fractions",
+    "insertion_rates",
+    "mixing_reynolds",
+    "mooney_reference",
+    "pseudo_first_order_conversions",
+    "recycle_poison_steady_state",
+    "semibatch_material_energy_step",
+    "semibatch_trajectory",
+    "temperature_adjusted_parameters",
+    "three_level_kinetic_suite",
+    "validate_epdm_case"
+  ],
+  "return_envelopes": {
+    "validate_epdm_case": ["status", "pass", "errors", "holds", "metrics"],
+    "semibatch_material_energy_step": [
+      "inventory",
+      "rates_mol_L_s",
+      "consumed_mol",
+      "polymer_increment_mol",
+      "heat_generated_kJ",
+      "heat_removed_kJ",
+      "molar_closure_residual",
+      "status"
+    ],
+    "three_level_kinetic_suite": [
+      "status",
+      "simple_screening",
+      "engineering_temperature_corrected",
+      "detailed_heterogeneous_site_reference",
+      "scientific_technical_approval"
+    ]
+  }
+}

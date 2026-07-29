@@ -30,6 +30,13 @@ Every numerical layer is explicitly labelled `CALCULATED_REFERENCE_ONLY` until p
 - `skills/epdm/data/requirements.json`: twenty explicit Gate requirements;
 - `python -m tsao.cli epdm model-suite`: executable multi-level reference demonstration.
 
+## Phase A0 safety contracts
+
+- V1 kinetic parameters must declare `parameter_basis` and non-empty `parameter_evidence_ids`; missing provenance returns `HOLD`.
+- `SYNTHETIC_REFERENCE_TEST` parameters are accepted only when the case itself is declared as a software fixture. This does not grant scientific or engineering approval.
+- Variable-volume V1 semibatch calculations retain the inherited fixed-active-site-concentration assumption so the public API and golden numerics remain unchanged. This behavior is locked as `CALCULATED_REFERENCE_ONLY`, cannot qualify engineering use, and must be replaced by an extensive active-site balance in V2.
+- The V1 public API and selected numerical outputs are locked by machine-readable contract and golden-output fixtures.
+
 ## Non-negotiable holds
 
 HOLD when the vanadium benchmark is missing without approved retirement, active sites are not anchored, diene topology is unmeasured, parameter provenance is absent, heat/mixing/phase stability is open, recycle poison is unclosed, devolatilization lacks a non-equilibrium basis, or the chain from raw polymer to customer line is incomplete.
