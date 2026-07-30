@@ -13,6 +13,10 @@ concurrency:
   group: tsao-epdm-phase-a2-qualification-once
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 env:
   PAYLOAD_SHA256: d3f03c572ac2666aea6f31c90530e86faf66adbac07a55c942881b25b95d9093
   PAYLOAD_BYTES: '43356'
@@ -59,7 +63,11 @@ jobs:
           import base64, hashlib, json, lzma, os, re, subprocess, tarfile
           from io import BytesIO
           from pathlib import Path
-          raw = subprocess.check_output(['gh', 'api', f"/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['ISSUE_NUMBER']}/comments?per_page=100"], text=True)
+
+          raw = subprocess.check_output(
+              ['gh', 'api', f"/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['ISSUE_NUMBER']}/comments?per_page=100"],
+              text=True,
+          )
           comments = json.loads(raw)
           parts: dict[int, str] = {}
           pattern = re.compile(r'^A2_PAYLOAD_(\d{2}):([A-Za-z0-9+/=]+)$')
@@ -83,12 +91,16 @@ jobs:
                   path = Path(member.name)
                   if path.is_absolute() or '..' in path.parts or not member.isfile():
                       raise SystemExit(f'unsafe payload member: {member.name}')
-              tar.extractall('.', members=members, filter='data')
+              tar.extractall('.', members=members)
           PY
           rm -f .github/workflows/epdm-a2-qualification-once.yml
           rm -rf build dist wheelhouse work
           find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf {} +
-          python -m ruff check --fix --select I scripts/verify_wheel_contents.py scripts/verify_wheel_runtime.py skills/epdm/state_generator.py skills/epdm/reaction_network.py skills/epdm/validation_v2.py skills/epdm/tests/test_epdm_phase_a2.py tests/test_wheel_contract.py
+          python -m ruff check --fix --select I \
+            scripts/verify_wheel_contents.py scripts/verify_wheel_runtime.py \
+            skills/epdm/state_generator.py skills/epdm/reaction_network.py \
+            skills/epdm/validation_v2.py skills/epdm/tests/test_epdm_phase_a2.py \
+            tests/test_wheel_contract.py
           git add -A
       - name: Rebuild and verify source identity
         run: |
@@ -109,9 +121,10 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from skills.epdm.reaction_network import A2NumericalExecutionError, audit_reaction_network, build_reaction_network, reaction_network_rhs
+          from skills.epdm.reaction_network import audit_reaction_network, build_reaction_network, reaction_network_rhs, A2NumericalExecutionError
           from skills.epdm.state_generator import generate_state_definition
           from skills.epdm.validation_v2 import validate_v2_project
+
           state = generate_state_definition(source_state_definition_id='EPDM-V2-STATE-REFERENCE', model_level=2, site_family_ids=('SITE-A',))
           network = build_reaction_network(state)
           audit = audit_reaction_network(network, state)
@@ -175,7 +188,11 @@ jobs:
           import base64, hashlib, json, lzma, os, re, subprocess, tarfile
           from io import BytesIO
           from pathlib import Path
-          raw = subprocess.check_output(['gh', 'api', f"/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['ISSUE_NUMBER']}/comments?per_page=100"], text=True)
+
+          raw = subprocess.check_output(
+              ['gh', 'api', f"/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['ISSUE_NUMBER']}/comments?per_page=100"],
+              text=True,
+          )
           comments = json.loads(raw)
           parts: dict[int, str] = {}
           pattern = re.compile(r'^A2_PAYLOAD_(\d{2}):([A-Za-z0-9+/=]+)$')
@@ -199,12 +216,16 @@ jobs:
                   path = Path(member.name)
                   if path.is_absolute() or '..' in path.parts or not member.isfile():
                       raise SystemExit(f'unsafe payload member: {member.name}')
-              tar.extractall('.', members=members, filter='data')
+              tar.extractall('.', members=members)
           PY
           rm -f .github/workflows/epdm-a2-qualification-once.yml
           rm -rf build dist wheelhouse work
           find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf {} +
-          python -m ruff check --fix --select I scripts/verify_wheel_contents.py scripts/verify_wheel_runtime.py skills/epdm/state_generator.py skills/epdm/reaction_network.py skills/epdm/validation_v2.py skills/epdm/tests/test_epdm_phase_a2.py tests/test_wheel_contract.py
+          python -m ruff check --fix --select I \
+            scripts/verify_wheel_contents.py scripts/verify_wheel_runtime.py \
+            skills/epdm/state_generator.py skills/epdm/reaction_network.py \
+            skills/epdm/validation_v2.py skills/epdm/tests/test_epdm_phase_a2.py \
+            tests/test_wheel_contract.py
           git add -A
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
           git add reports/SOURCE_CORE_MANIFEST.tsv
@@ -221,17 +242,26 @@ jobs:
           from __future__ import annotations
           import json, os, re, shutil, subprocess, sys
           from pathlib import Path
+
           repository = os.environ['GITHUB_REPOSITORY']
           run_id = int(os.environ['GITHUB_RUN_ID'])
           jobs = json.loads(subprocess.check_output(['gh', 'api', f'/repos/{repository}/actions/runs/{run_id}/jobs?per_page=100'], text=True))['jobs']
-          expected = {'qualification (ubuntu/3.11)', 'qualification (ubuntu/3.12)', 'qualification (ubuntu/3.13)', 'qualification (ubuntu/3.14)', 'qualification (windows/3.14)', 'qualification (macos/3.14)'}
+          expected = {
+              'qualification (ubuntu/3.11)', 'qualification (ubuntu/3.12)',
+              'qualification (ubuntu/3.13)', 'qualification (ubuntu/3.14)',
+              'qualification (windows/3.14)', 'qualification (macos/3.14)',
+          }
           qualification_jobs = [job for job in jobs if str(job.get('name', '')).startswith('qualification (')]
           observed = {job['name'] for job in qualification_jobs}
           if observed != expected:
               raise SystemExit(f'matrix mismatch: {sorted(observed)}')
           if any(job.get('conclusion') != 'success' for job in qualification_jobs):
               raise SystemExit('one or more qualification jobs failed')
-          mandatory = {'Materialize exact Phase A2 candidate', 'Rebuild and verify source identity', 'Full software qualification', 'Skillpack, wheel and installed-runtime closure', 'Phase A2 structural smoke'}
+          mandatory = {
+              'Materialize exact Phase A2 candidate', 'Rebuild and verify source identity',
+              'Full software qualification', 'Skillpack, wheel and installed-runtime closure',
+              'Phase A2 structural smoke',
+          }
           matrix = []
           for job in sorted(qualification_jobs, key=lambda item: item['name']):
               steps = {step['name']: step.get('conclusion') for step in job.get('steps', [])}
@@ -243,11 +273,16 @@ jobs:
           perf = {step['name']: step.get('conclusion') for step in ubuntu_314['steps']}.get('Extended performance regression gate')
           if perf != 'success':
               raise SystemExit('performance gate did not succeed')
-          collected = subprocess.run([sys.executable, '-m', 'pytest', '--collect-only', '-q', 'tests', 'skills/process-general/tests', 'skills/epdm/tests', 'skills/poe/tests', 'skills/polymer-general/tests'], text=True, capture_output=True, check=True)
+
+          collected = subprocess.run(
+              [sys.executable, '-m', 'pytest', '--collect-only', '-q', 'tests', 'skills/process-general/tests', 'skills/epdm/tests', 'skills/poe/tests', 'skills/polymer-general/tests'],
+              text=True, capture_output=True, check=True,
+          )
           file_counts = [int(match.group(1)) for line in collected.stdout.splitlines() if (match := re.fullmatch(r'.+\.py:\s*(\d+)\s*', line.strip()))]
           test_count = sum(file_counts)
           if test_count != int(os.environ['EXPECTED_TEST_COUNT']):
               raise SystemExit(f'test count mismatch: {test_count}')
+
           for name in ('build', 'dist', 'wheelhouse', 'work'):
               shutil.rmtree(name, ignore_errors=True)
           for path in Path('.').glob('*.egg-info'):
