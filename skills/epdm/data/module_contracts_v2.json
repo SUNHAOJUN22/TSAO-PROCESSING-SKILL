@@ -15,7 +15,7 @@
     },
     {
       "module": "validation_v2.py",
-      "phase": "A1",
+      "phase": "A1_A2",
       "status": "IMPLEMENTED",
       "numerical_execution": false
     },
@@ -32,9 +32,15 @@
       "numerical_execution": false
     },
     {
+      "module": "state_generator.py",
+      "phase": "A2",
+      "status": "DETERMINISTIC_STATE_GENERATOR_IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
       "module": "reaction_network.py",
-      "phase": "A2_PLUS",
-      "status": "NOT_IMPLEMENTED",
+      "phase": "A2",
+      "status": "STRUCTURAL_NETWORK_IMPLEMENTED",
       "numerical_execution": false
     },
     {

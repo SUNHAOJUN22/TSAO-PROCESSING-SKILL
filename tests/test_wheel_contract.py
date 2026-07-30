@@ -4,7 +4,7 @@ import math
 import zipfile
 from pathlib import Path
 
-from scripts.verify_wheel_contents import _relative_share_members, verify
+from scripts.verify_wheel_contents import _REQUIRED, _relative_share_members, verify
 from scripts.verify_wheel_runtime import _evaluate_payload
 
 
@@ -28,6 +28,25 @@ def test_wheel_verifier_rejects_missing_skill(tmp_path: Path) -> None:
     assert result["pass"] is False
     assert any("skills/poe" in item for item in result["errors"])
     assert any("installed skillpack member" in item for item in result["errors"])
+
+
+def test_wheel_verifier_rejects_missing_a2_contract_member(tmp_path: Path) -> None:
+    missing_member = "skills/epdm/reaction_network.py"
+    wheel = tmp_path / "tsao_processing_skill-0.1.0a11-py3-none-any.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        for member in sorted(_REQUIRED - {missing_member}):
+            archive.writestr(member, "")
+        archive.writestr(
+            "tsao_processing_skill-0.1.0a11.dist-info/METADATA",
+            "Metadata-Version: 2.4\nName: tsao-processing-skill\nVersion: 0.1.0a11\n",
+        )
+        archive.writestr(
+            "tsao_processing_skill-0.1.0a11.dist-info/entry_points.txt",
+            "[console_scripts]\ntsao = tsao.cli:main\ntsao-skillpacks = tsao.skillpacks:main\n",
+        )
+    result = verify(wheel)
+    assert result["pass"] is False
+    assert f"missing wheel member: {missing_member}" in result["errors"]
 
 
 def test_wheel_verifier_rejects_controlled_binary(tmp_path: Path) -> None:
@@ -77,6 +96,11 @@ def _valid_runtime_payload(install_root: Path) -> dict[str, object]:
         "fit": 0.2,
         "epdm_status": "PASS",
         "package_status": "PASS",
+        "a2_state_count": 20,
+        "a2_reaction_count": 41,
+        "a2_propagation_channel_count": 9,
+        "a2_network_status": "PASS",
+        "a2_numerical_execution": "NOT_IMPLEMENTED_PHASE_A2",
         "skillpacks": {
             "pass": True,
             "delivery": "INSTALLED_SKILLPACK",
@@ -111,3 +135,12 @@ def test_runtime_payload_rejects_host_skillpack_data(tmp_path: Path) -> None:
     skillpacks["root"] = str(tmp_path / "host-checkout")
     errors = _evaluate_payload(payload, "TEST", expected_root=install_root)
     assert "TEST resolved Skillpack data outside the installed root" in errors
+
+def test_runtime_payload_rejects_incomplete_a2_install_contract(tmp_path: Path) -> None:
+    install_root = tmp_path / "installed"
+    payload = _valid_runtime_payload(install_root)
+    payload["a2_propagation_channel_count"] = 8
+    payload["a2_numerical_execution"] = "IMPLEMENTED"
+    errors = _evaluate_payload(payload, "TEST", expected_root=install_root)
+    assert "TEST A2 propagation matrix is incomplete" in errors
+    assert "TEST A2 numerical-execution boundary mismatch" in errors

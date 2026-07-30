@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from collections import defaultdict
@@ -14,7 +15,7 @@ from referencing import Registry, Resource
 from .contracts import SI_UNIT_DIMENSIONS, GateDecision, GateReasonCode
 
 SCHEMA_VERSION = "2.0.0"
-SEMANTIC_VALIDATOR_VERSION = "1.0.0-phase-a1"
+SEMANTIC_VALIDATOR_VERSION = "2.0.0-phase-a2"
 _TERMINAL_EVIDENCE = {"RETRACTED", "SUPERSEDED"}
 _PROVISIONAL_EVIDENCE = {"REPORTED", "CALCULATED", "HOLD"}
 
@@ -41,6 +42,7 @@ class V2ValidationResult:
     issues: tuple[ValidationIssue, ...]
     schema_version: str = SCHEMA_VERSION
     semantic_validator_version: str = SEMANTIC_VALIDATOR_VERSION
+    v2_numerical_execution: str = "NOT_IMPLEMENTED_PHASE_A1"
 
     @property
     def errors(self) -> tuple[ValidationIssue, ...]:
@@ -59,7 +61,7 @@ class V2ValidationResult:
             "errors": [issue.as_dict() for issue in self.errors],
             "holds": [issue.as_dict() for issue in self.holds],
             "internal_error": False,
-            "v2_numerical_execution": "NOT_IMPLEMENTED_PHASE_A1",
+            "v2_numerical_execution": self.v2_numerical_execution,
             "scientific_technical_approval": "NOT_EVALUATED",
             "engineering_design_approval": "NOT_EVALUATED",
         }
@@ -414,6 +416,323 @@ def _validate_calibration_plans(
                     )
 
 
+
+def _canonical_digest(payload: Mapping[str, Any]) -> str:
+    cleaned = dict(payload)
+    cleaned.pop("digest_sha256", None)
+    encoded = json.dumps(cleaned, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _validate_a2_structures(
+    *,
+    generated_definitions: Mapping[str, dict[str, Any]],
+    reaction_networks: Mapping[str, dict[str, Any]],
+    state_definitions: Mapping[str, dict[str, Any]],
+    cases: Mapping[str, dict[str, Any]],
+    issues: list[ValidationIssue],
+) -> None:
+    for generated_id, generated in generated_definitions.items():
+        source_id = generated.get("source_state_definition_id")
+        _require_reference(
+            source_id,
+            state_definitions,
+            f"$.generated_state_definitions[{generated_id}].source_state_definition_id",
+            "state-definition",
+            issues,
+        )
+        variables = generated.get("variables", [])
+        state_ids: list[str] = []
+        indices: list[int] = []
+        if isinstance(variables, list):
+            for variable in variables:
+                if isinstance(variable, dict):
+                    if isinstance(variable.get("state_id"), str):
+                        state_ids.append(variable["state_id"])
+                    if isinstance(variable.get("index"), int):
+                        indices.append(variable["index"])
+        if len(state_ids) != len(set(state_ids)):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    f"$.generated_state_definitions[{generated_id}].variables",
+                    "generated state IDs must be unique",
+                )
+            )
+        if sorted(indices) != list(range(len(indices))):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    f"$.generated_state_definitions[{generated_id}].variables",
+                    "generated state indices must be contiguous",
+                )
+            )
+        if generated.get("digest_sha256") != _canonical_digest(generated):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    f"$.generated_state_definitions[{generated_id}].digest_sha256",
+                    "generated-state digest does not match canonical payload",
+                )
+            )
+        source = state_definitions.get(source_id)
+        if source and source.get("basis") != generated.get("basis"):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.MIXED_STATE_BASIS,
+                    f"$.generated_state_definitions[{generated_id}].basis",
+                    "generated state basis does not match source state definition",
+                )
+            )
+
+    for network_id, network in reaction_networks.items():
+        source_id = network.get("state_definition_id")
+        generated_id = network.get("generated_state_definition_id")
+        _require_reference(
+            source_id,
+            state_definitions,
+            f"$.reaction_networks[{network_id}].state_definition_id",
+            "state-definition",
+            issues,
+        )
+        _require_reference(
+            generated_id,
+            generated_definitions,
+            f"$.reaction_networks[{network_id}].generated_state_definition_id",
+            "generated-state-definition",
+            issues,
+        )
+        generated = generated_definitions.get(generated_id)
+        if generated:
+            if generated.get("source_state_definition_id") != source_id:
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.reaction_networks[{network_id}]",
+                        "reaction network source and generated state definitions disagree",
+                    )
+                )
+            if network.get("generated_state_digest_sha256") != generated.get("digest_sha256"):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.reaction_networks[{network_id}].generated_state_digest_sha256",
+                        "reaction network generated-state digest mismatch",
+                    )
+                )
+            generated_state_ids = [
+                variable.get("state_id")
+                for variable in generated.get("variables", [])
+                if isinstance(variable, dict)
+            ]
+            if network.get("state_ids") != generated_state_ids:
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.reaction_networks[{network_id}].state_ids",
+                        "reaction network state ordering does not match generated definition",
+                    )
+                )
+
+        state_ids = network.get("state_ids", [])
+        channels = network.get("channels", [])
+        matrix = network.get("stoichiometric_matrix", [])
+        shape = network.get("matrix_shape")
+        if shape != [len(state_ids), len(channels)]:
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    f"$.reaction_networks[{network_id}].matrix_shape",
+                    "matrix_shape does not match state and reaction counts",
+                )
+            )
+        if len(matrix) != len(state_ids) or any(
+            not isinstance(row, list) or len(row) != len(channels) for row in matrix
+        ):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    f"$.reaction_networks[{network_id}].stoichiometric_matrix",
+                    "stoichiometric matrix dimensions are inconsistent",
+                )
+            )
+        if network.get("digest_sha256") != _canonical_digest(network):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    f"$.reaction_networks[{network_id}].digest_sha256",
+                    "reaction-network digest does not match canonical payload",
+                )
+            )
+
+        channel_ids: set[str] = set()
+        known_states = set(state_ids)
+        propagation: set[tuple[str, object, object]] = set()
+        families: set[str] = set()
+        inventory_by_state: dict[str, str] = {}
+        if generated:
+            for variable in generated.get("variables", []):
+                if isinstance(variable, dict) and isinstance(
+                    variable.get("conserved_inventory_id"), str
+                ):
+                    inventory_by_state[str(variable.get("state_id"))] = variable[
+                        "conserved_inventory_id"
+                    ]
+        for index, channel in enumerate(channels):
+            if not isinstance(channel, dict):
+                continue
+            channel_id = channel.get("reaction_id")
+            if channel_id in channel_ids:
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.reaction_networks[{network_id}].channels[{index}].reaction_id",
+                        f"duplicate reaction ID: {channel_id}",
+                    )
+                )
+            if isinstance(channel_id, str):
+                channel_ids.add(channel_id)
+            family = channel.get("family")
+            if isinstance(family, str):
+                families.add(family)
+            if family == "PROPAGATION":
+                propagation.add(
+                    (
+                        str(channel.get("site_family_id")),
+                        channel.get("terminal_id"),
+                        channel.get("incoming_monomer_id"),
+                    )
+                )
+            references = set(channel.get("reactant_state_ids", [])) | set(
+                channel.get("modifier_state_ids", [])
+            )
+            residuals: defaultdict[str, float] = defaultdict(float)
+            for term in channel.get("stoichiometry", []):
+                if isinstance(term, dict):
+                    state_id = term.get("state_id")
+                    references.add(state_id)
+                    inventory_id = inventory_by_state.get(str(state_id))
+                    coefficient = term.get("coefficient")
+                    if inventory_id and isinstance(coefficient, (int, float)):
+                        residuals[inventory_id] += float(coefficient)
+            missing = sorted(str(value) for value in references if value not in known_states)
+            if missing:
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.reaction_networks[{network_id}].channels[{index}]",
+                        f"reaction references unknown states: {missing}",
+                    )
+                )
+            for inventory_id, residual in residuals.items():
+                if abs(residual) > 1e-12:
+                    issues.append(
+                        ValidationIssue(
+                            "ERROR",
+                            GateReasonCode.NUMERICAL_CONSERVATION,
+                            f"$.reaction_networks[{network_id}].channels[{index}]",
+                            f"reaction violates {inventory_id} by {residual}",
+                        )
+                    )
+
+        expected = {
+            (site, terminal, incoming)
+            for site in network.get("site_family_ids", [])
+            for terminal in network.get("terminal_ids", [])
+            for incoming in network.get("terminal_ids", [])
+        }
+        if propagation != expected:
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                    f"$.reaction_networks[{network_id}].channels",
+                    "terminal×incoming propagation matrix is incomplete",
+                )
+            )
+        if not {"ACT_SPON", "CHAIN_INI"}.issubset(families):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                    f"$.reaction_networks[{network_id}].channels",
+                    "activation and initiation must be declared separately",
+                )
+            )
+        options = network.get("options", {})
+        if isinstance(options, dict) and options.get("enable_tdb") is True:
+            if not {"TDB_GENERATION", "TDB_POLY"}.issubset(families):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                        f"$.reaction_networks[{network_id}].channels",
+                        "TDB generation and reincorporation must be complete",
+                    )
+                )
+
+    for case_id, case in cases.items():
+        network_id = case.get("reaction_network_id")
+        generated_id = case.get("generated_state_definition_id")
+        if network_id is None and generated_id is None:
+            continue
+        _require_reference(
+            network_id,
+            reaction_networks,
+            f"$.cases[{case_id}].reaction_network_id",
+            "reaction-network",
+            issues,
+        )
+        _require_reference(
+            generated_id,
+            generated_definitions,
+            f"$.cases[{case_id}].generated_state_definition_id",
+            "generated-state-definition",
+            issues,
+        )
+        network = reaction_networks.get(network_id)
+        if network:
+            if network.get("state_definition_id") != case.get("state_definition_id"):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.cases[{case_id}].reaction_network_id",
+                        "case and reaction network use different source state definitions",
+                    )
+                )
+            if network.get("generated_state_definition_id") != generated_id:
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.cases[{case_id}].generated_state_definition_id",
+                        "case and reaction network use different generated state definitions",
+                    )
+                )
+            if network.get("model_level") != case.get("model_level"):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                        f"$.cases[{case_id}].model_level",
+                        "case and reaction network model levels differ",
+                    )
+                )
+
+
 def _validate_semantics(project: Mapping[str, Any]) -> tuple[ValidationIssue, ...]:
     issues: list[ValidationIssue] = []
     evidence = _index(project.get("evidence_ledger"), "evidence_id", "$.evidence_ledger", issues)
@@ -436,6 +755,18 @@ def _validate_semantics(project: Mapping[str, Any]) -> tuple[ValidationIssue, ..
         project.get("state_definitions"),
         "state_definition_id",
         "$.state_definitions",
+        issues,
+    )
+    generated_state_definitions = _index(
+        project.get("generated_state_definitions", []),
+        "generated_state_definition_id",
+        "$.generated_state_definitions",
+        issues,
+    )
+    reaction_networks = _index(
+        project.get("reaction_networks", []),
+        "network_id",
+        "$.reaction_networks",
         issues,
     )
     datasets = _index(project.get("datasets"), "dataset_id", "$.datasets", issues)
@@ -512,6 +843,13 @@ def _validate_semantics(project: Mapping[str, Any]) -> tuple[ValidationIssue, ..
                     issues.append(ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, f"$.datasets[{dataset_id}].targets[{target_id}].dataset_id", "target dataset_id does not match parent dataset"))
     _validate_dataset_leakage(datasets, issues)
     _validate_calibration_plans(plans, all_parameters, targets, issues)
+    _validate_a2_structures(
+        generated_definitions=generated_state_definitions,
+        reaction_networks=reaction_networks,
+        state_definitions=state_definitions,
+        cases=cases,
+        issues=issues,
+    )
 
     for case_id, case in cases.items():
         _require_reference(case.get("catalyst_passport_id"), catalysts, f"$.cases[{case_id}].catalyst_passport_id", "catalyst", issues)
@@ -561,7 +899,17 @@ def validate_v2_project(
             return V2ValidationResult(GateDecision.FAIL, (issue,))
         issues = _validate_semantics(project)
         decision = GateDecision.FAIL if any(issue.severity == "ERROR" for issue in issues) else GateDecision.HOLD if issues else GateDecision.PASS
-        return V2ValidationResult(decision, issues)
+        a2_present = bool(project.get("reaction_networks")) or bool(
+            project.get("generated_state_definitions")
+        )
+        execution_status = (
+            "NOT_IMPLEMENTED_PHASE_A2" if a2_present else "NOT_IMPLEMENTED_PHASE_A1"
+        )
+        return V2ValidationResult(
+            decision,
+            issues,
+            v2_numerical_execution=execution_status,
+        )
     except Exception as exc:  # defensive public boundary
         issue = ValidationIssue(
             "ERROR",

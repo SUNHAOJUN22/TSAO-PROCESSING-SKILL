@@ -201,5 +201,7 @@
       "site_family_indexed": true,
       "terminal_indexed": false
     }
-  ]
+  ],
+  "phase": "A2_REACTION_NETWORK_AND_STATE_GENERATOR",
+  "generator_status": "DETERMINISTIC_EXPANSION_VERIFIED_PHASE_A2"
 }

@@ -51,3 +51,11 @@ All historical catalyst experiments, licensed EOS/CFD, HAZOP/LOPA/SIL, equipment
 - Stable V2 schemas reject unknown fields outside `extensions`; semantic validation resolves IDs, units, evidence states, applicability, dataset leakage, parameter binding, and state-basis consistency.
 - The V1 migration adapter is metadata-only and never fabricates evidence or invokes unfinished V2 calculations.
 - No V2 kinetic, thermodynamic, calibration, GPC, moment, reactor, or dynamic numerical result is claimed in Phase A1.
+
+## Phase A2 — reaction network and state generator
+
+- `state_generator.py` expands the versioned catalog into deterministic model-level, site-family and terminal-indexed state layouts with stable vector indices and canonical identity.
+- `reaction_network.py` declares separate activation, initiation, propagation, transfer, hydrogen inhibition, deactivation and optional TDB channels, plus a structural stoichiometric matrix and active-site conservation audit.
+- `generated-state-definition.schema.json` and `reaction-network-v2.schema.json` are strict stable contracts integrated into project semantic validation.
+- Phase A2 never evaluates rates or integrates states; `reaction_network_rhs` fails explicitly with `A2NumericalExecutionError`.
+- Thermodynamic backends, calibrated parameters, moment RHS equations, reactor simulation and engineering approval remain future gated phases.

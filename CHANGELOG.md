@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — EPDM scientific-kernel phases
+
+- Closed Phase A0 evidence governance with qualified-status and applicability Gates, explicit internal-error signaling, strict case schemas, and a machine-visible HOLD for the V1 fixed-concentration semibatch assumption.
+- Completed Phase A1 software contracts: frozen enumerations, strict Draft 2020-12 schemas, SI/evidence validation, layered qualification, semantic cross-reference checks, and metadata-only V1-to-V2 migration.
+- Implemented the Phase A2 structural kernel: deterministic generated-state layouts, terminal×incoming propagation topology, activation/initiation/transfer/inhibition/deactivation/TDB channels, a structural stoichiometric matrix, and active-site inventory conservation audits.
+- Strengthened Wheel contracts so A2 code, schemas, catalogs, fixtures, and installed-runtime structural smoke tests cannot be omitted silently.
+- Kept V2 rate evaluation, numerical RHS/integration, calibration, thermodynamics, GPC/moment prediction, reactor dynamics, and all scientific/engineering/HSE/customer/industrial approvals explicitly unimplemented or `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.11 — 2026-07-27
 
 - Added NumPy-broadcast EPDM screening for temperature, residence-time, active-site and propagation-multiplier scenario grids.

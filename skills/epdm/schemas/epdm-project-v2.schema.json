@@ -188,7 +188,7 @@
     "reaction_networks": {
       "type": "array",
       "items": {
-        "type": "object"
+        "$ref": "reaction-network-v2.schema.json"
       }
     },
     "reactor_networks": {
@@ -226,6 +226,12 @@
     },
     "extensions": {
       "type": "object"
+    },
+    "generated_state_definitions": {
+      "type": "array",
+      "items": {
+        "$ref": "generated-state-definition.schema.json"
+      }
     }
   },
   "additionalProperties": false

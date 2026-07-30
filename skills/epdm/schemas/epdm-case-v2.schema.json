@@ -183,6 +183,14 @@
     },
     "extensions": {
       "type": "object"
+    },
+    "generated_state_definition_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "reaction_network_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
     }
   },
   "allOf": [

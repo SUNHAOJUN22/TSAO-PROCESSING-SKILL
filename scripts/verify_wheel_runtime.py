@@ -48,6 +48,8 @@ import tsao
 from tsao.process_package import validate_process_package
 from tsao.skillpacks import skillpack_inventory
 from skills.epdm.core import active_site_fraction, heat_removal_margin, validate_epdm_case
+from skills.epdm.reaction_network import audit_reaction_network, build_reaction_network
+from skills.epdm.state_generator import generate_state_definition
 from skills.poe.core import (
     first_order_pfr_conversion,
     fit_first_order_rate,
@@ -63,6 +65,13 @@ validated = validate_model_passport_registry(passport)
 epdm = json.loads(files('skills.epdm').joinpath('fixtures/reference_cases.json').read_text(encoding='utf-8'))
 case = validate_epdm_case(epdm['valid_case'])
 package = validate_process_package(epdm['valid_package'])
+a2_state = generate_state_definition(
+    source_state_definition_id='EPDM-V2-STATE-REFERENCE',
+    model_level=2,
+    site_family_ids=('SITE-A',),
+)
+a2_network = build_reaction_network(a2_state)
+a2_audit = audit_reaction_network(a2_network, a2_state)
 skillpacks = skillpack_inventory()
 skillpack_root = Path(skillpacks['root'])
 link_pattern = re.compile(r"\\[[^\\]]*\\]\\(([^)]+)\\)")
@@ -97,6 +106,11 @@ print(json.dumps({{
     'heat_margin': heat_removal_margin(80, 100),
     'epdm_status': case['status'],
     'package_status': package['status'],
+    'a2_state_count': a2_state.size,
+    'a2_reaction_count': len(a2_network.channels),
+    'a2_propagation_channel_count': a2_audit.metrics['propagation_channel_count'],
+    'a2_network_status': a2_audit.decision.value,
+    'a2_numerical_execution': a2_network.as_dict()['numerical_execution'],
     'skillpacks': skillpacks,
     'installed_readme_link_failures': link_failures,
 }}))
@@ -128,6 +142,16 @@ def _evaluate_payload(
         errors.append(f"{label} EPDM reference validation failed")
     if payload.get("package_status") != "PASS":
         errors.append(f"{label} universal package validation failed")
+    if payload.get("a2_state_count") != 20:
+        errors.append(f"{label} A2 generated-state size mismatch")
+    if payload.get("a2_reaction_count") != 41:
+        errors.append(f"{label} A2 reaction-network size mismatch")
+    if payload.get("a2_propagation_channel_count") != 9:
+        errors.append(f"{label} A2 propagation matrix is incomplete")
+    if payload.get("a2_network_status") != "PASS":
+        errors.append(f"{label} A2 reaction-network structural audit failed")
+    if payload.get("a2_numerical_execution") != "NOT_IMPLEMENTED_PHASE_A2":
+        errors.append(f"{label} A2 numerical-execution boundary mismatch")
 
     for field in ("tsao_module_path", "epdm_module_path", "poe_module_path"):
         if not _path_is_within(payload.get(field), expected_root):
