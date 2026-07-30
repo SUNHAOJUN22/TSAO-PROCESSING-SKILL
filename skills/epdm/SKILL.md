@@ -44,3 +44,10 @@ Every numerical layer is explicitly labelled `CALCULATED_REFERENCE_ONLY` until p
 HOLD when the vanadium benchmark is missing without approved retirement, active sites are not anchored, diene topology is unmeasured, parameter provenance is absent, heat/mixing/phase stability is open, recycle poison is unclosed, devolatilization lacks a non-equilibrium basis, or the chain from raw polymer to customer line is incomplete.
 
 All historical catalyst experiments, licensed EOS/CFD, HAZOP/LOPA/SIL, equipment design, compounds and customer trials remain `NOT_EVALUATED` until executed and approved by named qualified teams.
+
+## Phase A1 — V2 scientific contracts and schemas
+
+- `contracts.py`, `registry.py`, `validation_v2.py`, `qualification_v2.py`, and `migration.py` are implemented as a contract-only opt-in layer.
+- Stable V2 schemas reject unknown fields outside `extensions`; semantic validation resolves IDs, units, evidence states, applicability, dataset leakage, parameter binding, and state-basis consistency.
+- The V1 migration adapter is metadata-only and never fabricates evidence or invokes unfinished V2 calculations.
+- No V2 kinetic, thermodynamic, calibration, GPC, moment, reactor, or dynamic numerical result is claimed in Phase A1.

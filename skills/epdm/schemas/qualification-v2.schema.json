@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tsao.example/schemas/v2/qualification-v2.schema.json",
+  "title": "EPDM V2 layered qualification",
+  "type": "object",
+  "required": [
+    "software_status",
+    "thermodynamic_status",
+    "kinetic_calibration_status",
+    "independent_validation_status",
+    "engineering_use_status",
+    "gate_results"
+  ],
+  "properties": {
+    "software_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "HOLD",
+        "CONDITIONAL",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "thermodynamic_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "HOLD",
+        "CONDITIONAL",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "kinetic_calibration_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "HOLD",
+        "CONDITIONAL",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "independent_validation_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "HOLD",
+        "CONDITIONAL",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "engineering_use_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "HOLD",
+        "CONDITIONAL",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "gate_results": {
+      "type": "array"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "holds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+      }
+    },
+    "extensions": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

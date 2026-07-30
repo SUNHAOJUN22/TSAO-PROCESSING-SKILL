@@ -168,9 +168,15 @@ def _choose_wheel(wheel: Path | None, wheel_dir: Path | None) -> Path:
     return wheels[0]
 
 
-def _has_suffix(names: set[str], suffix: str) -> bool:
-    normalized = suffix.lstrip("/")
-    return any(name.endswith(normalized) for name in names)
+def _relative_share_members(names: set[str]) -> set[str]:
+    """Index installed Skillpack members once relative to the shared-data root."""
+    marker = f"{_SHARE_ROOT}/"
+    relative: set[str] = set()
+    for name in names:
+        position = name.find(marker)
+        if position >= 0:
+            relative.add(name[position:])
+    return relative
 
 
 def _unique_dist_info_member(
@@ -324,10 +330,10 @@ def verify(wheel: Path) -> dict[str, object]:
         f"{_SHARE_ROOT}/docs/assets/readme/{name}" for name in _README_ASSETS
     )
     share_required.update(f"{_SHARE_ROOT}/scripts/{name}" for name in _MAINTENANCE_SCRIPTS)
+    installed_share_members = _relative_share_members(names)
     errors.extend(
         f"missing installed skillpack member: {suffix}"
-        for suffix in sorted(share_required)
-        if not _has_suffix(names, suffix)
+        for suffix in sorted(share_required - installed_share_members)
     )
 
     if any(name.startswith("skills/poe/tests/") for name in names):
@@ -346,9 +352,7 @@ def verify(wheel: Path) -> dict[str, object]:
         "process_general_workflow_count": len(_PROCESS_WORKFLOWS),
         "readme_asset_count": len(_README_ASSETS),
         "maintenance_script_count": len(_MAINTENANCE_SCRIPTS),
-        "installed_skillpack_members": len(
-            [name for name in names if f"/{_SHARE_ROOT}/" in f"/{name}"]
-        ),
+        "installed_skillpack_members": len(installed_share_members),
     }
 
 

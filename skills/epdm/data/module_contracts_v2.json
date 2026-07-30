@@ -1,0 +1,65 @@
+{
+  "schema": "TSAO-EPDM-V2-MODULE-CONTRACTS-1",
+  "items": [
+    {
+      "module": "contracts.py",
+      "phase": "A1",
+      "status": "IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "registry.py",
+      "phase": "A1",
+      "status": "IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "validation_v2.py",
+      "phase": "A1",
+      "status": "IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "qualification_v2.py",
+      "phase": "A1",
+      "status": "IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "migration.py",
+      "phase": "A1",
+      "status": "METADATA_ONLY_SKELETON",
+      "numerical_execution": false
+    },
+    {
+      "module": "reaction_network.py",
+      "phase": "A2_PLUS",
+      "status": "NOT_IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "thermodynamics.py",
+      "phase": "B",
+      "status": "NOT_IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "calibration.py",
+      "phase": "B",
+      "status": "NOT_IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "gpc.py",
+      "phase": "C",
+      "status": "NOT_IMPLEMENTED",
+      "numerical_execution": false
+    },
+    {
+      "module": "moments.py",
+      "phase": "D",
+      "status": "NOT_IMPLEMENTED",
+      "numerical_execution": false
+    }
+  ]
+}

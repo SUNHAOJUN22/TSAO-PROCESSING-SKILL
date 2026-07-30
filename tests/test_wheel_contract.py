@@ -4,8 +4,20 @@ import math
 import zipfile
 from pathlib import Path
 
-from scripts.verify_wheel_contents import verify
+from scripts.verify_wheel_contents import _relative_share_members, verify
 from scripts.verify_wheel_runtime import _evaluate_payload
+
+
+def test_wheel_share_member_index_preserves_relative_contract() -> None:
+    names = {
+        "pkg.data/data/share/tsao-processing-skill/SKILL.md",
+        "share/tsao-processing-skill/docs/CAPABILITY_MATRIX.md",
+        "unrelated/share/other/file.txt",
+    }
+    assert _relative_share_members(names) == {
+        "share/tsao-processing-skill/SKILL.md",
+        "share/tsao-processing-skill/docs/CAPABILITY_MATRIX.md",
+    }
 
 
 def test_wheel_verifier_rejects_missing_skill(tmp_path: Path) -> None:
