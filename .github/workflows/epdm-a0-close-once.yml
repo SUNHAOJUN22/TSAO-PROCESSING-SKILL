@@ -2,7 +2,7 @@ name: Close EPDM Phase A0 hardening once
 
 on:
   issues:
-    types: [opened]
+    types: [opened, reopened]
 
 permissions:
   contents: write
@@ -32,33 +32,36 @@ jobs:
             requirements.txt
       - name: Install development environment
         run: python -m pip install --quiet -e .[dev]
-      - name: Recover verified strict contracts
+      - name: Recover verified strict contracts from Git blobs
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
           from __future__ import annotations
 
           import base64
-          import gzip
           import hashlib
-          import re
+          import json
+          import os
+          import subprocess
           from pathlib import Path
 
-          carrier = Path('.github/workflows/epdm-a0-hardening-once.yml').read_text(encoding='utf-8')
+          repository = os.environ['GITHUB_REPOSITORY']
           outputs = {
-              'CASE_SCHEMA_GZIP_B64': (
-                  Path('skills/epdm/schemas/epdm_case.schema.json'),
-                  '39a56189358f432a29b500bb83ce6cc882d4f6ab',
+              '092a60f94f67026fac7dbd7e9c3ae4a39043d523': Path(
+                  'skills/epdm/schemas/epdm_case.schema.json'
               ),
-              'TEST_MODULE_GZIP_B64': (
-                  Path('skills/epdm/tests/test_epdm_phase_a0.py'),
-                  '9faac94884d4fed07adbcd85bf3d62f4687be8f6',
+              '9faac94884d4fed07adbcd85bf3d62f4687be8f6': Path(
+                  'skills/epdm/tests/test_epdm_phase_a0.py'
               ),
           }
-          for variable, (destination, wanted) in outputs.items():
-              match = re.search(rf'^\s+{variable}:\s+(\S+)\s*$', carrier, re.MULTILINE)
-              if match is None:
-                  raise SystemExit(f'carrier payload missing: {variable}')
-              data = gzip.decompress(base64.b64decode(match.group(1)))
+          for wanted, destination in outputs.items():
+              raw = subprocess.check_output(
+                  ['gh', 'api', f'/repos/{repository}/git/blobs/{wanted}'],
+                  text=True,
+              )
+              payload = json.loads(raw)
+              data = base64.b64decode(payload['content'])
               observed = hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest()
               if observed != wanted:
                   raise SystemExit(f'{destination}: expected {wanted}, observed {observed}')
