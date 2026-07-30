@@ -1,11 +1,13 @@
 name: Close EPDM Phase A0 hardening once
 
 on:
-  push:
-    branches: [main]
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
+  issues: write
+  actions: read
 
 concurrency:
   group: tsao-epdm-a0-hardening-close-once
@@ -13,9 +15,9 @@ concurrency:
 
 jobs:
   close:
-    if: ${{ contains(github.event.head_commit.message, '[CLOSE-EPDM-A0-HARDENING]') }}
+    if: ${{ github.event.issue.title == '[CLOSE-EPDM-A0-HARDENING]' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -87,15 +89,104 @@ jobs:
           ]
           assert not forbidden, forbidden
           PY
-      - name: Rebuild source identity and run focused closure checks
+      - name: Rebuild source identity before qualification
         run: |
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
           git add reports/SOURCE_CORE_MANIFEST.tsv
           python -m tsao.cli doctor --root . --profile core
-          python -m pytest -q -p no:cacheprovider skills/epdm/tests
-          python skills/epdm/scripts/audit_epdm.py
+      - name: Full software qualification
+        run: python scripts/run_ci.py
+      - name: Skillpack, wheel and installed-runtime closure
+        run: |
           python -m tsao.skillpacks --root .
+          python -m tsao.cli package template --family 'generic process'
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python -m tsao.cli epdm status
+          python -m tsao.cli epdm audit
+          python -m tsao.cli epdm reference-demo
+      - name: Write permanent qualification evidence
+        env:
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import re
+          import shutil
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          for name in ('build', 'dist', 'wheelhouse', 'work'):
+              shutil.rmtree(root / name, ignore_errors=True)
+          for path in root.glob('*.egg-info'):
+              shutil.rmtree(path, ignore_errors=True)
+
+          collected = subprocess.run(
+              [
+                  sys.executable, '-m', 'pytest', '--collect-only', '-q',
+                  'tests', 'skills/process-general/tests', 'skills/epdm/tests',
+                  'skills/poe/tests', 'skills/polymer-general/tests',
+              ],
+              text=True,
+              capture_output=True,
+              check=True,
+          )
+          test_count = sum(
+              int(match.group(1))
+              for line in collected.stdout.splitlines()
+              if (match := re.search(r':\s*(\d+)\s*$', line))
+          )
+          if test_count <= 0:
+              raise SystemExit('could not determine collected test count')
+
+          subprocess.run(['git', 'add', '-A'], check=True)
+          qualified_code_tree = subprocess.check_output(['git', 'write-tree'], text=True).strip()
+          report = {
+              'schema': 'TSAO-EPDM-PHASE-A0-QUALIFICATION-2',
+              'phase': 'EPDM_PHASE_A0_BASELINE_AND_SAFETY_CLOSURE',
+              'status': 'PASS',
+              'qualified_code_tree_sha': qualified_code_tree,
+              'qualification_run_id': int(os.environ['RUN_ID']),
+              'qualification_run_url': f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}",
+              'test_count': test_count,
+              'coverage_gate': 'PASS_FAIL_UNDER_75',
+              'ruff': 'PASS',
+              'wheel_build': 'PASS',
+              'wheel_content': 'PASS',
+              'isolated_runtime': 'PASS',
+              'skillpack_delivery': 'PASS',
+              'v1_public_api_lock': 'PASS',
+              'v1_golden_numeric_lock': 'PASS',
+              'malformed_input_fail_closed': 'PASS',
+              'parameter_and_declaration_provenance_gate': 'PASS',
+              'evidence_status_and_applicability_gate': 'PASS',
+              'semibatch_fixed_concentration_gate': 'HOLD_BY_CONTRACT',
+              'schema_instance_validation': 'PASS',
+              'temporary_workflows': 'REMOVED',
+              'permanent_workflow_count': 1,
+              'qualification_boundary': 'SOFTWARE_ONLY',
+              'scientific_technical_approval': 'NOT_EVALUATED',
+              'engineering_design_approval': 'NOT_EVALUATED',
+              'customer_qualification': 'NOT_EVALUATED',
+              'industrial_performance_guarantee': 'NOT_EVALUATED',
+              'next_phase': 'EPDM_PHASE_A1_SCIENTIFIC_CONTRACTS_AND_SCHEMAS',
+          }
+          Path('reports/EPDM_PHASE_A0_QUALIFICATION.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          PY
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          git add reports/EPDM_PHASE_A0_QUALIFICATION.json reports/SOURCE_CORE_MANIFEST.tsv
+          python -m tsao.cli doctor --root . --profile core
       - name: Commit clean hardened tree
+        id: commit
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -103,3 +194,18 @@ jobs:
           git diff --cached --check
           git commit -m 'fix(epdm): harden Phase A0 evidence and repository closure'
           git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Report success
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "EPDM Phase A0 closure PASS. Final commit: \`$COMMIT_SHA\`. Qualification run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Report failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "EPDM Phase A0 closure FAILED. Inspect: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
