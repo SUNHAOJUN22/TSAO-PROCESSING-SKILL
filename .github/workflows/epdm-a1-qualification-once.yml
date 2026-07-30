@@ -2,7 +2,7 @@ name: Qualify EPDM Phase A1 once
 
 on:
   issues:
-    types: [opened]
+    types: [opened, reopened]
 
 permissions:
   contents: write
@@ -17,6 +17,7 @@ env:
   PAYLOAD_SHA256: 54b5bc616755163c5632770c098aaee43739a447cb38b4524bf3f7284b9e103e
   PAYLOAD_BYTES: '38958'
   EXPECTED_TEST_COUNT: '259'
+  MATERIALIZER_SHA: 226a7f28f570186867fa242972908bd3c503e8fc
   CHUNK_SHAS: |
     09627938dcf4b1ac08fb1a83fdd671ddf67a9f88
     68a39cb9fd4005b59ce180e01a8ef498b9797925
@@ -83,86 +84,39 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
-          from __future__ import annotations
-
-          import base64
-          import hashlib
-          import io
-          import json
-          import os
-          import subprocess
-          import tarfile
-          import urllib.request
-          from pathlib import Path, PurePosixPath
-
-          repository = os.environ['GITHUB_REPOSITORY']
-          token = os.environ['GH_TOKEN']
-          chunks = []
-          for sha in os.environ['CHUNK_SHAS'].split():
-              request = urllib.request.Request(
-                  f'https://api.github.com/repos/{repository}/git/blobs/{sha}',
-                  headers={
-                      'Authorization': f'Bearer {token}',
-                      'Accept': 'application/vnd.github+json',
-                      'X-GitHub-Api-Version': '2022-11-28',
-                  },
-              )
-              with urllib.request.urlopen(request) as response:
-                  payload = json.load(response)
-              raw = base64.b64decode(payload['content']).decode('ascii')
-              observed = hashlib.sha1(f'blob {len(raw.encode())}\0'.encode() + raw.encode()).hexdigest()
-              if observed != sha:
-                  raise SystemExit(f'chunk identity mismatch: {sha} != {observed}')
-              chunks.append(raw)
-
-          archive = base64.b64decode(''.join(chunks), validate=True)
-          observed_sha = hashlib.sha256(archive).hexdigest()
-          if observed_sha != os.environ['PAYLOAD_SHA256']:
-              raise SystemExit(f'payload SHA mismatch: {observed_sha}')
-          if len(archive) != int(os.environ['PAYLOAD_BYTES']):
-              raise SystemExit(f'payload byte mismatch: {len(archive)}')
-
-          root = Path.cwd().resolve()
-          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as bundle:
-              for member in bundle.getmembers():
-                  relative = PurePosixPath(member.name)
-                  if relative.is_absolute() or '..' in relative.parts:
-                      raise SystemExit(f'unsafe payload member: {member.name}')
-                  destination = root.joinpath(*relative.parts)
-                  if member.isdir():
-                      destination.mkdir(parents=True, exist_ok=True)
-                  elif member.isfile():
-                      destination.parent.mkdir(parents=True, exist_ok=True)
-                      source = bundle.extractfile(member)
-                      if source is None:
-                          raise SystemExit(f'unreadable payload member: {member.name}')
-                      destination.write_bytes(source.read())
-                  else:
-                      raise SystemExit(f'unsupported payload member: {member.name}')
-
-          manifest_path = root / 'PAYLOAD_MANIFEST.json'
-          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          expected_paths = set(manifest['files'])
-          for name, record in manifest['files'].items():
-              data = (root / name).read_bytes()
-              if len(data) != record['bytes'] or hashlib.sha256(data).hexdigest() != record['sha256']:
-                  raise SystemExit(f'payload member identity mismatch: {name}')
-          manifest_path.unlink()
-
-          workflow = root / '.github/workflows/epdm-a1-qualification-once.yml'
-          workflow.unlink()
-          subprocess.run(['git', 'add', '-A'], check=True)
-          tracked = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
-          workflows = sorted(path for path in tracked if path.startswith('.github/workflows/'))
-          if workflows != ['.github/workflows/ci.yml']:
-              raise SystemExit(f'workflow hygiene mismatch: {workflows}')
-          print(f'materialized {len(expected_paths)} Phase A1 files')
+          import base64, hashlib, json, os, urllib.request
+          from pathlib import Path
+          sha = os.environ['MATERIALIZER_SHA']
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/git/blobs/{sha}",
+              headers={
+                  'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+              },
+          )
+          with urllib.request.urlopen(request) as response:
+              payload = json.load(response)
+          data = base64.b64decode(payload['content'])
+          observed = hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest()
+          if observed != sha:
+              raise SystemExit(f'materializer identity mismatch: {observed}')
+          destination = Path(os.environ['RUNNER_TEMP']) / 'materialize_epdm_a1.py'
+          destination.write_bytes(data)
+          print(destination)
           PY
+          python "$RUNNER_TEMP/materialize_epdm_a1.py"
       - name: Install
         shell: bash
         run: |
           python -m pip install --quiet -e '.[dev]'
           python -m pip check
+      - name: Normalize deterministic import ordering
+        shell: bash
+        run: |
+          python -m ruff check --fix --select I skills/epdm/contracts.py skills/epdm/registry.py skills/epdm/tests/test_epdm_phase_a1.py skills/epdm/validation_v2.py
+          python -m ruff check skills/epdm/contracts.py skills/epdm/registry.py skills/epdm/tests/test_epdm_phase_a1.py skills/epdm/validation_v2.py
+          git add -A
       - name: Rebuild and verify source identity
         shell: bash
         run: |
@@ -190,7 +144,6 @@ jobs:
           import json
           from pathlib import Path
           from skills.epdm.validation_v2 import validate_v2_project
-
           project = json.loads(Path('skills/epdm/fixtures/v2_phase_a1_reference_project.json').read_text(encoding='utf-8'))
           result = validate_v2_project(project)
           assert result.decision.value == 'PASS', result.as_dict()
@@ -224,73 +177,34 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
-          from __future__ import annotations
-
-          import base64
-          import hashlib
-          import io
-          import json
-          import os
-          import subprocess
-          import tarfile
-          import urllib.request
-          from pathlib import Path, PurePosixPath
-
-          repository = os.environ['GITHUB_REPOSITORY']
-          token = os.environ['GH_TOKEN']
-          text = ''
-          for sha in os.environ['CHUNK_SHAS'].split():
-              request = urllib.request.Request(
-                  f'https://api.github.com/repos/{repository}/git/blobs/{sha}',
-                  headers={
-                      'Authorization': f'Bearer {token}',
-                      'Accept': 'application/vnd.github+json',
-                      'X-GitHub-Api-Version': '2022-11-28',
-                  },
-              )
-              with urllib.request.urlopen(request) as response:
-                  payload = json.load(response)
-              chunk = base64.b64decode(payload['content']).decode('ascii')
-              observed = hashlib.sha1(f'blob {len(chunk.encode())}\0'.encode() + chunk.encode()).hexdigest()
-              if observed != sha:
-                  raise SystemExit(f'chunk identity mismatch: {sha} != {observed}')
-              text += chunk
-          archive = base64.b64decode(text, validate=True)
-          if hashlib.sha256(archive).hexdigest() != os.environ['PAYLOAD_SHA256']:
-              raise SystemExit('payload SHA mismatch')
-          if len(archive) != int(os.environ['PAYLOAD_BYTES']):
-              raise SystemExit('payload byte mismatch')
-
-          root = Path.cwd().resolve()
-          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as bundle:
-              for member in bundle.getmembers():
-                  relative = PurePosixPath(member.name)
-                  if relative.is_absolute() or '..' in relative.parts:
-                      raise SystemExit(f'unsafe payload member: {member.name}')
-                  destination = root.joinpath(*relative.parts)
-                  if member.isdir():
-                      destination.mkdir(parents=True, exist_ok=True)
-                  elif member.isfile():
-                      destination.parent.mkdir(parents=True, exist_ok=True)
-                      source = bundle.extractfile(member)
-                      if source is None:
-                          raise SystemExit(f'unreadable payload member: {member.name}')
-                      destination.write_bytes(source.read())
-                  else:
-                      raise SystemExit(f'unsupported payload member: {member.name}')
-          manifest_path = root / 'PAYLOAD_MANIFEST.json'
-          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          for name, record in manifest['files'].items():
-              data = (root / name).read_bytes()
-              if len(data) != record['bytes'] or hashlib.sha256(data).hexdigest() != record['sha256']:
-                  raise SystemExit(f'payload member identity mismatch: {name}')
-          manifest_path.unlink()
-          (root / '.github/workflows/epdm-a1-qualification-once.yml').unlink()
-          subprocess.run(['git', 'add', '-A'], check=True)
+          import base64, hashlib, json, os, urllib.request
+          from pathlib import Path
+          sha = os.environ['MATERIALIZER_SHA']
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/git/blobs/{sha}",
+              headers={
+                  'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+              },
+          )
+          with urllib.request.urlopen(request) as response:
+              payload = json.load(response)
+          data = base64.b64decode(payload['content'])
+          observed = hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest()
+          if observed != sha:
+              raise SystemExit(f'materializer identity mismatch: {observed}')
+          (Path(os.environ['RUNNER_TEMP']) / 'materialize_epdm_a1.py').write_bytes(data)
           PY
-      - name: Install and rebuild source identity
+          python "$RUNNER_TEMP/materialize_epdm_a1.py"
+      - name: Install, normalize and rebuild source identity
         run: |
           python -m pip install --quiet -e '.[dev]'
+          python -m ruff check --fix --select I skills/epdm/contracts.py skills/epdm/registry.py skills/epdm/tests/test_epdm_phase_a1.py skills/epdm/validation_v2.py
+          python -m ruff check skills/epdm/contracts.py skills/epdm/registry.py skills/epdm/tests/test_epdm_phase_a1.py skills/epdm/validation_v2.py
+          rm -rf build dist wheelhouse work
+          find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf {} +
+          git add -A
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
           git add reports/SOURCE_CORE_MANIFEST.tsv
           python -m tsao.cli doctor --root . --profile core
@@ -300,25 +214,16 @@ jobs:
         run: |
           python - <<'PY'
           from __future__ import annotations
-
-          import json
-          import os
-          import re
-          import subprocess
-          import sys
+          import json, os, subprocess, sys
           from pathlib import Path
-
           repository = os.environ['GITHUB_REPOSITORY']
           run_id = int(os.environ['GITHUB_RUN_ID'])
           raw = subprocess.check_output(['gh', 'api', f'/repos/{repository}/actions/runs/{run_id}/jobs?per_page=100'], text=True)
           jobs = json.loads(raw)['jobs']
           expected = {
-              'qualification (ubuntu/3.11)',
-              'qualification (ubuntu/3.12)',
-              'qualification (ubuntu/3.13)',
-              'qualification (ubuntu/3.14)',
-              'qualification (windows/3.14)',
-              'qualification (macos/3.14)',
+              'qualification (ubuntu/3.11)', 'qualification (ubuntu/3.12)',
+              'qualification (ubuntu/3.13)', 'qualification (ubuntu/3.14)',
+              'qualification (windows/3.14)', 'qualification (macos/3.14)',
           }
           qualification_jobs = [job for job in jobs if str(job.get('name', '')).startswith('qualification (')]
           observed = {job['name'] for job in qualification_jobs}
@@ -327,11 +232,9 @@ jobs:
           if any(job.get('conclusion') != 'success' for job in qualification_jobs):
               raise SystemExit('one or more qualification jobs failed')
           mandatory = {
-              'Materialize and verify Phase A1 payload',
-              'Install',
-              'Rebuild and verify source identity',
-              'Full software qualification',
-              'Skillpack, wheel and installed-runtime closure',
+              'Materialize and verify Phase A1 payload', 'Install',
+              'Normalize deterministic import ordering', 'Rebuild and verify source identity',
+              'Full software qualification', 'Skillpack, wheel and installed-runtime closure',
               'CLI and Phase A1 smoke',
           }
           matrix = []
@@ -345,18 +248,14 @@ jobs:
           performance = {step['name']: step.get('conclusion') for step in ubuntu_314['steps']}.get('Extended performance regression gate')
           if performance != 'success':
               raise SystemExit('performance gate did not succeed')
-
           collected = subprocess.run(
               [sys.executable, '-m', 'pytest', '--collect-only', '-q', 'tests', 'skills/process-general/tests', 'skills/epdm/tests', 'skills/poe/tests', 'skills/polymer-general/tests'],
-              text=True,
-              capture_output=True,
-              check=True,
+              text=True, capture_output=True, check=True,
           )
           node_ids = [line.strip() for line in collected.stdout.splitlines() if '::' in line and not line.lstrip().startswith(('=', '<'))]
           test_count = len(node_ids)
           if test_count != int(os.environ['EXPECTED_TEST_COUNT']):
               raise SystemExit(f'test count mismatch: {test_count}')
-
           project = json.loads(Path('skills/epdm/fixtures/v2_phase_a1_reference_project.json').read_text(encoding='utf-8'))
           from skills.epdm.validation_v2 import validate_v2_project
           validation = validate_v2_project(project)
@@ -365,7 +264,6 @@ jobs:
           requirements = json.loads(Path('skills/epdm/data/requirements_v2.json').read_text(encoding='utf-8'))
           if len(requirements['items']) != 80:
               raise SystemExit('requirement traceability count mismatch')
-
           subprocess.run(['git', 'add', '-A'], check=True)
           qualified_code_tree = subprocess.check_output(['git', 'write-tree'], text=True).strip()
           report = {
@@ -428,7 +326,7 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           COMMIT_SHA: ${{ steps.commit.outputs.sha }}
         run: |
-          gh issue comment "$ISSUE_NUMBER" --body "EPDM Phase A1 qualification PASS. Final commit: \`$COMMIT_SHA\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh issue comment --repo "$GITHUB_REPOSITORY" "$ISSUE_NUMBER" --body "EPDM Phase A1 qualification PASS. Final commit: \`$COMMIT_SHA\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
   report-failure:
     if: ${{ always() && github.event.issue.title == '[QUALIFY-EPDM-A1]' && (needs.qualification.result == 'failure' || needs.qualification.result == 'cancelled' || needs.finalize.result == 'failure' || needs.finalize.result == 'cancelled') }}
@@ -440,4 +338,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          gh issue comment "$ISSUE_NUMBER" --body "EPDM Phase A1 qualification FAILED. Inspect: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh issue comment --repo "$GITHUB_REPOSITORY" "$ISSUE_NUMBER" --body "EPDM Phase A1 qualification FAILED. Inspect: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
