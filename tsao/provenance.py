@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 _EXCLUDED_PARTS = {
@@ -26,12 +26,27 @@ _EXCLUDED_PREFIXES = ("reports/runtime/",)
 _EXCLUDED_FILES = {".coverage", "coverage.xml"}
 _SELF_MANIFESTS = {
     "reports/SOURCE_CORE_MANIFEST.tsv",
+    "reports/SOURCE_CORE_OVERLAY.tsv",
     "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv",
     "FILE_MANIFEST.tsv",
     "checksums.sha256",
     "SBOM.json",
 }
 
+
+
+def _safe_manifest_relative(value: str) -> Path:
+    pure = PurePosixPath(value)
+    if (
+        not value
+        or "\\" in value
+        or value.startswith("/")
+        or pure.is_absolute()
+        or ".." in pure.parts
+        or (pure.parts and pure.parts[0].endswith(":"))
+    ):
+        raise ValueError(f"unsafe manifest path: {value}")
+    return Path(*pure.parts)
 
 def canonical_bytes(path: Path) -> bytes:
     """Return a platform-stable identity for text and exact bytes for binaries."""
@@ -161,14 +176,10 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
     return len(rows)
 
 
-def verify_manifest(root: Path, manifest: Path) -> list[str]:
-    root = Path(root)
-    manifest = Path(manifest)
-    if not manifest.is_file():
-        return [f"missing source manifest: {manifest}"]
+def _read_manifest_records(path: Path, *, label: str) -> tuple[dict[str, dict[str, str]], list[str]]:
+    records: dict[str, dict[str, str]] = {}
     issues: list[str] = []
-    seen: set[str] = set()
-    with manifest.open(encoding="utf-8", newline="") as stream:
+    with path.open(encoding="utf-8", newline="") as stream:
         reader = csv.DictReader(stream, delimiter="\t")
         required = {
             "path",
@@ -179,34 +190,53 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
             "license_scope",
         }
         if not required.issubset(reader.fieldnames or []):
-            return ["source manifest header is incomplete"]
+            return {}, [f"{label} header is incomplete"]
         for row_number, row in enumerate(reader, start=2):
             relative = (row.get("path") or "").strip()
-            if not relative or relative in seen:
-                issues.append(f"manifest row {row_number}: path must be non-empty and unique")
-                continue
-            seen.add(relative)
-            path = root / relative
-            if not path.is_file():
-                issues.append(f"manifest row {row_number}: missing file {relative}")
+            if not relative or relative in records:
+                issues.append(f"{label} row {row_number}: path must be non-empty and unique")
                 continue
             try:
-                expected_size = int(row.get("bytes") or "")
-            except ValueError:
-                issues.append(f"manifest row {row_number}: invalid byte count")
+                _safe_manifest_relative(relative)
+                int(row.get("bytes") or "")
+            except ValueError as exc:
+                issues.append(f"{label} row {row_number}: {exc}")
                 continue
-            digest, size = canonical_identity(path)
-            if size != expected_size:
-                issues.append(f"manifest row {row_number}: size mismatch {relative}")
-            if digest != (row.get("sha256") or "").strip():
-                issues.append(f"manifest row {row_number}: hash mismatch {relative}")
-    if not seen:
+            records[relative] = {key: str(value or "") for key, value in row.items()}
+    return records, issues
+
+
+def verify_manifest(root: Path, manifest: Path) -> list[str]:
+    root = Path(root)
+    manifest = Path(manifest)
+    if not manifest.is_file():
+        return [f"missing source manifest: {manifest}"]
+    records, issues = _read_manifest_records(manifest, label="manifest")
+    overlay_path = root / "reports/SOURCE_CORE_OVERLAY.tsv"
+    if manifest.name == "SOURCE_CORE_MANIFEST.tsv" and overlay_path.is_file():
+        overlay, overlay_issues = _read_manifest_records(overlay_path, label="overlay")
+        issues.extend(overlay_issues)
+        records.update(overlay)
+    if not records:
         issues.append("source manifest contains no file records")
-        return issues
+        return sorted(set(issues))
+
+    for relative, row in records.items():
+        path = root / _safe_manifest_relative(relative)
+        if not path.is_file():
+            issues.append(f"manifest lists missing file: {relative}")
+            continue
+        expected_size = int(row["bytes"])
+        digest, size = canonical_identity(path)
+        if size != expected_size:
+            issues.append(f"manifest size mismatch: {relative}")
+        if digest != row["sha256"].strip():
+            issues.append(f"manifest hash mismatch: {relative}")
 
     actual = {relative for _, relative in iter_source_files(root)}
+    seen = set(records)
     for relative in sorted(actual - seen):
         issues.append(f"unlisted source file: {relative}")
     for relative in sorted(seen - actual):
         issues.append(f"manifest lists excluded or unavailable file: {relative}")
-    return issues
+    return sorted(set(issues))

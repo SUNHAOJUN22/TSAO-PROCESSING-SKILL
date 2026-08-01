@@ -1,8 +1,8 @@
 {
   "format": "TSAO-COMPLETE-DISTRIBUTION-REFERENCE-2",
-  "version": "0.1.0-alpha.11",
+  "version": "0.1.0-alpha.12",
   "qualification": "NOT_EVALUATED",
-  "reason": "The controlled complete distribution, including excluded historical binary assets, has not been rebuilt and cleanroom-qualified for alpha.11. The public source core, open Wheel and performance evidence are verified separately.",
+  "reason": "The controlled complete distribution, including excluded historical binary assets, has not been rebuilt and cleanroom-qualified for alpha.12. The public source core and open Wheel are verified separately.",
   "historical_reference": "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json",
   "scientific_technical_approval": "NOT_EVALUATED",
   "engineering_design_approval": "NOT_EVALUATED",

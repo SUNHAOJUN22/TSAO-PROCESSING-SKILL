@@ -89,3 +89,19 @@ def test_doe_is_deterministic(tmp_path: Path):
     assert module.main(["--factors", str(factors), "--out", str(first), "--seed", "7"]) == 0
     assert module.main(["--factors", str(factors), "--out", str(second), "--seed", "7"]) == 0
     assert first.read_bytes() == second.read_bytes()
+
+
+def test_balance_rejects_cross_component_cancellation(tmp_path: Path):
+    module = load("check_balance")
+    path = tmp_path / "cancel.csv"
+    path.write_text(
+        "component,in,out,generation,consumption\n"
+        "A,10,0,0,0\n"
+        "B,0,10,0,0\n",
+        encoding="utf-8",
+    )
+    result = module.check(path, 1e-12)
+    assert result["total_balance_pass"] is True
+    assert result["component_balances_pass"] is False
+    assert result["pass"] is False
+    assert result["failed_components"] == ["A", "B"]

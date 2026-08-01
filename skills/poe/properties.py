@@ -64,16 +64,17 @@ def heat_transfer_margin(
         raise ValueError("minimum_margin_fraction must be finite and non-negative")
     duty, area, coefficient, delta_t = values
     capacity = area * coefficient * delta_t
-    margin = (
-        float("inf")
-        if duty == 0 and capacity > 0
-        else 0.0
-        if duty == 0
-        else (capacity - duty) / duty
-    )
-    status = "PASS" if capacity >= duty and margin >= minimum_margin_fraction else "HOLD"
+    if duty == 0:
+        margin: float | None = None
+        reason_code = "UNBOUNDED_MARGIN_ZERO_LOAD" if capacity > 0 else "ZERO_LOAD_ZERO_CAPACITY"
+        status = "PASS" if capacity > 0 else "HOLD"
+    else:
+        margin = (capacity - duty) / duty
+        reason_code = "MARGIN_ACCEPTABLE" if capacity >= duty and margin >= minimum_margin_fraction else "MARGIN_INSUFFICIENT"
+        status = "PASS" if reason_code == "MARGIN_ACCEPTABLE" else "HOLD"
     return {
         "status": status,
+        "reason_code": reason_code,
         "capacity_W": capacity,
         "duty_W": duty,
         "margin_fraction": margin,

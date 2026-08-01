@@ -175,8 +175,14 @@ def test_version_metadata_is_consistent() -> None:
     reference = json.loads(
         (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
     )
-    assert tsao.__version__ == "0.1.0-alpha.11"
-    assert pyproject["project"]["version"] == "0.1.0a11"
+    assert tsao.__version__ == manifest["version"]
+    pep440 = (
+        tsao.__version__
+        .replace("-alpha.", "a")
+        .replace("-beta.", "b")
+        .replace("-rc.", "rc")
+    )
+    assert pyproject["project"]["version"] == pep440
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__
     assert root_skill["version"] == tsao.__version__
@@ -184,7 +190,7 @@ def test_version_metadata_is_consistent() -> None:
     assert reference["version"] == tsao.__version__
     assert reference["qualification"] == "NOT_EVALUATED"
     assert identity["complete_distribution"]["qualification"] == "NOT_EVALUATED"
-    assert "## 0.1.0-alpha.11" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert f"## {tsao.__version__}" in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert manifest["artifact_software_qualification"] == "NOT_EVALUATED"
 
 
@@ -261,7 +267,8 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "skills/poe/scripts/audit_p0.py" in runner
     assert "skills/poe/scripts/audit_p1.py" in runner
     assert "ThreadPoolExecutor" in runner
-    assert "alpha11" in workflow.casefold()
+    release_token = tsao.__version__.split("-", 1)[-1].replace(".", "")
+    assert release_token in workflow.casefold()
 
 
 def test_relative_markdown_links_resolve() -> None:

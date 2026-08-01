@@ -1,22 +1,21 @@
 # Roadmap
 
-## Delivered through EPDM Phase A2
+## Delivered through Alpha.12
 
 - universal process-package object model, evidence ledger, acceptance records and fail-closed content audit;
-- EPDM Phase A0 evidence/status/applicability closure with V1 API and golden-numeric locks;
-- EPDM Phase A1 immutable scientific contracts, strict schemas, SI/evidence Gates, semantic cross-reference validation and metadata-only migration;
-- EPDM Phase A2 deterministic state generation, structural reaction channels, terminal propagation matrix, stoichiometric matrix and active-site conservation audit;
+- EPDM Phase A0 evidence/status/applicability closure, A1 contracts and A2 structural network;
+- zero-false-PASS hardening for component balances, process topology, lifecycle audits, strict JSON and path safety;
 - POE P1 specialist and four-Skill installed delivery;
-- Python 3.11–3.14 qualification with Windows/macOS Python 3.14, Wheel content and isolated-runtime checks.
+- Python 3.11–3.14 support with Windows as the target core release platform.
 
 ## Next evidence-driven phase
 
-- Phase A3: rate-law contracts, parameter binding, structural RHS generation and numerical conservation checks without calibration claims;
-- register and audit a controlled EPDM project corpus;
-- qualify multi-site terpolymer population balances against independent experiments only after A3/A4 software closure;
-- restore licensed EOS/CFD and dynamic models through model passports;
-- execute reaction calorimetry, relief/HSE studies, pilot work, compound and customer-line qualification.
+- Alpha.13: numerical-correctness repair for EPDM site-family moments, POE hot-start balances and bounded-memory DoE;
+- Alpha.14 / EPDM A3: rate-law contracts, parameter binding, structural RHS and numerical conservation;
+- Alpha.15: solver, moment/PBM, identifiability and uncertainty framework;
+- Beta.1: whole-repository qualification and Windows core matrix;
+- independent scientific qualification only after software closure and real experimental evidence.
 
 ## Boundary
 
-Phase A2 is a software-topology milestone. It does not provide calibrated kinetics, reactor trajectories, molecular-weight predictions, engineering design, HSE approval, customer qualification or industrial performance guarantees.
+Alpha.12 is software-integrity hardening. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.

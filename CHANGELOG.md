@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.12 — 2026-08-02
+
+- Closed cross-component balance cancellation and process-package component-substitution false PASS paths.
+- Added stream/equipment topology checks, explicit reaction-basis controls, strict JSON output, and stable reason codes.
+- Split initialization, project, transition, and release audits while preserving the legacy fail-closed audit default.
+- Added append-only Gate event integrity, safe manifest paths, and an incremental source-overlay verification mechanism.
+- Kept scientific, engineering, HSE, customer, and industrial approvals `NOT_EVALUATED`.
+
 ## Unreleased — EPDM scientific-kernel phases
 
 - Closed Phase A0 evidence governance with qualified-status and applicability Gates, explicit internal-error signaling, strict case schemas, and a machine-visible HOLD for the V1 fixed-concentration semibatch assumption.
