@@ -11,7 +11,13 @@ import yaml
 from . import __version__
 from ._utils import atomic_write_text, nonempty, required_or_default_string
 from .capabilities import build_work_packages, initial_maturity_record
-from .gates import ApprovalStatus, GateRecord, GateStatus, validate_gate_sequence
+from .gates import (
+    ApprovalStatus,
+    GateRecord,
+    GateStatus,
+    validate_gate_events,
+    validate_gate_sequence,
+)
 from .routing import route
 
 PROJECT_DIRS = (
@@ -59,6 +65,8 @@ def bootstrap_project(
     output = Path(output)
     if not brief.is_file():
         raise FileNotFoundError(f"brief file not found: {brief}")
+    if output.is_symlink():
+        raise ValueError("output path must not be a symlink")
     if output.exists():
         if not output.is_dir():
             raise FileExistsError("output path exists and is not a directory")
@@ -148,10 +156,32 @@ def bootstrap_project(
         )
         + "\n",
     )
+    atomic_write_text(output / "00_governance/gate_events.jsonl", "")
     return manifest
 
 
-def audit_project(root: Path) -> list[str]:
+def _load_gate_events(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
+    if not path.is_file():
+        return [], ["missing execution artifact: 00_governance/gate_events.jsonl"]
+    events: list[dict[str, Any]] = []
+    issues: list[str] = []
+    try:
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if not line.strip():
+                continue
+            value = json.loads(line)
+            if not isinstance(value, dict):
+                issues.append(f"gate event line {line_number} must be an object")
+            else:
+                events.append(value)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        issues.append(f"invalid gate event ledger: {exc}")
+    return events, issues
+
+
+def audit_project(root: Path, mode: str = "initialization") -> list[str]:
+    if mode not in {"initialization", "project", "transition", "release"}:
+        raise ValueError("audit mode must be initialization, project, transition or release")
     root = Path(root)
     if not root.exists():
         return ["project root does not exist"]
@@ -172,19 +202,31 @@ def audit_project(root: Path) -> list[str]:
         "00_governance/work_packages.json",
         "00_governance/maturity.json",
         "00_governance/execution_status.json",
+        "00_governance/gate_events.jsonl",
     ):
         if not (root / artifact).is_file():
             issues.append(f"missing execution artifact: {artifact}")
+
     work_packages_path = root / "00_governance/work_packages.json"
     if work_packages_path.is_file():
         try:
             packages = json.loads(work_packages_path.read_text(encoding="utf-8"))
             if not isinstance(packages, list) or len(packages) != 19 * 14:
                 issues.append("work package matrix must contain 266 records")
-            elif any(item.get("approval_status") != "NOT_EVALUATED" for item in packages):
-                issues.append("work packages must initialize fail-closed")
+            elif mode == "initialization" and any(
+                item.get("approval_status") != "NOT_EVALUATED" for item in packages
+            ):
+                issues.append("initialization audit requires fail-closed work packages")
+            elif mode != "initialization":
+                valid_approvals = {item.value for item in ApprovalStatus}
+                for index, item in enumerate(packages):
+                    if not isinstance(item, dict):
+                        issues.append(f"work package {index} must be an object")
+                    elif item.get("approval_status") not in valid_approvals:
+                        issues.append(f"work package {index} has invalid approval_status")
         except (OSError, UnicodeError, json.JSONDecodeError, AttributeError) as exc:
             issues.append(f"invalid work package matrix: {exc}")
+
     manifest_path = root / "project_manifest.json"
     if not manifest_path.is_file():
         return sorted(set(issues + ["missing project_manifest.json"]))
@@ -210,8 +252,12 @@ def audit_project(root: Path) -> list[str]:
         or any(item not in _VALID_SUBSKILLS for item in subskills)
     ):
         issues.append("subskills must be unique supported subskill names")
-    if data.get("technical_approval_status") != "NOT_EVALUATED":
+    technical_status = data.get("technical_approval_status")
+    if mode == "initialization" and technical_status != "NOT_EVALUATED":
         issues.append("project must not claim technical approval")
+    elif technical_status not in {"NOT_EVALUATED", "APPROVED", "REJECTED"}:
+        issues.append("project technical_approval_status is invalid")
+
     raw_gates = data.get("gates")
     gate_records: list[GateRecord] = []
     if not isinstance(raw_gates, list):
@@ -241,4 +287,34 @@ def audit_project(root: Path) -> list[str]:
             issues.extend(validate_gate_sequence(gate_records))
         if [gate.gate_id for gate in gate_records] != [f"G{i}" for i in range(19)]:
             issues.append("gate sequence must be ordered G0-G18")
+        if mode == "initialization" and any(
+            gate.status != GateStatus.NOT_EVALUATED
+            or gate.approval_status != ApprovalStatus.NOT_EVALUATED
+            for gate in gate_records
+        ):
+            issues.append("initialization audit requires all gates NOT_EVALUATED")
+        if mode == "release" and any(
+            gate.status not in {GateStatus.PASS, GateStatus.RETIRED} for gate in gate_records
+        ):
+            issues.append("release audit requires every gate PASS or RETIRED")
+
+    events, event_issues = _load_gate_events(root / "00_governance/gate_events.jsonl")
+    issues.extend(event_issues)
+    if mode in {"transition", "release"}:
+        issues.extend(validate_gate_events(events))
+        if mode == "release" and not events:
+            issues.append("release audit requires a non-empty gate event ledger")
+
     return sorted(set(issues))
+
+
+def audit_project_initialization(root: Path) -> list[str]:
+    return audit_project(root, mode="initialization")
+
+
+def audit_project_transitions(root: Path) -> list[str]:
+    return audit_project(root, mode="transition")
+
+
+def audit_project_release(root: Path) -> list[str]:
+    return audit_project(root, mode="release")

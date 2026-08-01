@@ -126,15 +126,21 @@ class GeneratedStateDefinition:
         unknown = sorted(set(values) - set(self._index_by_id))
         if unknown:
             raise ContractValidationError(f"unknown state IDs: {unknown}")
+        if fill_missing is not None and (
+            isinstance(fill_missing, bool) or not math.isfinite(fill_missing)
+        ):
+            raise ContractValidationError("fill_missing must be finite numeric")
+        selected = [values.get(state_id, fill_missing) for state_id in self.state_ids]
         if fill_missing is None:
             missing = [state_id for state_id in self.state_ids if state_id not in values]
             if missing:
                 raise ContractValidationError(f"missing state IDs: {missing}")
-            vector = tuple(float(values[state_id]) for state_id in self.state_ids)
-        else:
-            if not math.isfinite(fill_missing):
-                raise ContractValidationError("fill_missing must be finite")
-            vector = tuple(float(values.get(state_id, fill_missing)) for state_id in self.state_ids)
+        if any(isinstance(value, bool) for value in selected):
+            raise ContractValidationError("state values must be numeric and must not be boolean")
+        try:
+            vector = tuple(float(value) for value in selected)
+        except (TypeError, ValueError) as exc:
+            raise ContractValidationError("state values must be numeric") from exc
         self.validate_vector(vector)
         return vector
 

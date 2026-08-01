@@ -30,6 +30,12 @@ def _parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--templates")
 
     audit_parser = commands.add_parser("audit", help="audit a TSAO project workspace")
+    audit_parser.add_argument(
+        "audit_mode",
+        nargs="?",
+        choices=("initialization", "project", "transition", "release"),
+        default="project",
+    )
     audit_parser.add_argument("--root", required=True)
 
     doctor_parser = commands.add_parser("doctor", help="audit repository and provenance integrity")
@@ -90,7 +96,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _print(payload: object) -> None:
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    print(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False))
 
 
 def _epdm_model_suite(temperature_K: float, residence_time_s: float) -> dict[str, object]:
@@ -167,8 +173,8 @@ def main(argv: list[str] | None = None) -> int:
             _print(bootstrap_project(Path(args.brief), Path(args.out), templates))
             return 0
         if args.command == "audit":
-            issues = audit_project(Path(args.root))
-            _print({"pass": not issues, "issues": issues})
+            issues = audit_project(Path(args.root), mode=args.audit_mode)
+            _print({"pass": not issues, "mode": args.audit_mode, "issues": issues})
             return 0 if not issues else 2
         if args.command == "build":
             _print({"sha256": deterministic_zip(Path(args.root), Path(args.out))})

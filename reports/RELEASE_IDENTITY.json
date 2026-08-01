@@ -1,18 +1,24 @@
 {
-  "format": "TSAO-RELEASE-IDENTITY-2",
-  "version": "0.1.0-alpha.11",
+  "format": "TSAO-RELEASE-IDENTITY-3",
+  "version": "0.1.0-alpha.12",
   "source_core": {
     "manifest": "reports/SOURCE_CORE_MANIFEST.tsv",
-    "qualification": "EXTERNAL_VERIFICATION",
-    "status": "reports/ALPHA11_SOURCE_CORE_STATUS.json"
+    "overlay": "reports/SOURCE_CORE_OVERLAY.tsv",
+    "qualification": "SOFTWARE_VERIFICATION",
+    "status": "reports/ALPHA12_ZERO_FALSE_PASS_QUALIFICATION.json"
   },
-  "complete_distribution": {
-    "reference": "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
-    "qualification": "NOT_EVALUATED",
-    "historical_alpha6_reference": "reports/history/COMPLETE_DISTRIBUTION_REFERENCE_ALPHA6.json"
-  },
-  "artifact_software_qualification": "NOT_EVALUATED",
+  "artifact_software_qualification": "PASS",
   "scientific_technical_approval": "NOT_EVALUATED",
   "engineering_design_approval": "NOT_EVALUATED",
-  "industrial_performance_guarantee": "NOT_EVALUATED"
+  "hse_approval": "NOT_EVALUATED",
+  "customer_qualification": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED",
+  "complete_distribution": {
+    "reference": "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
+    "qualification": "NOT_EVALUATED"
+  },
+  "qualification_boundary": "SOFTWARE_ONLY",
+  "alpha12_qualification_run_id": 30714590133,
+  "wheel_filename": "tsao_processing_skill-0.1.0a12-py3-none-any.whl",
+  "wheel_sha256": "2cb8b4a2468dae53effe2c0d16eac96efc3b1a48cfc7f1959ef05cf594687003"
 }
