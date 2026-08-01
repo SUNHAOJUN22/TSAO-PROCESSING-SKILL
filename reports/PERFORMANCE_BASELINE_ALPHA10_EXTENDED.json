@@ -19,7 +19,7 @@
       "maximum_s_per_call": 0.00013198337000005722,
       "stdev_s_per_call": 8.567751959648456e-07,
       "peak_memory_bytes": 38120,
-      "result_sha256": "b7e48a748bcc6b81e892ecc80a43d81c3315b59e5fe899ca44257cda2bbabc94",
+      "result_sha256": "d937f48d88a566341f6df8d9cfb9b1ddfdf65d11980b098c7b963bc2b3536792",
       "profile_loops": 20,
       "profile_top_cumulative": [
         {
@@ -127,7 +127,8 @@
           "total_time_s": 3.8249e-05,
           "cumulative_time_s": 0.000148457
         }
-      ]
+      ],
+      "pre_alpha13_result_sha256": "b7e48a748bcc6b81e892ecc80a43d81c3315b59e5fe899ca44257cda2bbabc94"
     },
     {
       "name": "epdm_three_level_512_site_families",
@@ -139,7 +140,7 @@
       "maximum_s_per_call": 0.0009500149999993823,
       "stdev_s_per_call": 6.011004813400347e-06,
       "peak_memory_bytes": 282920,
-      "result_sha256": "39c0c4160314ecc8a4c8f7f3e6ea13db1b8dff6dc2abc26504fbe9d63a003e1e",
+      "result_sha256": "2681012aada07c76f99f43d60d461c75b272b36e4a7c1ce62b0337d66fcbc649",
       "profile_loops": 2,
       "profile_top_cumulative": [
         {
@@ -247,7 +248,8 @@
           "total_time_s": 3.2361000000000004e-05,
           "cumulative_time_s": 3.2361000000000004e-05
         }
-      ]
+      ],
+      "pre_alpha13_result_sha256": "39c0c4160314ecc8a4c8f7f3e6ea13db1b8dff6dc2abc26504fbe9d63a003e1e"
     },
     {
       "name": "epdm_semibatch_material_energy_step",
@@ -2053,5 +2055,14 @@
   "qualification_scope": "SOFTWARE_PERFORMANCE_ONLY",
   "scientific_technical_approval": "NOT_EVALUATED",
   "engineering_design_approval": "NOT_EVALUATED",
-  "industrial_performance_guarantee": "NOT_EVALUATED"
+  "industrial_performance_guarantee": "NOT_EVALUATED",
+  "numerical_digest_rebase": {
+    "version": "0.1.0-alpha.13",
+    "scope": [
+      "epdm_three_level_512_site_families",
+      "epdm_three_level_64_site_families"
+    ],
+    "reason": "EPDM heterogeneous-site chain moments now use the declared weighted propagation rates; timings and memory remain the frozen alpha.10 baseline.",
+    "qualification": "SOFTWARE_REFERENCE_NUMERICS_ONLY"
+  }
 }

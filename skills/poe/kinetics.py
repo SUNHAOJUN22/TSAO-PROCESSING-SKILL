@@ -267,11 +267,15 @@ def simulate_kinetics_terminal(
 def kinetic_metrics(
     initial: KineticState, final: KineticState, params: KineticParameters
 ) -> dict[str, float]:
+    initial_total_a = initial.live_a_units + initial.dead_a_units
+    initial_total_b = initial.live_b_units + initial.dead_b_units
+    initial_polymer_units = initial_total_a + initial_total_b
     total_a = final.live_a_units + final.dead_a_units
     total_b = final.live_b_units + final.dead_b_units
     polymer_units = total_a + total_b
+    polymer_increment = polymer_units - initial_polymer_units
     consumed = initial.monomer_a + initial.monomer_b - final.monomer_a - final.monomer_b
-    balance_residual = consumed - polymer_units
+    balance_residual = consumed - polymer_increment
     chain_count = final.live_chains + final.dead_chains
     second_moment = final.live_second_moment + final.dead_second_moment
     avg_monomer_mass = (

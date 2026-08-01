@@ -1,4 +1,4 @@
-# TSAO capability matrix — 0.1.0-alpha.12
+# TSAO capability matrix — 0.1.0-alpha.13
 
 | Capability | `process-general` | EPDM flagship | POE specialist | `polymer-general` | Verification boundary |
 |---|---|---|---|---|---|
