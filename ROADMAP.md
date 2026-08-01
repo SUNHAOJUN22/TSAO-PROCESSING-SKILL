@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered through Alpha.12
+## Delivered through Alpha.13
 
 - universal process-package object model, evidence ledger, acceptance records and fail-closed content audit;
 - EPDM Phase A0 evidence/status/applicability closure, A1 contracts and A2 structural network;
@@ -18,4 +18,4 @@
 
 ## Boundary
 
-Alpha.12 is software-integrity hardening. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.
+Alpha.13 is software-integrity hardening. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.

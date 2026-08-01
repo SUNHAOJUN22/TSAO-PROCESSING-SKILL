@@ -65,7 +65,7 @@ def test_epdm_suite_preserves_baseline_result_and_validates_once(monkeypatch: py
     monkeypatch.setattr(EpdmKineticParameters, "validated", parameters_validated)
     monkeypatch.setattr(EpdmActivationEnergies, "validated", activation_validated)
     result = _epdm_suite()
-    assert _digest(result) == "b7e48a748bcc6b81e892ecc80a43d81c3315b59e5fe899ca44257cda2bbabc94"
+    assert _digest(result) == "d937f48d88a566341f6df8d9cfb9b1ddfdf65d11980b098c7b963bc2b3536792"
     assert counts == {"state": 1, "parameters": 1, "activation": 1}
 
 

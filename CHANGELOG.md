@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.13 — 2026-08-02
+
+- Corrected EPDM heterogeneous-site chain moments to use one consistent weighted rate set.
+- Replaced artificial finite chain lengths with fail-closed HOLD records when no finite steady chain length exists.
+- Corrected POE hot-start material balance to use incremental polymer production.
+- Replaced unbounded full-factorial materialization with bounded index sampling for large DoE spaces.
+- Kept all scientific, engineering, HSE, customer, and industrial approvals `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.12 — 2026-08-02
 
 - Closed cross-component balance cancellation and process-package component-substitution false PASS paths.

@@ -214,7 +214,9 @@ def architecture_metrics(
         raise ValueError("invalid branching parameters")
     propagation = sum(rates[name] for name in _PROPAGATION_NAMES)
     termination = rates["transfer"] + rates["deactivation"]
-    number_average_dp = propagation / max(termination, 1e-30)
+    if termination <= 0:
+        raise ValueError("NO_FINITE_STEADY_CHAIN_LENGTH")
+    number_average_dp = propagation / termination
     branch_index = fractions["diene"] * secondary * efficiency * number_average_dp
     gel_risk = min(1.0, branch_index / critical)
     retained_unsaturation = fractions["diene"] * (1.0 - secondary)
@@ -262,12 +264,28 @@ def pseudo_first_order_conversions(
 
 def _chain_moment_reference_from_rates(
     rates: dict[str, float], variability: float
-) -> dict[str, float]:
+) -> dict[str, object]:
     propagation = rates["ethylene"] + rates["propylene"] + rates["diene"]
     chain_loss = rates["transfer"] + rates["deactivation"]
     if propagation <= 0:
-        raise ValueError("propagation rate must be positive")
-    dp_n = propagation / max(chain_loss, 1e-30)
+        return {
+            "status": "HOLD",
+            "reason_code": "NO_PROPAGATION_RATE",
+            "number_average_degree_of_polymerization": None,
+            "weight_average_degree_of_polymerization": None,
+            "reference_dispersity_index": None,
+            "chain_birth_rate_mol_L_s": chain_loss,
+        }
+    if chain_loss <= 0:
+        return {
+            "status": "HOLD",
+            "reason_code": "NO_FINITE_STEADY_CHAIN_LENGTH",
+            "number_average_degree_of_polymerization": None,
+            "weight_average_degree_of_polymerization": None,
+            "reference_dispersity_index": None,
+            "chain_birth_rate_mol_L_s": chain_loss,
+        }
+    dp_n = propagation / chain_loss
     dispersity = 2.0 + variability**2
     return {
         "number_average_degree_of_polymerization": dp_n,
@@ -283,12 +301,29 @@ def chain_moment_reference(
     *,
     site_activity_cv: float = 0.0,
 ) -> dict[str, float]:
-    """Reference chain moments; not a substitute for a fitted population balance."""
+    """Reference finite chain moments; not a substitute for a fitted population balance.
+
+    The V1 public envelope remains numeric. Conditions without a finite steady
+    chain length fail closed with a stable reason code; the detailed heterogeneous
+    suite exposes the corresponding structured HOLD record.
+    """
     variability = _finite(site_activity_cv, "site activity coefficient of variation")
     if variability < 0:
         raise ValueError("site activity coefficient of variation must be non-negative")
     rates = _insertion_rates_validated(state.validated(), parameters.validated())
-    return _chain_moment_reference_from_rates(rates, variability)
+    result = _chain_moment_reference_from_rates(rates, variability)
+    if result.get("status") == "HOLD":
+        raise ValueError(str(result["reason_code"]))
+    return {
+        "number_average_degree_of_polymerization": float(
+            result["number_average_degree_of_polymerization"]
+        ),
+        "weight_average_degree_of_polymerization": float(
+            result["weight_average_degree_of_polymerization"]
+        ),
+        "reference_dispersity_index": float(result["reference_dispersity_index"]),
+        "chain_birth_rate_mol_L_s": float(result["chain_birth_rate_mol_L_s"]),
+    }
 
 
 def three_level_kinetic_suite(
@@ -338,7 +373,7 @@ def three_level_kinetic_suite(
     }
 
     family_records: list[dict[str, object]] = []
-    weighted_rates = {name: 0.0 for name in _PROPAGATION_NAMES}
+    weighted_rates = {name: 0.0 for name in (*_PROPAGATION_NAMES, "transfer", "deactivation")}
     multiplier_mean = math.fsum(
         weight * multiplier
         for weight, multiplier in zip(fractions, multipliers, strict=True)
@@ -368,12 +403,14 @@ def three_level_kinetic_suite(
                 "rates_mol_L_s": family_rates,
             }
         )
-    site_cv = math.sqrt(multiplier_variance) / max(multiplier_mean, 1e-30)
+    site_cv = 0.0 if multiplier_mean <= 0 else math.sqrt(multiplier_variance) / multiplier_mean
     detailed = {
         "site_families": family_records,
-        "weighted_propagation_rates_mol_L_s": weighted_rates,
+        "weighted_propagation_rates_mol_L_s": {
+            name: weighted_rates[name] for name in _PROPAGATION_NAMES
+        },
         "site_activity_cv": site_cv,
-        "chain_moments": _chain_moment_reference_from_rates(adjusted_rates, site_cv),
+        "chain_moments": _chain_moment_reference_from_rates(weighted_rates, site_cv),
     }
     return {
         "status": "CALCULATED_REFERENCE_ONLY",
