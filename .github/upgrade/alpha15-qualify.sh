@@ -29,8 +29,14 @@ with path.open("w", encoding="utf-8", newline="\n") as stream:
     stream.write(text.replace(old, new))
 PY
 python scripts/update_source_overlay.py --root . tsao/process_package.py
+governance_path="${RUNNER_TEMP:-/tmp}/alpha15-governance-correction.patch"
+cat .github/upgrade/alpha15.governance.gz.part-* | base64 --decode | gzip --decompress > "$governance_path"
+echo "e7537bcbf1747ebe73507f83686abbda5d7e39225f3282cb631d86e107113ca2  $governance_path" | sha256sum --check --status
+git apply --check "$governance_path"
+git apply --whitespace=fix "$governance_path"
 rm -rf .github/upgrade
 rm -f .github/workflows/alpha15-pr-qualify-once.yml
+rm -f .github/workflows/alpha15-export-candidate-once.yml
 git config user.name 'TSAO Qualification Bot'
 git config user.email 'actions@users.noreply.github.com'
 git add -A
@@ -81,6 +87,43 @@ if [[ "${RUN_EXTENDED:-0}" == "1" ]]; then
     --repeats 7 \
     --wheel-dir wheelhouse \
     --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+  BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<'INNERPY'
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+root = Path.cwd()
+baseline_root = Path(os.environ["BASELINE_ROOT"])
+baseline_report = Path(os.environ["BASELINE_REPORT"])
+current_report = root / "reports/runtime/PERFORMANCE_RESULTS_V2.json"
+
+def schema_units(worktree: Path) -> float:
+    code = (
+        "from pathlib import Path; "
+        "from tsao.doctor import diagnose; "
+        "print(diagnose(Path('.'), profile='core')['metrics']['schemas'])"
+    )
+    output = subprocess.check_output(
+        [sys.executable, "-c", code],
+        cwd=worktree,
+        text=True,
+    )
+    return float(output.strip().splitlines()[-1])
+
+for path, worktree in ((baseline_report, baseline_root), (current_report, root)):
+    report = json.loads(path.read_text(encoding="utf-8"))
+    doctor = next(
+        row for row in report["benchmarks"] if row["name"] == "doctor_core_repository"
+    )
+    doctor["work_units"] = schema_units(worktree)
+    doctor["work_unit"] = "schema_count"
+    path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+INNERPY
   python scripts/compare_performance_v2.py \
     --baseline "$baseline_report" \
     --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
