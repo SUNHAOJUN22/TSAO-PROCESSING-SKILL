@@ -69,6 +69,7 @@ jobs:
       - name: Dependency integrity
         run: python -m pip check
       - name: Doctor and focused numerical hardening
+        shell: bash
         run: |
           python -m tsao.cli doctor --root . --profile core
           python -m pytest -q -p no:cacheprovider \
@@ -82,12 +83,14 @@ jobs:
         run: python scripts/run_ci.py
       - name: Alpha15 adaptive-integrator branch coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        shell: bash
         run: |
           python -m coverage erase
           python -m coverage run --branch -m pytest -q -p no:cacheprovider skills/epdm/tests/test_epdm_phase_a4_integration.py
           python -m coverage report --include='skills/epdm/numerical_integration.py' --fail-under=90 | tee "$RUNNER_TEMP/alpha15-issue57-coverage.txt"
           python -c "from pathlib import Path; Path('.coverage').unlink(missing_ok=True)"
       - name: Build and verify Wheel
+        shell: bash
         run: |
           rm -rf wheelhouse build dist *.egg-info
           python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
