@@ -1221,7 +1221,7 @@
       "maximum_s_per_call": 0.004427017750000317,
       "stdev_s_per_call": 3.484596882527823e-06,
       "peak_memory_bytes": 183840,
-      "result_sha256": "fce84786d96cb3bfe636e9298e35514e33538c64942670fb5628db7b26369a53",
+      "result_sha256": "57781ee43d14fecde778d966454e5b114830f9dda0270cb5c0efedaf8deab4cd",
       "profile_loops": 1,
       "profile_top_cumulative": [
         {
@@ -1329,7 +1329,9 @@
           "total_time_s": 0.00018413400000000002,
           "cumulative_time_s": 0.00018413400000000002
         }
-      ]
+      ],
+      "pre_alpha15_result_sha256": "fce84786d96cb3bfe636e9298e35514e33538c64942670fb5628db7b26369a53",
+      "result_digest_policy": "PROCESS_PACKAGE_FAIL_CLOSED_SEMANTICS_V1"
     },
     {
       "name": "process_package_5000_equipment",
@@ -1341,7 +1343,7 @@
       "maximum_s_per_call": 0.04435178399999984,
       "stdev_s_per_call": 5.915241349371718e-05,
       "peak_memory_bytes": 2041632,
-      "result_sha256": "5091346818ded701befdb047f99cbe5006b43920b2858cd51210360013d0b0cc",
+      "result_sha256": "94d2d4d6476a00923cd2e40341c58134f9ae72545f45b873cea28a3505af7444",
       "profile_loops": 1,
       "profile_top_cumulative": [
         {
@@ -1449,7 +1451,9 @@
           "total_time_s": 0.00178275,
           "cumulative_time_s": 0.00178275
         }
-      ]
+      ],
+      "pre_alpha15_result_sha256": "5091346818ded701befdb047f99cbe5006b43920b2858cd51210360013d0b0cc",
+      "result_digest_policy": "PROCESS_PACKAGE_FAIL_CLOSED_SEMANTICS_V1"
     },
     {
       "name": "provenance_300_files_build_and_verify",
@@ -2064,5 +2068,19 @@
     ],
     "reason": "EPDM heterogeneous-site chain moments now use the declared weighted propagation rates; timings and memory remain the frozen alpha.10 baseline.",
     "qualification": "SOFTWARE_REFERENCE_NUMERICS_ONLY"
+  },
+  "process_package_semantic_digest_rebase": {
+    "version": "0.1.0-alpha.15",
+    "workloads": [
+      "process_package_5000_equipment",
+      "process_package_500_equipment"
+    ],
+    "reason": "Alpha.12 introduced mandatory component-balance and stream-topology audit fields. Alpha.15 freezes a compact semantic projection while retaining the original Alpha.10 timing and memory baselines.",
+    "parity_tests": [
+      "tests/test_alpha12_false_pass.py",
+      "skills/process-general/tests/test_process_package_runtime.py",
+      "tests/test_performance_v2_reports.py"
+    ],
+    "qualification": "SOFTWARE_PERFORMANCE_ONLY"
   }
 }

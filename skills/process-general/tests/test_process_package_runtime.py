@@ -97,3 +97,10 @@ def test_open_hazard_and_missing_controls_hold():
     data["hse"][0]["status"] = "HOLD"
     data["approvals"].pop("controls")
     assert validate_process_package(data)["status"] == "HOLD"
+
+
+def test_balanced_package_omits_zero_component_error_details() -> None:
+    result = validate_process_package(valid_package())
+    assert result["component_balance_errors"] == {}
+    assert result["failed_component_balances"] == []
+    assert result["metrics"]["max_component_balance_relative_error"] == 0.0

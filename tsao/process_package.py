@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from collections import Counter
 from copy import deepcopy
 from typing import Any
 
@@ -196,7 +195,7 @@ def validate_process_package(package: object) -> dict[str, Any]:
     evidence = _records(package.get("evidence_ledger", []), "evidence_ledger", errors)
     acceptance = _records(package.get("acceptance", []), "acceptance", errors)
 
-    stream_ids = _unique_ids(streams, "stream_id", "stream", errors)
+    _unique_ids(streams, "stream_id", "stream", errors)
     equipment_ids = _unique_ids(equipment, "equipment_id", "equipment", errors)
     _unique_ids(utilities, "utility_id", "utility", errors)
     _unique_ids(controls, "loop_id", "control", errors)
@@ -217,10 +216,13 @@ def validate_process_package(package: object) -> dict[str, Any]:
             holds.append(f"evidence {identifier or '<unknown>'} lacks locator or applicability")
             reason_codes.add("INCOMPLETE_EVIDENCE_RECORD")
 
-    stream_mass_by_id: dict[str, float] = {}
-    stream_enthalpy_by_id: dict[str, float] = {}
-    stream_component_mass_by_id: dict[str, dict[str, float]] = {}
-    stream_nodes: dict[str, tuple[str | None, str | None]] = {}
+    component_names = tuple(sorted(components))
+    component_index = {component: index for index, component in enumerate(component_names)}
+    # Store one compact record per stream instead of four parallel dictionaries.
+    # Layout: mass, enthalpy, component masses, source, destination.
+    stream_data_by_id: dict[
+        str, tuple[float, float, tuple[float, ...], str | None, str | None]
+    ] = {}
     for stream in streams:
         identifier = stream.get("stream_id")
         source = stream.get("source")
@@ -249,21 +251,15 @@ def validate_process_package(package: object) -> dict[str, Any]:
             errors.append(str(exc))
             total_mass = 0.0
             enthalpy = 0.0
-        if isinstance(identifier, str):
-            stream_mass_by_id[identifier] = total_mass
-            stream_enthalpy_by_id[identifier] = enthalpy
-            stream_nodes[identifier] = (
-                source if isinstance(source, str) else None,
-                destination if isinstance(destination, str) else None,
-            )
         composition = stream.get("composition")
-        component_mass: dict[str, float] = {}
+        component_mass = [0.0] * len(component_names)
         if not isinstance(composition, dict) or not composition:
             errors.append(f"stream {identifier} composition must be a non-empty object")
         else:
             total_fraction = 0.0
             for component, fraction in composition.items():
-                if component not in components:
+                index = component_index.get(component)
+                if index is None:
                     errors.append(f"stream {identifier} uses undeclared component: {component}")
                 try:
                     value = _finite(fraction, f"stream {identifier} composition {component}")
@@ -272,8 +268,8 @@ def validate_process_package(package: object) -> dict[str, Any]:
                             f"stream {identifier} composition {component} must be non-negative"
                         )
                     total_fraction += value
-                    if component in components:
-                        component_mass[component] = total_mass * value
+                    if index is not None:
+                        component_mass[index] = total_mass * value
                 except ValueError as exc:
                     errors.append(str(exc))
             if abs(total_fraction - 1.0) > composition_tol:
@@ -281,7 +277,13 @@ def validate_process_package(package: object) -> dict[str, Any]:
                     f"stream {identifier} composition sum is {total_fraction:.12g}, expected 1"
                 )
         if isinstance(identifier, str):
-            stream_component_mass_by_id[identifier] = component_mass
+            stream_data_by_id[identifier] = (
+                total_mass,
+                enthalpy,
+                tuple(component_mass),
+                source if isinstance(source, str) else None,
+                destination if isinstance(destination, str) else None,
+            )
         refs = stream.get("evidence_ids", [])
         if not isinstance(refs, list) or not refs:
             holds.append(f"stream {identifier} has no evidence_ids")
@@ -291,12 +293,13 @@ def validate_process_package(package: object) -> dict[str, Any]:
                 if ref not in evidence_ids:
                     errors.append(f"stream {identifier} references unknown evidence: {ref}")
 
-    mass_errors: dict[str, float] = {}
-    energy_errors: dict[str, float] = {}
+    max_mass_error = 0.0
+    max_energy_error = 0.0
+    max_component_error = 0.0
     component_balance_errors: dict[str, dict[str, float]] = {}
-    failed_component_balances: list[str] = []
-    inlet_usage: Counter[str] = Counter()
-    outlet_usage: Counter[str] = Counter()
+    failed_component_balances: set[str] = set()
+    inlet_usage: dict[str, int] = {}
+    outlet_usage: dict[str, int] = {}
 
     for item in equipment:
         identifier = item.get("equipment_id")
@@ -313,54 +316,72 @@ def validate_process_package(package: object) -> dict[str, Any]:
         if len(inlet_ids) != len(set(inlet_ids)) or len(outlet_ids) != len(set(outlet_ids)):
             errors.append(f"equipment {identifier} contains duplicate stream references")
             reason_codes.add("DUPLICATE_STREAM_REFERENCE")
-        references = [*inlet_ids, *outlet_ids]
-        for ref in references:
-            if ref not in stream_ids:
-                errors.append(f"equipment {identifier} references unknown stream: {ref}")
+
+        inlet_data: list[tuple[float, float, tuple[float, ...], str | None, str | None]] = []
+        outlet_data: list[tuple[float, float, tuple[float, ...], str | None, str | None]] = []
+        references_valid = True
         for ref in inlet_ids:
-            inlet_usage[ref] += 1
-            nodes = stream_nodes.get(ref)
-            if nodes is not None and nodes[1] != identifier:
+            inlet_usage[ref] = inlet_usage.get(ref, 0) + 1
+            stream_data = stream_data_by_id.get(ref)
+            if stream_data is None:
+                errors.append(f"equipment {identifier} references unknown stream: {ref}")
+                references_valid = False
+                continue
+            inlet_data.append(stream_data)
+            if stream_data[4] != identifier:
                 errors.append(
-                    f"equipment {identifier} inlet {ref} destination is {nodes[1]}, expected {identifier}"
+                    f"equipment {identifier} inlet {ref} destination is {stream_data[4]}, expected {identifier}"
                 )
                 reason_codes.add("STREAM_TOPOLOGY_MISMATCH")
         for ref in outlet_ids:
-            outlet_usage[ref] += 1
-            nodes = stream_nodes.get(ref)
-            if nodes is not None and nodes[0] != identifier:
+            outlet_usage[ref] = outlet_usage.get(ref, 0) + 1
+            stream_data = stream_data_by_id.get(ref)
+            if stream_data is None:
+                errors.append(f"equipment {identifier} references unknown stream: {ref}")
+                references_valid = False
+                continue
+            outlet_data.append(stream_data)
+            if stream_data[3] != identifier:
                 errors.append(
-                    f"equipment {identifier} outlet {ref} source is {nodes[0]}, expected {identifier}"
+                    f"equipment {identifier} outlet {ref} source is {stream_data[3]}, expected {identifier}"
                 )
                 reason_codes.add("STREAM_TOPOLOGY_MISMATCH")
-        if any(
-            ref not in stream_mass_by_id or ref not in stream_enthalpy_by_id
-            for ref in references
-        ):
+        if not references_valid:
             continue
 
-        mass_in = sum(stream_mass_by_id[ref] for ref in inlet_ids)
-        mass_out = sum(stream_mass_by_id[ref] for ref in outlet_ids)
+        mass_in = sum(data[0] for data in inlet_data)
+        mass_out = sum(data[0] for data in outlet_data)
         mass_scale = max(abs(mass_in), abs(mass_out), 1.0)
         mass_error = abs(mass_in - mass_out) / mass_scale
-        mass_errors[identifier] = mass_error
+        if mass_error > max_mass_error:
+            max_mass_error = mass_error
         if mass_error > mass_tol:
             errors.append(
                 f"equipment {identifier} mass balance relative error {mass_error:.6g} exceeds {mass_tol:.6g}"
             )
             reason_codes.add("MASS_BALANCE_FAILURE")
 
-        generation = _nonnegative_component_map(
-            item.get("generation_kg_h", item.get("generation")),
-            label=f"equipment {identifier} generation",
-            components=components,
-            errors=errors,
+        generation_raw = item.get("generation_kg_h", item.get("generation"))
+        consumption_raw = item.get("consumption_kg_h", item.get("consumption"))
+        generation = (
+            {}
+            if generation_raw is None
+            else _nonnegative_component_map(
+                generation_raw,
+                label=f"equipment {identifier} generation",
+                components=components,
+                errors=errors,
+            )
         )
-        consumption = _nonnegative_component_map(
-            item.get("consumption_kg_h", item.get("consumption")),
-            label=f"equipment {identifier} consumption",
-            components=components,
-            errors=errors,
+        consumption = (
+            {}
+            if consumption_raw is None
+            else _nonnegative_component_map(
+                consumption_raw,
+                label=f"equipment {identifier} consumption",
+                components=components,
+                errors=errors,
+            )
         )
         declared_reaction = bool(generation or consumption or item.get("reaction_basis"))
         if declared_reaction:
@@ -368,28 +389,35 @@ def validate_process_package(package: object) -> dict[str, Any]:
             if not isinstance(reaction_basis, dict) or not reaction_basis:
                 holds.append(f"equipment {identifier} reaction basis is incomplete")
                 reason_codes.add("REACTION_BASIS_INCOMPLETE")
-            elif not reaction_basis.get("stoichiometry") and not reaction_basis.get("description"):
-                holds.append(f"equipment {identifier} reaction basis lacks stoichiometry or description")
+            elif not reaction_basis.get("stoichiometry") and not reaction_basis.get(
+                "description"
+            ):
+                holds.append(
+                    f"equipment {identifier} reaction basis lacks stoichiometry or description"
+                )
                 reason_codes.add("REACTION_BASIS_INCOMPLETE")
 
-        per_component: dict[str, float] = {}
-        for component in sorted(components):
-            component_in = sum(
-                stream_component_mass_by_id.get(ref, {}).get(component, 0.0)
-                for ref in inlet_ids
-            )
-            component_out = sum(
-                stream_component_mass_by_id.get(ref, {}).get(component, 0.0)
-                for ref in outlet_ids
-            )
+        per_component: dict[str, float] | None = None
+        for component_position, component in enumerate(component_names):
+            component_in = 0.0
+            for data in inlet_data:
+                component_in += data[2][component_position]
+            component_out = 0.0
+            for data in outlet_data:
+                component_out += data[2][component_position]
             generated = generation.get(component, 0.0)
             consumed = consumption.get(component, 0.0)
             residual = component_in + generated - component_out - consumed
             scale = max(component_in + generated, component_out + consumed, 1.0)
             relative = abs(residual) / scale
-            per_component[component] = relative
+            if relative > max_component_error:
+                max_component_error = relative
+            if relative != 0.0:
+                if per_component is None:
+                    per_component = {}
+                per_component[component] = relative
             if relative > component_tol:
-                failed_component_balances.append(f"{identifier}:{component}")
+                failed_component_balances.add(f"{identifier}:{component}")
                 if not declared_reaction:
                     errors.append(
                         f"equipment {identifier} changes component {component} without a declared reaction basis"
@@ -400,10 +428,11 @@ def validate_process_package(package: object) -> dict[str, Any]:
                         f"equipment {identifier} component {component} balance relative error {relative:.6g} exceeds {component_tol:.6g}"
                     )
                     reason_codes.add("COMPONENT_BALANCE_FAILURE")
-        component_balance_errors[identifier] = per_component
+        if per_component is not None:
+            component_balance_errors[identifier] = per_component
 
-        enthalpy_in = sum(stream_enthalpy_by_id[ref] for ref in inlet_ids)
-        enthalpy_out = sum(stream_enthalpy_by_id[ref] for ref in outlet_ids)
+        enthalpy_in = sum(data[1] for data in inlet_data)
+        enthalpy_out = sum(data[1] for data in outlet_data)
         try:
             duty = _finite(item.get("duty_kW", 0.0), f"equipment {identifier} duty")
         except ValueError as exc:
@@ -411,7 +440,8 @@ def validate_process_package(package: object) -> dict[str, Any]:
             duty = 0.0
         energy_scale = max(abs(enthalpy_in) + abs(duty), abs(enthalpy_out), 1.0)
         energy_error = abs(enthalpy_in + duty - enthalpy_out) / energy_scale
-        energy_errors[identifier] = energy_error
+        if energy_error > max_energy_error:
+            max_energy_error = energy_error
         if energy_error > energy_tol:
             errors.append(
                 f"equipment {identifier} energy balance relative error {energy_error:.6g} exceeds {energy_tol:.6g}"
@@ -421,15 +451,19 @@ def validate_process_package(package: object) -> dict[str, Any]:
             holds.append(f"equipment {identifier} design_status is not evaluated")
             reason_codes.add("EQUIPMENT_STATUS_NOT_EVALUATED")
 
-    for stream_id, (source, destination) in stream_nodes.items():
-        if destination in equipment_ids and inlet_usage[stream_id] != 1:
+    for stream_id, stream_data in stream_data_by_id.items():
+        source = stream_data[3]
+        destination = stream_data[4]
+        inlet_count = inlet_usage.get(stream_id, 0)
+        outlet_count = outlet_usage.get(stream_id, 0)
+        if destination in equipment_ids and inlet_count != 1:
             errors.append(
-                f"stream {stream_id} must appear exactly once as an inlet; found {inlet_usage[stream_id]}"
+                f"stream {stream_id} must appear exactly once as an inlet; found {inlet_count}"
             )
             reason_codes.add("STREAM_REFERENCE_COUNT_MISMATCH")
-        if source in equipment_ids and outlet_usage[stream_id] != 1:
+        if source in equipment_ids and outlet_count != 1:
             errors.append(
-                f"stream {stream_id} must appear exactly once as an outlet; found {outlet_usage[stream_id]}"
+                f"stream {stream_id} must appear exactly once as an outlet; found {outlet_count}"
             )
             reason_codes.add("STREAM_REFERENCE_COUNT_MISMATCH")
         if source not in equipment_ids and destination not in equipment_ids:
@@ -522,10 +556,6 @@ def validate_process_package(package: object) -> dict[str, Any]:
         else:
             holds.append(message)
 
-    max_component_error = max(
-        (value for values in component_balance_errors.values() for value in values.values()),
-        default=0.0,
-    )
     return {
         "status": computed_status,
         "declared_status": declared_status,
@@ -534,14 +564,14 @@ def validate_process_package(package: object) -> dict[str, Any]:
         "holds": sorted(set(holds)),
         "reason_codes": sorted(reason_codes),
         "component_balance_errors": component_balance_errors,
-        "failed_component_balances": sorted(set(failed_component_balances)),
+        "failed_component_balances": sorted(failed_component_balances),
         "metrics": {
             "stream_count": len(streams),
             "equipment_count": len(equipment),
             "acceptance_count": len(acceptance),
-            "max_mass_balance_relative_error": max(mass_errors.values(), default=0.0),
+            "max_mass_balance_relative_error": max_mass_error,
             "max_component_balance_relative_error": max_component_error,
-            "max_energy_balance_relative_error": max(energy_errors.values(), default=0.0),
+            "max_energy_balance_relative_error": max_energy_error,
         },
     }
 

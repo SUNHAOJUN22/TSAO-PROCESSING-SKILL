@@ -1,21 +1,20 @@
 # Roadmap
 
-## Delivered through Alpha.14
+## Delivered through Alpha.15
 
 - universal process-package object model, evidence ledger, acceptance records and fail-closed content audit;
-- EPDM Phase A0 evidence/status/applicability closure, A1 contracts and A2 structural network;
-- zero-false-PASS hardening for component balances, process topology, lifecycle audits, strict JSON and path safety;
+- EPDM Phase A0 evidence/status closure, A1 contracts, A2 structural network, A3 executable RHS and A4 adaptive numerical integration;
+- zero-false-PASS hardening, numerical-correctness repair and deterministic source-snapshot overlay closure;
 - POE P1 specialist and four-Skill installed delivery;
-- Python 3.11–3.14 support with Windows as the target core release platform.
+- Python 3.11–3.14 with Windows as the core release platform and Linux compatibility.
 
 ## Next evidence-driven phase
 
-- Alpha.14: numerical-correctness repair for EPDM site-family moments, POE hot-start balances and bounded-memory DoE;
-- Alpha.14 / EPDM A3: rate-law contracts, parameter binding, structural RHS and numerical conservation;
-- Alpha.15: solver, moment/PBM, identifiability and uncertainty framework;
-- Beta.1: whole-repository qualification and Windows core matrix;
+- Beta.1: whole-repository coverage, mutation, typing, security, performance and Windows release qualification;
+- RC.1: independent reverse audit and zero release blockers;
+- 1.0.0: software release freeze;
 - independent scientific qualification only after software closure and real experimental evidence.
 
 ## Boundary
 
-Alpha.14 is software-integrity hardening. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.
+Alpha.15 qualifies calculated-reference software integration only. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.

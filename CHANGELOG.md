@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-alpha.15 — 2026-08-02
+
+- Added an opt-in adaptive Dormand–Prince 5(4) integration layer above the locked Phase A3 RHS.
+- Added strict request/result schemas, identifier linkage, non-negative-state rejection, finite-value, time-monotonic, step-control and applicability Gates.
+- Added convergence, restart-parity, analytic single-channel, external-flow and trajectory-conservation tests with 97% branch coverage for the new integrator.
+- Fixed deterministic source snapshots so overlay-only files, including the Phase A3 executable layer, are included and hashed.
+- Promoted Windows 3.11–3.14 to the core CI matrix and removed macOS from the release Gate.
+- Kept parameter calibration and all scientific, engineering, HSE, customer and industrial approvals `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.14 — 2026-08-02
 
 - Added strict reaction-channel rate-law and parameter-set binding for every A2 channel.
