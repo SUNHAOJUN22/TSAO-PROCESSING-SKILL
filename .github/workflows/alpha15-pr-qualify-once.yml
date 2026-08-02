@@ -1,0 +1,100 @@
+name: Qualify Alpha15 exact candidate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsao-alpha15-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  qualification:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python: '3.11'
+          - os: windows-latest
+            python: '3.12'
+          - os: windows-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.14'
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.14'
+            extended: true
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: alpha15-qualification
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Run audited Alpha15 candidate qualification
+        shell: bash
+        env:
+          RUN_EXTENDED: ${{ matrix.extended && '1' || '0' }}
+        run: bash .github/upgrade/alpha15-qualify.sh qualify
+      - name: Upload Linux qualification artifacts
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: alpha15-linux-qualification
+          path: |
+            wheelhouse/*.whl
+            reports/runtime/CI_RESULTS.json
+            reports/runtime/PERFORMANCE_RESULTS_V2.json
+            reports/runtime/PERFORMANCE_COMPARISON_V2.json
+            ${{ runner.temp }}/alpha15-coverage.txt
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  promote-evidence:
+    needs: qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: alpha15-qualification
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Rebuild exact qualified candidate evidence
+        shell: bash
+        env:
+          RUN_EXTENDED: '1'
+        run: bash .github/upgrade/alpha15-qualify.sh promote
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: alpha15-promotion-evidence
+          path: |
+            ${{ runner.temp }}/alpha15-qualified-candidate.zip
+            ${{ runner.temp }}/alpha15-wheel.sha256
+            ${{ runner.temp }}/tsao_processing_skill-0.1.0a15-py3-none-any.whl
+            reports/runtime/CI_RESULTS.json
+            reports/runtime/PERFORMANCE_RESULTS_V2.json
+            reports/runtime/PERFORMANCE_COMPARISON_V2.json
+            ${{ runner.temp }}/alpha15-coverage.txt
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
