@@ -54,6 +54,7 @@ from skills.epdm.executable_rhs import (
     execute_structural_rhs,
 )
 from skills.epdm.state_generator import generate_state_definition
+from skills.epdm.numerical_integration import build_integration_request, integrate_adaptive
 from skills.poe.core import (
     first_order_pfr_conversion,
     fit_first_order_rate,
@@ -80,6 +81,15 @@ a3_package = build_calculated_reference_rate_package(a2_network)
 a3_input = a2_state.pack({{'N_SITE_POTENTIAL:SITE-A': 1.0}}, fill_missing=0.0)
 a3_result = execute_structural_rhs(
     a2_network, a2_state, a3_package, a3_input, temperature_k=323.15, volume_m3=1.0
+)
+a15_request = build_integration_request(
+    a2_network, a2_state, a3_package,
+    time_start_s=0.0, time_end_s=0.01, initial_step_s=0.001,
+    minimum_step_s=1.0e-8, maximum_step_s=0.005,
+)
+a15_result = integrate_adaptive(
+    a15_request, a2_network, a2_state, a3_package, a2_state.zeros(),
+    temperature_k=323.15, volume_m3=1.0,
 )
 skillpacks = skillpack_inventory()
 skillpack_root = Path(skillpacks['root'])
@@ -125,6 +135,12 @@ print(json.dumps({{
     'a3_rhs_reason_code': a3_result.reason_code,
     'a3_scientific_status': a3_result.as_dict()['scientific_status'],
     'a3_scientific_technical_approval': a3_result.as_dict()['scientific_technical_approval'],
+    'a15_integration_decision': a15_result.decision.value,
+    'a15_integration_reason_code': a15_result.reason_code,
+    'a15_integration_method': a15_result.request.integration_method.value,
+    'a15_time_monotonic': a15_result.conservation.get('time_monotonic'),
+    'a15_scientific_status': a15_result.scientific_status,
+    'a15_scientific_technical_approval': a15_result.scientific_technical_approval,
     'skillpacks': skillpacks,
     'installed_readme_link_failures': link_failures,
 }}))
@@ -176,6 +192,18 @@ def _evaluate_payload(
         errors.append(f"{label} A3 scientific-status boundary mismatch")
     if payload.get("a3_scientific_technical_approval") != "NOT_EVALUATED":
         errors.append(f"{label} A3 scientific approval boundary mismatch")
+    if payload.get("a15_integration_decision") != "PASS":
+        errors.append(f"{label} A15 adaptive integration smoke failed")
+    if payload.get("a15_integration_reason_code") != "A15_ADAPTIVE_INTEGRATION_COMPLETE":
+        errors.append(f"{label} A15 integration reason-code mismatch")
+    if payload.get("a15_integration_method") != "ADAPTIVE_DORMAND_PRINCE_54":
+        errors.append(f"{label} A15 integration-method mismatch")
+    if payload.get("a15_time_monotonic") is not True:
+        errors.append(f"{label} A15 monotonic-time gate failed")
+    if payload.get("a15_scientific_status") != "CALCULATED_REFERENCE_ONLY":
+        errors.append(f"{label} A15 scientific-status boundary mismatch")
+    if payload.get("a15_scientific_technical_approval") != "NOT_EVALUATED":
+        errors.append(f"{label} A15 scientific approval boundary mismatch")
 
     for field in ("tsao_module_path", "epdm_module_path", "poe_module_path"):
         if not _path_is_within(payload.get(field), expected_root):

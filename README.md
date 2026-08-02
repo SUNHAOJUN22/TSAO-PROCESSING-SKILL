@@ -3,7 +3,7 @@
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.14-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[![Status](https://img.shields.io/badge/status-alpha.15-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
 **A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
 
@@ -104,6 +104,10 @@ application / CQA
 
 Every level returns `CALCULATED_REFERENCE_ONLY`. It does not claim fitted kinetics, licensed thermodynamics, qualified CFD, equipment design, HAZOP/LOPA/SIL approval, customer qualification or an industrial guarantee.
 
+### Executable RHS and adaptive integration
+
+Alpha.14 binds every A2 reaction channel to a strict calculated-reference rate package and exposes a structured A3 RHS. Alpha.15 adds an opt-in Dormand–Prince 5(4) integrator with explicit error control, non-negative-state rejection, restart parity, monotonic-time checks and internal/external conservation ledgers. The original A3 reference Euler path remains unchanged; missing bindings, non-identifiable parameters, applicability violations, suspected stiffness and minimum-step exhaustion return machine-readable `HOLD` or `FAIL`.
+
 ### Identifiability, uncertainty and product evidence
 
 ![EPDM parameter identifiability and uncertainty ladder](docs/assets/readme/epdm-identifiability-uncertainty.svg)
@@ -161,7 +165,7 @@ python -m tsao.cli poe reference-demo
 
 ![Fail-closed performance regression gate](docs/assets/readme/performance-regression-gate.svg)
 
-Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.
+Performance claims are versioned software evidence, not engineering or industrial qualification. Alpha.15 qualification benchmarks the exact Alpha.14 parent and Alpha.15 candidate on the same runner and Python runtime; the frozen Alpha.10 file is retained only for non-blocking historical trend evidence. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.
 
 
 ```bash
@@ -242,7 +246,7 @@ Wheel verification has two independent gates:
 1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 18 diagrams;
 2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
 
-CI covers Ubuntu/Python 3.11–3.14 plus Windows and macOS on Python 3.14. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.
+CI treats Windows/Python 3.11–3.14 as the core release matrix and verifies Linux compatibility on Python 3.11 and 3.14; macOS is not a release Gate. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.
 
 The source manifest is part of release identity: a source change without the matching `reports/SOURCE_CORE_MANIFEST.tsv` update is designed to fail the repository doctor.
 

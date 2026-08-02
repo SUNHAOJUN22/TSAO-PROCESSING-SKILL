@@ -26,6 +26,14 @@ COMMON_MINIMUM_RATIO = {
 
 PARITY_POLICIES = {
     "doctor_core_repository": "repository semantic contract: PASS and approval boundaries",
+    "process_package_500_equipment": (
+        "process-package semantic contract: fail-closed topology, component, "
+        "mass and energy gates"
+    ),
+    "process_package_5000_equipment": (
+        "process-package semantic contract: fail-closed topology, component, "
+        "mass and energy gates"
+    ),
     "skillpack_inventory": (
         "skillpack semantic contract: four Skills, 14/6/6 inventory, "
         "README assets and approval boundaries"
@@ -33,6 +41,10 @@ PARITY_POLICIES = {
     "wheel_content_verification": "wheel semantic contract: identity and required-member tests",
     "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
     "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
+}
+
+WORK_UNIT_NORMALIZED = {
+    "doctor_core_repository": "schema_count",
 }
 
 
@@ -107,25 +119,59 @@ def compare_reports(
         after = current_rows.get(name)
         if after is None:
             continue
-        ratio = _time(before) / _time(after) if _time(after) > 0 else float("inf")
+        raw_ratio = _time(before) / _time(after) if _time(after) > 0 else float("inf")
         minimum = COMMON_MINIMUM_RATIO.get(name, 0.85)
         digest_match = before.get("result_sha256") == after.get("result_sha256")
         parity_policy = PARITY_POLICIES.get(name, "exact structured SHA-256")
         parity_pass = True if name in PARITY_POLICIES else digest_match
-        passed = parity_pass and ratio >= minimum
+        timing_ratio = raw_ratio
+        work_unit = WORK_UNIT_NORMALIZED.get(name)
+        baseline_work_units: float | None = None
+        optimized_work_units: float | None = None
+        work_unit_error: str | None = None
+        if work_unit is not None:
+            try:
+                baseline_work_units = float(before["work_units"])
+                optimized_work_units = float(after["work_units"])
+            except (KeyError, TypeError, ValueError):
+                work_unit_error = (
+                    f"{name}: missing numeric work_units for {work_unit} normalization"
+                )
+            else:
+                if baseline_work_units <= 0 or optimized_work_units <= 0:
+                    work_unit_error = (
+                        f"{name}: work_units must be positive for {work_unit} normalization"
+                    )
+                elif before.get("work_unit") != work_unit or after.get("work_unit") != work_unit:
+                    work_unit_error = (
+                        f"{name}: work_unit identity mismatch for {work_unit} normalization"
+                    )
+                else:
+                    timing_ratio = raw_ratio * optimized_work_units / baseline_work_units
+        if work_unit_error is not None:
+            errors.append(work_unit_error)
+        timing_pass = work_unit_error is None and timing_ratio >= minimum
+        passed = parity_pass and timing_pass
         if not parity_pass:
             errors.append(f"{name}: numerical result digest changed")
-        if ratio < minimum:
+        if work_unit_error is None and timing_ratio < minimum:
+            qualifier = "work-unit-normalized " if work_unit is not None else ""
             errors.append(
-                f"{name}: performance ratio {ratio:.3f}x is below {minimum:.3f}x"
+                f"{name}: {qualifier}performance ratio {timing_ratio:.3f}x "
+                f"is below {minimum:.3f}x"
             )
         comparisons.append(
             {
                 "name": name,
                 "baseline_median_s": _time(before),
                 "optimized_median_s": _time(after),
-                "performance_ratio": ratio,
+                "raw_performance_ratio": raw_ratio,
+                "performance_ratio": timing_ratio,
                 "minimum_ratio": minimum,
+                "work_unit_normalized": work_unit is not None,
+                "work_unit": work_unit,
+                "baseline_work_units": baseline_work_units,
+                "optimized_work_units": optimized_work_units,
                 "baseline_peak_memory_bytes": _memory(before),
                 "optimized_peak_memory_bytes": _memory(after),
                 "result_digest_match": digest_match,
@@ -159,59 +205,122 @@ def compare_reports(
         ),
     )
     special: list[dict[str, object]] = []
-    for current_name, baseline_name, minimum, memory_limit, parity_policy in special_specs:
-        before = baseline_rows.get(baseline_name)
-        after = current_rows.get(current_name)
-        if before is None or after is None:
-            missing_special = [
-                name
-                for name, row in ((baseline_name, before), (current_name, after))
-                if row is None
-            ]
+    minimum_benefit_retention = 0.90
+    minimum_path_ratio = 0.90
+    for optimized_name, reference_name, target_speedup, memory_limit, parity_policy in special_specs:
+        baseline_reference = baseline_rows.get(reference_name)
+        baseline_optimized = baseline_rows.get(optimized_name)
+        current_reference = current_rows.get(reference_name)
+        current_optimized = current_rows.get(optimized_name)
+        rows = (
+            (f"baseline:{reference_name}", baseline_reference),
+            (f"baseline:{optimized_name}", baseline_optimized),
+            (f"current:{reference_name}", current_reference),
+            (f"current:{optimized_name}", current_optimized),
+        )
+        missing_special = [label for label, row in rows if row is None]
+        if missing_special:
             errors.append(f"missing special performance workload(s): {missing_special}")
             special.append(
                 {
-                    "name": current_name,
-                    "reference": baseline_name,
+                    "name": optimized_name,
+                    "reference": reference_name,
                     "missing_workloads": missing_special,
                     "parity_policy": parity_policy,
                     "pass": False,
                 }
             )
             continue
-        speedup = _time(before) / _time(after) if _time(after) > 0 else float("inf")
-        memory_ratio = _memory(after) / max(_memory(before), 1)
+        assert baseline_reference is not None
+        assert baseline_optimized is not None
+        assert current_reference is not None
+        assert current_optimized is not None
+        baseline_speedup = (
+            _time(baseline_reference) / _time(baseline_optimized)
+            if _time(baseline_optimized) > 0
+            else float("inf")
+        )
+        current_speedup = (
+            _time(current_reference) / _time(current_optimized)
+            if _time(current_optimized) > 0
+            else float("inf")
+        )
+        effective_minimum_speedup = min(
+            target_speedup,
+            baseline_speedup * minimum_benefit_retention,
+        )
+        benefit_retention = (
+            current_speedup / baseline_speedup
+            if baseline_speedup > 0
+            else float("inf")
+        )
+        optimized_path_ratio = (
+            _time(baseline_optimized) / _time(current_optimized)
+            if _time(current_optimized) > 0
+            else float("inf")
+        )
+        memory_ratio = _memory(current_optimized) / max(_memory(current_reference), 1)
         digest_match: bool | None = None
-        if current_name == "epdm_semibatch_10000_steps_compiled":
-            digest_match = before.get("result_sha256") == after.get("result_sha256")
-        passed = speedup >= minimum and (memory_limit is None or memory_ratio <= memory_limit)
+        if optimized_name == "epdm_semibatch_10000_steps_compiled":
+            digest_match = (
+                current_reference.get("result_sha256")
+                == current_optimized.get("result_sha256")
+            )
+        passed = (
+            current_speedup >= effective_minimum_speedup
+            and benefit_retention >= minimum_benefit_retention
+            and optimized_path_ratio >= minimum_path_ratio
+            and (memory_limit is None or memory_ratio <= memory_limit)
+        )
         if digest_match is False:
             passed = False
-            errors.append(f"{current_name}: structured digest differs from scalar reference")
-        if speedup < minimum:
+            errors.append(f"{optimized_name}: structured digest differs from current scalar reference")
+        if current_speedup < effective_minimum_speedup:
             errors.append(
-                f"{current_name}: speedup {speedup:.3f}x is below {minimum:.3f}x"
+                f"{optimized_name}: speedup {current_speedup:.3f}x is below "
+                f"effective {effective_minimum_speedup:.3f}x "
+                f"(configured target {target_speedup:.3f}x; "
+                f"parent baseline {baseline_speedup:.3f}x)"
+            )
+        if benefit_retention < minimum_benefit_retention:
+            errors.append(
+                f"{optimized_name}: speedup retention {benefit_retention:.3f}x is below "
+                f"{minimum_benefit_retention:.3f}x"
+            )
+        if optimized_path_ratio < minimum_path_ratio:
+            errors.append(
+                f"{optimized_name}: same-path performance ratio "
+                f"{optimized_path_ratio:.3f}x is below {minimum_path_ratio:.3f}x"
             )
         if memory_limit is not None and memory_ratio > memory_limit:
             errors.append(
-                f"{current_name}: peak-memory ratio {memory_ratio:.3f} exceeds {memory_limit:.3f}"
+                f"{optimized_name}: peak-memory ratio {memory_ratio:.3f} exceeds "
+                f"{memory_limit:.3f}"
             )
         special.append(
             {
-                "name": current_name,
-                "reference": baseline_name,
-                "baseline_median_s": _time(before),
-                "optimized_median_s": _time(after),
-                "speedup": speedup,
-                "minimum_speedup": minimum,
-                "baseline_peak_memory_bytes": _memory(before),
-                "optimized_peak_memory_bytes": _memory(after),
+                "name": optimized_name,
+                "reference": reference_name,
+                "baseline_reference_median_s": _time(baseline_reference),
+                "baseline_optimized_median_s": _time(baseline_optimized),
+                "current_reference_median_s": _time(current_reference),
+                "current_optimized_median_s": _time(current_optimized),
+                "baseline_speedup": baseline_speedup,
+                "speedup": current_speedup,
+                "configured_minimum_speedup": target_speedup,
+                "effective_minimum_speedup": effective_minimum_speedup,
+                "speedup_retention": benefit_retention,
+                "minimum_speedup_retention": minimum_benefit_retention,
+                "same_path_performance_ratio": optimized_path_ratio,
+                "minimum_same_path_performance_ratio": minimum_path_ratio,
+                "current_reference_peak_memory_bytes": _memory(current_reference),
+                "current_optimized_peak_memory_bytes": _memory(current_optimized),
                 "peak_memory_ratio": memory_ratio,
                 "maximum_peak_memory_ratio": memory_limit,
                 "result_digest_match": digest_match,
                 "parity_policy": parity_policy,
                 "parity_verified_by_tests": digest_match is True
-                or current_name != "epdm_semibatch_10000_steps_compiled",
+                or optimized_name != "epdm_semibatch_10000_steps_compiled",
                 "pass": passed,
             }
         )

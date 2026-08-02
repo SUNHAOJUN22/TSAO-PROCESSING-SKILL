@@ -8,6 +8,8 @@ This directory separates immutable release/source identities from mutable runtim
 - `ALPHA11_SOURCE_CORE_STATUS.json` — qualified public source, four-Skill, eighteen-diagram, batch-performance and isolated-install status.
 - `ALPHA11_FINAL_QUALIFICATION.json` — measured local and cross-platform software qualification evidence.
 - `PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json` — frozen pre-alpha.11 timing, profile, memory and scale baseline.
+  Alpha.15 uses a same-run Alpha.14 parent baseline for release qualification; this file is historical trend evidence only.
+  Optimized-path gates compare the same optimized path across parent/current releases, retain at least 90% of the parent speedup benefit when the historical design target was not already met, and continue to enforce numerical parity and peak-memory limits.
 - `PERFORMANCE_OPTIMIZED_ALPHA11.json` and `PERFORMANCE_COMPARISON_ALPHA11.json` — measured alpha.11 evidence and fail-closed exact/tolerance/memory/scale comparison.
 - `PERFORMANCE_TECHNOLOGY_REVIEW.md` and `PERFORMANCE_OPTIMIZATION_PLAN.md` — primary-source technology decisions and implementation plan.
 - `SOURCE_CORE_MANIFEST.tsv` — frozen public-source identity verified by `tsao doctor --profile core`.

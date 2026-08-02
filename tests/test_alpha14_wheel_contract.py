@@ -26,6 +26,12 @@ def _payload(root: Path) -> dict[str, object]:
         "a3_rhs_reason_code": "A3_RHS_SOFTWARE_VERIFIED",
         "a3_scientific_status": "CALCULATED_REFERENCE_ONLY",
         "a3_scientific_technical_approval": "NOT_EVALUATED",
+        "a15_integration_decision": "PASS",
+        "a15_integration_reason_code": "A15_ADAPTIVE_INTEGRATION_COMPLETE",
+        "a15_integration_method": "ADAPTIVE_DORMAND_PRINCE_54",
+        "a15_time_monotonic": True,
+        "a15_scientific_status": "CALCULATED_REFERENCE_ONLY",
+        "a15_scientific_technical_approval": "NOT_EVALUATED",
         "skillpacks": {
             "pass": True,
             "delivery": "INSTALLED_SKILLPACK",

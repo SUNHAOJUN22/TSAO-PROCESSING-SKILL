@@ -26,6 +26,55 @@ def _positive_temperature(value: object, label: str) -> float:
     return temperature
 
 
+def _finite_result(value: float, label: str) -> float:
+    if not math.isfinite(value):
+        raise ValueError(f"{label} became non-finite; reduce the input magnitude or check units")
+    return value
+
+
+def _raise_nonfinite_rate(
+    ethylene: float,
+    propylene: float,
+    diene: float,
+    transfer: float,
+    deactivation: float,
+) -> None:
+    for name, value in (
+        ("ethylene", ethylene),
+        ("propylene", propylene),
+        ("diene", diene),
+        ("transfer", transfer),
+        ("deactivation", deactivation),
+    ):
+        if not math.isfinite(value):
+            raise ValueError(
+                f"{name} rate became non-finite; reduce the input magnitude or check units"
+            )
+    raise ValueError("derived rate became non-finite; reduce the input magnitude or check units")
+
+
+def _insertion_rate_values_validated(
+    state: EpdmKineticState, parameters: EpdmKineticParameters
+) -> tuple[float, float, float, float, float]:
+    site = state.active_site_mol_L
+    ethylene = parameters.kp_e_L_mol_s * state.ethylene_mol_L * site
+    propylene = parameters.kp_p_L_mol_s * state.propylene_mol_L * site
+    diene = parameters.kp_d_L_mol_s * state.diene_mol_L * site
+    transfer = parameters.k_transfer_s * site
+    deactivation = (
+        parameters.k_deactivation_s + parameters.k_poison_L_mol_s * state.poison_mol_L
+    ) * site
+    if not (
+        math.isfinite(ethylene)
+        and math.isfinite(propylene)
+        and math.isfinite(diene)
+        and math.isfinite(transfer)
+        and math.isfinite(deactivation)
+    ):
+        _raise_nonfinite_rate(ethylene, propylene, diene, transfer, deactivation)
+    return ethylene, propylene, diene, transfer, deactivation
+
+
 @dataclass(frozen=True)
 class EpdmKineticParameters:
     kp_e_L_mol_s: float
@@ -103,10 +152,19 @@ def active_site_fraction(total_metal_mol: float, active_site_mol: float) -> floa
 
 def _arrhenius_scaled(rate: float, activation: float, inverse_temperature_delta: float) -> float:
     exponent = -(activation / GAS_CONSTANT_J_MOL_K) * inverse_temperature_delta
+    if exponent == math.inf or exponent == -math.inf:
+        raise ValueError(
+            "Arrhenius exponent became non-finite; reduce the input magnitude or check units"
+        )
     try:
-        return rate * math.exp(exponent)
+        scaled = rate * math.exp(exponent)
     except OverflowError as exc:
         raise ValueError("Arrhenius scaling overflowed; check temperatures and energy units") from exc
+    if scaled == math.inf:
+        raise ValueError(
+            "Arrhenius-scaled rate became non-finite; reduce the input magnitude or check units"
+        )
+    return scaled
 
 
 def arrhenius_rate_constant(
@@ -132,18 +190,48 @@ def _temperature_adjusted_validated(
     reference_temperature: float,
 ) -> EpdmKineticParameters:
     inverse_delta = 1.0 / temperature - 1.0 / reference_temperature
-    return EpdmKineticParameters(
-        _arrhenius_scaled(parameters.kp_e_L_mol_s, activation_energies.kp_e_J_mol, inverse_delta),
-        _arrhenius_scaled(parameters.kp_p_L_mol_s, activation_energies.kp_p_J_mol, inverse_delta),
-        _arrhenius_scaled(parameters.kp_d_L_mol_s, activation_energies.kp_d_J_mol, inverse_delta),
-        _arrhenius_scaled(parameters.k_transfer_s, activation_energies.transfer_J_mol, inverse_delta),
-        _arrhenius_scaled(
-            parameters.k_deactivation_s,
-            activation_energies.deactivation_J_mol,
-            inverse_delta,
-        ),
-        _arrhenius_scaled(parameters.k_poison_L_mol_s, activation_energies.poison_J_mol, inverse_delta),
+    exponents = (
+        -(activation_energies.kp_e_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
+        -(activation_energies.kp_p_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
+        -(activation_energies.kp_d_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
+        -(activation_energies.transfer_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
+        -(activation_energies.deactivation_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
+        -(activation_energies.poison_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
     )
+    if not math.isfinite(
+        max(
+            abs(exponents[0]),
+            abs(exponents[1]),
+            abs(exponents[2]),
+            abs(exponents[3]),
+            abs(exponents[4]),
+            abs(exponents[5]),
+        )
+    ):
+        raise ValueError(
+            "Arrhenius exponent became non-finite; reduce the input magnitude or check units"
+        )
+    try:
+        values = (
+            parameters.kp_e_L_mol_s * math.exp(exponents[0]),
+            parameters.kp_p_L_mol_s * math.exp(exponents[1]),
+            parameters.kp_d_L_mol_s * math.exp(exponents[2]),
+            parameters.k_transfer_s * math.exp(exponents[3]),
+            parameters.k_deactivation_s * math.exp(exponents[4]),
+            parameters.k_poison_L_mol_s * math.exp(exponents[5]),
+        )
+    except OverflowError as exc:
+        raise ValueError("Arrhenius scaling overflowed; check temperatures and energy units") from exc
+    if not math.isfinite(
+        max(values[0], values[1], values[2], values[3], values[4], values[5])
+    ):
+        for value in values:
+            if value == math.inf:
+                raise ValueError(
+                    "Arrhenius-scaled rate became non-finite; "
+                    "reduce the input magnitude or check units"
+                )
+    return EpdmKineticParameters(*values)
 
 
 def temperature_adjusted_parameters(
@@ -164,16 +252,15 @@ def temperature_adjusted_parameters(
 def _insertion_rates_validated(
     state: EpdmKineticState, parameters: EpdmKineticParameters
 ) -> dict[str, float]:
-    site = state.active_site_mol_L
+    ethylene, propylene, diene, transfer, deactivation = (
+        _insertion_rate_values_validated(state, parameters)
+    )
     return {
-        "ethylene": parameters.kp_e_L_mol_s * state.ethylene_mol_L * site,
-        "propylene": parameters.kp_p_L_mol_s * state.propylene_mol_L * site,
-        "diene": parameters.kp_d_L_mol_s * state.diene_mol_L * site,
-        "transfer": parameters.k_transfer_s * site,
-        "deactivation": (
-            parameters.k_deactivation_s + parameters.k_poison_L_mol_s * state.poison_mol_L
-        )
-        * site,
+        "ethylene": ethylene,
+        "propylene": propylene,
+        "diene": diene,
+        "transfer": transfer,
+        "deactivation": deactivation,
     }
 
 
@@ -183,6 +270,10 @@ def insertion_rates(state: EpdmKineticState, parameters: EpdmKineticParameters) 
 
 def _insertion_fractions_from_rates(rates: dict[str, float]) -> dict[str, float]:
     total = rates["ethylene"] + rates["propylene"] + rates["diene"]
+    if not math.isfinite(total):
+        raise ValueError(
+            "total propagation rate became non-finite; reduce the input magnitude or check units"
+        )
     if total <= 0:
         raise ValueError("total propagation rate must be positive")
     return {name: rates[name] / total for name in _PROPAGATION_NAMES}
@@ -212,8 +303,16 @@ def architecture_metrics(
     critical = _finite(gel_critical_branch_index, "gel critical branch index")
     if not 0 <= secondary <= 1 or not 0 <= efficiency <= 1 or critical <= 0:
         raise ValueError("invalid branching parameters")
-    propagation = sum(rates[name] for name in _PROPAGATION_NAMES)
+    propagation = rates["ethylene"] + rates["propylene"] + rates["diene"]
+    if not math.isfinite(propagation):
+        raise ValueError(
+            "total propagation rate became non-finite; reduce the input magnitude or check units"
+        )
     termination = rates["transfer"] + rates["deactivation"]
+    if not math.isfinite(termination):
+        raise ValueError(
+            "chain-loss rate became non-finite; reduce the input magnitude or check units"
+        )
     if termination <= 0:
         raise ValueError("NO_FINITE_STEADY_CHAIN_LENGTH")
     number_average_dp = propagation / termination
@@ -222,6 +321,23 @@ def architecture_metrics(
     retained_unsaturation = fractions["diene"] * (1.0 - secondary)
     average_e_run = 1.0 / max(1.0 - fractions["ethylene"], 1e-12)
     average_p_run = 1.0 / max(1.0 - fractions["propylene"], 1e-12)
+    if not (
+        math.isfinite(number_average_dp)
+        and math.isfinite(branch_index)
+        and math.isfinite(gel_risk)
+        and math.isfinite(retained_unsaturation)
+        and math.isfinite(average_e_run)
+        and math.isfinite(average_p_run)
+    ):
+        for label, value in (
+            ("number-average degree of polymerization", number_average_dp),
+            ("branch index", branch_index),
+            ("gel-risk index", gel_risk),
+            ("retained unsaturation fraction", retained_unsaturation),
+            ("average ethylene run length", average_e_run),
+            ("average propylene run length", average_p_run),
+        ):
+            _finite_result(value, label)
     return {
         **{f"{name}_mole_fraction": value for name, value in fractions.items()},
         "number_average_degree_of_polymerization": number_average_dp,
@@ -239,10 +355,39 @@ def _pseudo_first_order_conversions_validated(
     residence: float,
 ) -> dict[str, float]:
     site = state.active_site_mol_L
+    ethylene_exposure = parameters.kp_e_L_mol_s * site * residence
+    propylene_exposure = parameters.kp_p_L_mol_s * site * residence
+    diene_exposure = parameters.kp_d_L_mol_s * site * residence
+    if not (
+        math.isfinite(ethylene_exposure)
+        and math.isfinite(propylene_exposure)
+        and math.isfinite(diene_exposure)
+    ):
+        for name, exposure in (
+            ("ethylene", ethylene_exposure),
+            ("propylene", propylene_exposure),
+            ("diene", diene_exposure),
+        ):
+            if not math.isfinite(exposure):
+                raise ValueError(
+                    f"{name} exposure became non-finite; reduce the input magnitude or check units"
+                )
     return {
-        "ethylene": 1.0 - math.exp(-parameters.kp_e_L_mol_s * site * residence),
-        "propylene": 1.0 - math.exp(-parameters.kp_p_L_mol_s * site * residence),
-        "diene": 1.0 - math.exp(-parameters.kp_d_L_mol_s * site * residence),
+        "ethylene": (
+            -math.expm1(-ethylene_exposure)
+            if ethylene_exposure < 1.0e-8
+            else 1.0 - math.exp(-ethylene_exposure)
+        ),
+        "propylene": (
+            -math.expm1(-propylene_exposure)
+            if propylene_exposure < 1.0e-8
+            else 1.0 - math.exp(-propylene_exposure)
+        ),
+        "diene": (
+            -math.expm1(-diene_exposure)
+            if diene_exposure < 1.0e-8
+            else 1.0 - math.exp(-diene_exposure)
+        ),
     }
 
 
@@ -266,7 +411,15 @@ def _chain_moment_reference_from_rates(
     rates: dict[str, float], variability: float
 ) -> dict[str, object]:
     propagation = rates["ethylene"] + rates["propylene"] + rates["diene"]
+    if not math.isfinite(propagation):
+        raise ValueError(
+            "chain-moment propagation rate became non-finite; reduce the input magnitude or check units"
+        )
     chain_loss = rates["transfer"] + rates["deactivation"]
+    if not math.isfinite(chain_loss):
+        raise ValueError(
+            "chain-birth rate became non-finite; reduce the input magnitude or check units"
+        )
     if propagation <= 0:
         return {
             "status": "HOLD",
@@ -287,9 +440,14 @@ def _chain_moment_reference_from_rates(
         }
     dp_n = propagation / chain_loss
     dispersity = 2.0 + variability**2
+    dp_w = dp_n * dispersity
+    if not (math.isfinite(dp_n) and math.isfinite(dispersity) and math.isfinite(dp_w)):
+        _finite_result(dp_n, "chain-moment number-average degree of polymerization")
+        _finite_result(dispersity, "chain-moment reference dispersity")
+        _finite_result(dp_w, "chain-moment weight-average degree of polymerization")
     return {
         "number_average_degree_of_polymerization": dp_n,
-        "weight_average_degree_of_polymerization": dp_n * dispersity,
+        "weight_average_degree_of_polymerization": dp_w,
         "reference_dispersity_index": dispersity,
         "chain_birth_rate_mol_L_s": chain_loss,
     }
@@ -373,37 +531,83 @@ def three_level_kinetic_suite(
     }
 
     family_records: list[dict[str, object]] = []
-    weighted_rates = {name: 0.0 for name in (*_PROPAGATION_NAMES, "transfer", "deactivation")}
-    multiplier_mean = math.fsum(
-        weight * multiplier
-        for weight, multiplier in zip(fractions, multipliers, strict=True)
-    )
-    multiplier_variance = math.fsum(
-        weight * (multiplier - multiplier_mean) ** 2
-        for weight, multiplier in zip(fractions, multipliers, strict=True)
-    )
+    weighted_ethylene = 0.0
+    weighted_propylene = 0.0
+    weighted_diene = 0.0
+    weighted_transfer = 0.0
+    weighted_deactivation = 0.0
+    try:
+        multiplier_mean = math.fsum(
+            weight * multiplier
+            for weight, multiplier in zip(fractions, multipliers, strict=True)
+        )
+        multiplier_variance = math.fsum(
+            weight * (multiplier - multiplier_mean) ** 2
+            for weight, multiplier in zip(fractions, multipliers, strict=True)
+        )
+    except OverflowError as exc:
+        raise ValueError("site-family statistics overflowed") from exc
+    _finite_result(multiplier_mean, "site-activity multiplier mean")
+    _finite_result(multiplier_variance, "site-activity multiplier variance")
+    site = state.active_site_mol_L
+    transfer = adjusted_rates["transfer"]
+    deactivation = adjusted_rates["deactivation"]
     for index, (weight, multiplier) in enumerate(
         zip(fractions, multipliers, strict=True), start=1
     ):
-        site = state.active_site_mol_L
-        family_rates = {
-            "ethylene": adjusted.kp_e_L_mol_s * multiplier * state.ethylene_mol_L * site,
-            "propylene": adjusted.kp_p_L_mol_s * multiplier * state.propylene_mol_L * site,
-            "diene": adjusted.kp_d_L_mol_s * multiplier * state.diene_mol_L * site,
-            "transfer": adjusted_rates["transfer"],
-            "deactivation": adjusted_rates["deactivation"],
-        }
-        for name in weighted_rates:
-            weighted_rates[name] += weight * family_rates[name]
+        ethylene = adjusted.kp_e_L_mol_s * multiplier * state.ethylene_mol_L * site
+        propylene = adjusted.kp_p_L_mol_s * multiplier * state.propylene_mol_L * site
+        diene = adjusted.kp_d_L_mol_s * multiplier * state.diene_mol_L * site
+        if not (
+            math.isfinite(ethylene)
+            and math.isfinite(propylene)
+            and math.isfinite(diene)
+        ):
+            _raise_nonfinite_rate(ethylene, propylene, diene, transfer, deactivation)
+        weighted_ethylene += weight * ethylene
+        weighted_propylene += weight * propylene
+        weighted_diene += weight * diene
+        weighted_transfer += weight * transfer
+        weighted_deactivation += weight * deactivation
         family_records.append(
             {
                 "family": index,
                 "fraction": weight,
                 "activity_multiplier": multiplier,
-                "rates_mol_L_s": family_rates,
+                "rates_mol_L_s": {
+                    "ethylene": ethylene,
+                    "propylene": propylene,
+                    "diene": diene,
+                    "transfer": transfer,
+                    "deactivation": deactivation,
+                },
             }
         )
-    site_cv = 0.0 if multiplier_mean <= 0 else math.sqrt(multiplier_variance) / multiplier_mean
+    if not (
+        math.isfinite(weighted_ethylene)
+        and math.isfinite(weighted_propylene)
+        and math.isfinite(weighted_diene)
+        and math.isfinite(weighted_transfer)
+        and math.isfinite(weighted_deactivation)
+    ):
+        _raise_nonfinite_rate(
+            weighted_ethylene,
+            weighted_propylene,
+            weighted_diene,
+            weighted_transfer,
+            weighted_deactivation,
+        )
+    weighted_rates = {
+        "ethylene": weighted_ethylene,
+        "propylene": weighted_propylene,
+        "diene": weighted_diene,
+        "transfer": weighted_transfer,
+        "deactivation": weighted_deactivation,
+    }
+    site_cv = (
+        0.0 if multiplier_mean <= 0 else math.sqrt(multiplier_variance) / multiplier_mean
+    )
+    _finite_result(site_cv, "site-activity coefficient of variation")
     detailed = {
         "site_families": family_records,
         "weighted_propagation_rates_mol_L_s": {

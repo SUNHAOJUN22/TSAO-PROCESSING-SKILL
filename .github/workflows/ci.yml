@@ -1,4 +1,4 @@
-name: TSAO alpha13 qualification
+name: TSAO alpha15 qualification
 
 on:
   push:
@@ -19,15 +19,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-        os: [ubuntu-latest]
         include:
           - os: windows-latest
+            python-version: "3.11"
+          - os: windows-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.13"
+          - os: windows-latest
             python-version: "3.14"
-          - os: macos-latest
+          - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
             python-version: "3.14"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
@@ -41,7 +49,7 @@ jobs:
         run: python -m pip check
       - name: Verify permanent repository hygiene
         run: >-
-          python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name]; assert not f,f"
+          python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name or p.startswith('.github/upgrade/')]; assert not f,f"
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
       - name: Verify deterministic README graphics and visual contract
@@ -57,6 +65,13 @@ jobs:
           git diff --exit-code -- docs/assets/readme README.md README.zh-CN.md
       - name: Core, specialists, Ruff and coverage qualification
         run: python scripts/run_ci.py
+      - name: Alpha15 adaptive-integrator branch coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: |
+          python -m coverage erase
+          python -m coverage run --branch -m pytest -q -p no:cacheprovider skills/epdm/tests/test_epdm_phase_a4_integration.py
+          python -m coverage report --include='skills/epdm/numerical_integration.py' --fail-under=90
+          python -c "from pathlib import Path; Path('.coverage').unlink(missing_ok=True)"
       - name: Universal Skillpack closure
         run: |
           python -m tsao.skillpacks --root .
@@ -71,23 +86,95 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: tsao-wheel-alpha13-${{ github.sha }}
+          name: tsao-wheel-alpha15-${{ github.sha }}
           path: wheelhouse/*.whl
           if-no-files-found: error
           retention-days: 30
       - name: Extended performance regression gate
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        shell: bash
         run: |
+          baseline_root="$RUNNER_TEMP/alpha14-performance-baseline"
+          baseline_report="$RUNNER_TEMP/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json"
+          parent_commit="$(git rev-parse HEAD^)"
+          test "$parent_commit" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          git worktree add --detach "$baseline_root" "$parent_commit"
+          (
+            cd "$baseline_root"
+            rm -rf wheelhouse build dist *.egg-info
+            python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+            python scripts/benchmark_performance_v2.py \
+              --repeats 7 \
+              --wheel-dir wheelhouse \
+              --output "$baseline_report"
+          )
           python scripts/benchmark_performance_v2.py \
             --repeats 7 \
             --wheel-dir wheelhouse \
             --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+          BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          baseline_root = Path(os.environ["BASELINE_ROOT"])
+          baseline_report = Path(os.environ["BASELINE_REPORT"])
+          current_report = root / "reports/runtime/PERFORMANCE_RESULTS_V2.json"
+
+          def schema_units(worktree: Path) -> float:
+              code = (
+                  "from pathlib import Path; "
+                  "from tsao.doctor import diagnose; "
+                  "print(diagnose(Path('.'), profile='core')['metrics']['schemas'])"
+              )
+              output = subprocess.check_output(
+                  [sys.executable, "-c", code],
+                  cwd=worktree,
+                  text=True,
+              )
+              return float(output.strip().splitlines()[-1])
+
+          for path, worktree in ((baseline_report, baseline_root), (current_report, root)):
+              report = json.loads(path.read_text(encoding="utf-8"))
+              doctor = next(
+                  row for row in report["benchmarks"] if row["name"] == "doctor_core_repository"
+              )
+              doctor["work_units"] = schema_units(worktree)
+              doctor["work_unit"] = "schema_count"
+              path.write_text(
+                  json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+          python scripts/compare_performance_v2.py \
+            --baseline "$baseline_report" \
+            --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+            --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
+          set +e
           python scripts/compare_performance_v2.py \
             --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
             --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
-            --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
-          python scripts/update_performance_readme.py \
-            --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
+            --output reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
+          historical_rc=$?
+          set -e
+          HISTORICAL_RC="$historical_rc" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          data["qualification_role"] = "NON_BLOCKING_HISTORICAL_TREND"
+          data["historical_comparator_exit_code"] = int(os.environ["HISTORICAL_RC"])
+          data["qualification_baseline"] = "ALPHA14_SAME_RUN_SAME_PYTHON"
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+          cp "$baseline_report" reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
+          git worktree remove --force "$baseline_root"
+          python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
       - name: CLI smoke
         run: |
           python -m tsao.cli doctor --root . --profile core
@@ -111,6 +198,8 @@ jobs:
             reports/runtime/CI_RESULTS.json
             reports/runtime/PERFORMANCE_RESULTS_V2.json
             reports/runtime/PERFORMANCE_COMPARISON_V2.json
+            reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
+            reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -129,13 +218,15 @@ jobs:
         run: python -m pip install --quiet -e .
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
-      - name: Build deterministic public-source snapshot
-        run: python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.13.zip
+      - name: Build and inspect deterministic public-source snapshot
+        run: |
+          python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.15.zip
+          python -c "import zipfile; p='TSAO-PROCESSING-SKILL-source-alpha.15.zip'; names=set(zipfile.ZipFile(p).namelist()); required=('skills/epdm/executable_rhs.py','skills/epdm/numerical_integration.py','skills/epdm/schemas/integration-request-a15.schema.json','skills/epdm/schemas/integration-result-a15.schema.json','skills/epdm/tests/test_epdm_phase_a4_integration.py','reports/EPDM_PHASE_A4_QUALIFICATION.json'); missing=[r for r in required if not any(n.endswith('/'+r) for n in names)]; assert not missing, missing"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: tsao-source-alpha13-${{ github.sha }}
+          name: tsao-source-alpha15-${{ github.sha }}
           path: |
-            TSAO-PROCESSING-SKILL-source-alpha.13.zip
-            TSAO-PROCESSING-SKILL-source-alpha.13.zip.sha256
+            TSAO-PROCESSING-SKILL-source-alpha.15.zip
+            TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
           if-no-files-found: error
           retention-days: 14

@@ -3,7 +3,7 @@
 [![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.14-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[![Status](https://img.shields.io/badge/status-alpha.15-d97706)](reports/QUALIFICATION_BOUNDARY.md)
 
 **面向化工工艺包的可追溯、默认失败关闭 Skill 平台；EPDM 是最深的旗舰路线，POE 是证据谱系最完整的专业路线。**
 
@@ -103,6 +103,10 @@ EPDM 在通用工艺包之上增加更深的“机理—结构—反应器—后
 ![EPDM 反应器模式决策图](docs/assets/readme/epdm-reactor-mode-map.svg)
 
 所有层级均输出 `CALCULATED_REFERENCE_ONLY`，不冒充已拟合动力学、商业热力学包、合格 CFD、设备设计、HAZOP/LOPA/SIL、客户认证或工业性能保证。
+
+### 可执行 RHS 与自适应积分
+
+Alpha.14 为每个 A2 反应通道绑定严格的参考级速率参数包，并提供结构化 A3 RHS。Alpha.15 新增独立、可选的 Dormand–Prince 5(4) 自适应积分器，具有显式误差控制、非负状态拒绝、分段重启一致性、时间单调性和内外部守恒账本。原 A3 参考 Euler 路径保持不变；缺失绑定、不可辨识参数、适用域越界、疑似刚性和最小步长耗尽均返回机器可读的 `HOLD` 或 `FAIL`。
 
 ### 参数可辨识性、不确定度与产品证据
 
@@ -242,7 +246,7 @@ Wheel 具有两道独立质量门：
 1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 18 幅图；
 2. **安装门：**同时验证 `pip install --target` 与不继承系统 site-packages 的干净标准虚拟环境；TSAO、EPDM、POE 模块及 Skill 数据根必须全部位于所选安装根内，随后才允许通过安装态 README 与已知解检查。
 
-CI 覆盖 Ubuntu/Python 3.11–3.14，以及 Windows、macOS 的 Python 3.14；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。覆盖率完成后，独立审计并行执行；Ubuntu/Python 3.14 还强制执行版本化性能回归门。
+CI 将 Windows/Python 3.11–3.14 作为核心发布矩阵，并在 Linux/Python 3.11、3.14 上验证兼容性；macOS 不作为发布门槛；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。覆盖率完成后，独立审计并行执行；Ubuntu/Python 3.14 还强制执行版本化性能回归门。
 
 源文件清单属于发布身份：源文件变化若未同步刷新 `reports/SOURCE_CORE_MANIFEST.tsv`，仓库 Doctor 将按设计失败。
 

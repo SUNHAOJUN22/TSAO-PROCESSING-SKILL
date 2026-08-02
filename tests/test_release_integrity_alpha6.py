@@ -45,6 +45,31 @@ def test_source_snapshot_is_deterministic_and_self_describing(tmp_path: Path) ->
         assert any(name.endswith("reports/SOURCE_CORE_MANIFEST.tsv") for name in names)
 
 
+def test_source_snapshot_includes_overlay_only_files(tmp_path: Path) -> None:
+    root = tmp_path / "source-overlay"
+    (root / "reports").mkdir(parents=True)
+    (root / "base.txt").write_text("base\n", encoding="utf-8")
+    build_manifest(
+        root,
+        root / "reports/SOURCE_CORE_MANIFEST.tsv",
+        allowed_paths={"base.txt"},
+    )
+    (root / "overlay-only.txt").write_text("overlay\n", encoding="utf-8")
+    build_manifest(
+        root,
+        root / "reports/SOURCE_CORE_OVERLAY.tsv",
+        allowed_paths={"overlay-only.txt"},
+    )
+    output = tmp_path / "overlay.zip"
+    result = build_source_snapshot(root, output)
+    assert result["overlay_included"] is True
+    with zipfile.ZipFile(output) as archive:
+        names = archive.namelist()
+        assert any(name.endswith("overlay-only.txt") for name in names)
+        assert any(name.endswith("reports/SOURCE_CORE_OVERLAY.tsv") for name in names)
+
+
+
 def test_full_doctor_verifies_distribution_metadata(tmp_path: Path) -> None:
     root = tmp_path / "copy"
     shutil.copytree(

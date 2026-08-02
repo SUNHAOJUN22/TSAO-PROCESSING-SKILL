@@ -62,6 +62,7 @@ class BenchmarkCase:
     profile_loops: int
     warmups: int = 2
     repeat_override: int | None = None
+    digest_projection: Callable[[object], object] | None = None
 
 
 def _json_default(value: object) -> object:
@@ -82,6 +83,22 @@ def _json_digest(value: object) -> str:
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+
+
+def _process_package_digest_projection(result: object) -> object:
+    """Return stable fail-closed semantics without zero-detail allocation noise."""
+    if not isinstance(result, dict):
+        return result
+    return {
+        "status": result.get("status"),
+        "declared_status": result.get("declared_status"),
+        "pass": result.get("pass"),
+        "errors": result.get("errors"),
+        "holds": result.get("holds"),
+        "reason_codes": result.get("reason_codes"),
+        "failed_component_balances": result.get("failed_component_balances"),
+        "metrics": result.get("metrics"),
+    }
 
 def _source_commit() -> str | None:
     try:
@@ -164,7 +181,9 @@ def _measure(case: BenchmarkCase, *, repeats: int) -> dict[str, object]:
         "maximum_s_per_call": max(samples),
         "stdev_s_per_call": statistics.pstdev(samples),
         "peak_memory_bytes": _peak_memory(case.function),
-        "result_sha256": _json_digest(result),
+        "result_sha256": _json_digest(
+            case.digest_projection(result) if case.digest_projection is not None else result
+        ),
         "profile_loops": case.profile_loops,
         "profile_top_cumulative": _profile(case.function, case.profile_loops),
     }
@@ -499,6 +518,7 @@ def run_benchmarks(*, repeats: int, wheel_dir: Path | None = None) -> dict[str, 
                 lambda: validate_process_package(package_500),
                 4,
                 1,
+                digest_projection=_process_package_digest_projection,
             ),
             BenchmarkCase(
                 "process_package_5000_equipment",
@@ -507,6 +527,7 @@ def run_benchmarks(*, repeats: int, wheel_dir: Path | None = None) -> dict[str, 
                 1,
                 warmups=1,
                 repeat_override=3,
+                digest_projection=_process_package_digest_projection,
             ),
             BenchmarkCase("provenance_300_files_build_and_verify", provenance_300, 2, 1),
             BenchmarkCase(

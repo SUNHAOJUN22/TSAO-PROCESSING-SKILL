@@ -45,3 +45,7 @@ Repository CI qualifies code and data contracts only. Scientific validity, engin
 ## Alpha.8 package platform
 
 `tsao.process_package` is the universal executable content contract. EPDM is the flagship specialist adapter; POE remains the evidence-rich specialist adapter.
+
+## Alpha.15 executable integration layer
+
+EPDM Phase A4 is an opt-in numerical layer above the locked A2 state/network topology and A3 calculated-reference RHS. It uses a self-contained Dormand–Prince 5(4) implementation with explicit tolerances, bounded step control, non-negative-state rejection, monotonic time, restart parity and named conservation ledgers. Solver execution remains `CALCULATED_REFERENCE_ONLY`; parameter calibration and all scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.
