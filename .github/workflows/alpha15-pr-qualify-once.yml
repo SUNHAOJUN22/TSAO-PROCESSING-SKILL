@@ -79,7 +79,7 @@ jobs:
           RUN_EXTENDED: ${{ matrix.extended && '1' || '0' }}
         run: bash .github/upgrade/alpha15-qualify.sh qualify
       - name: Upload Linux qualification artifacts
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: alpha15-linux-qualification
@@ -88,10 +88,13 @@ jobs:
             reports/runtime/CI_RESULTS.json
             reports/runtime/PERFORMANCE_RESULTS_V2.json
             reports/runtime/PERFORMANCE_COMPARISON_V2.json
+            reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
+            reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
+            ${{ runner.temp }}/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
             ${{ runner.temp }}/alpha15-coverage.txt
             ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip
             ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
   promote-evidence:
