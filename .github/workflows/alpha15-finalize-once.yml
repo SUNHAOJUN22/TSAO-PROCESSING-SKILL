@@ -1,0 +1,225 @@
+name: Finalize Alpha15 exact release once
+
+on:
+  push:
+    branches:
+      - alpha15-qualification
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsao-alpha15-final-release
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: alpha15-qualification
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Reconstruct qualified tree and close release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse origin/main)" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          bash .github/upgrade/inject-alpha15-special.sh
+          awk '/^python -m pip install/{exit} {print}' .github/upgrade/alpha15-qualify.sh > "$RUNNER_TEMP/reconstruct-alpha15.sh"
+          chmod +x "$RUNNER_TEMP/reconstruct-alpha15.sh"
+          bash "$RUNNER_TEMP/reconstruct-alpha15.sh" export
+          rm -rf .github/upgrade
+          find .github/workflows -maxdepth 1 -type f ! -name ci.yml -delete
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = {
+            "schema": "TSAO-EPDM-PHASE-A4-QUALIFICATION-1",
+            "phase": "EPDM_PHASE_A4_NUMERICAL_INTEGRATION",
+            "version": "0.1.0-alpha.15",
+            "status": "PASS",
+            "final_commit": "SELF",
+            "final_commit_binding": "CONTAINING_GIT_COMMIT_RESOLVED_BY_POST_COMMIT_REVERSE_AUDIT",
+            "qualified_candidate_commit": "11b4cf8707143ad1c38c4e8f559e85716efc8a48",
+            "qualified_candidate_tree": "560ed88624660af7cc6f2bb7ea35ce8e9a49dbd7",
+            "qualification_run_id": 30755394393,
+            "test_count": 347,
+            "branch_coverage": {
+              "full_repository_percent": 77,
+              "alpha15_numerical_integration_percent": 91,
+              "alpha15_target_percent": 90
+            },
+            "targeted_regressions": {
+              "status": "PASS",
+              "test_count": 147,
+              "scope": [
+                "EPDM_PHASE_A0_TO_A4",
+                "ALPHA12_ZERO_FALSE_PASS",
+                "ALPHA13_NUMERICAL_CORRECTNESS",
+                "ALPHA14_WHEEL_AND_A3_RHS",
+                "ALPHA15_WHEEL_AND_INTEGRATION",
+                "PROCESS_PACKAGE_FAIL_CLOSED_RUNTIME",
+                "PERFORMANCE_GOVERNANCE",
+                "REPOSITORY_AND_WHEEL_CONTRACTS"
+              ]
+            },
+            "full_software_qualification": "PASS",
+            "numerical_integrator": "ADAPTIVE_DORMAND_PRINCE_54",
+            "reference_integrator": "ALPHA14_REFERENCE_EULER_RETAINED",
+            "convergence_gate": "PASS",
+            "restart_parity": "PASS",
+            "nonnegative_state_gate": "PASS",
+            "finite_value_gate": "PASS",
+            "time_monotonicity_gate": "PASS",
+            "dimension_consistency_gate": "PASS",
+            "conservation_gate": "PASS",
+            "external_flow_ledger_gate": "PASS",
+            "schema_gate": "PASS",
+            "source_snapshot_overlay_gate": "PASS",
+            "wheel_content": "PASS",
+            "isolated_runtime": {
+              "pip_target": "PASS",
+              "standard_venv_no_system_site_packages": "PASS"
+            },
+            "windows_qualification": {
+              "status": "PASS",
+              "python_3_11": "PASS",
+              "python_3_12": "PASS",
+              "python_3_13": "PASS",
+              "python_3_14": "PASS"
+            },
+            "linux_qualification": {
+              "status": "PASS",
+              "python_3_11": "PASS",
+              "python_3_14_extended": "PASS"
+            },
+            "performance_regression_gate": "PASS_ALPHA14_SAME_RUN_SAME_PYTHON",
+            "process_package_performance_hardening": "PASS",
+            "process_package_semantic_digest_policy": "PROCESS_PACKAGE_FAIL_CLOSED_SEMANTICS_V1",
+            "optimized_path_parent_benefit_gate": "PASS",
+            "qualification_boundary": "SOFTWARE_ADAPTIVE_INTEGRATION_ONLY",
+            "parameter_calibration": "NOT_EVALUATED",
+            "scientific_technical_approval": "NOT_EVALUATED",
+            "engineering_design_approval": "NOT_EVALUATED",
+            "hse_approval": "NOT_EVALUATED",
+            "customer_qualification": "NOT_EVALUATED",
+            "industrial_performance_guarantee": "NOT_EVALUATED",
+            "next_phase": "BETA1_SOFTWARE_ENTRY_REVIEW"
+          }
+          Path("reports/EPDM_PHASE_A4_QUALIFICATION.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          identity_path = Path("reports/RELEASE_IDENTITY.json")
+          identity = json.loads(identity_path.read_text(encoding="utf-8"))
+          identity["artifact_software_qualification"] = "PASS"
+          identity["alpha15_qualification_run_id"] = 30755394393
+          identity["wheel_filename"] = "tsao_processing_skill-0.1.0a15-py3-none-any.whl"
+          identity["wheel_sha256"] = "BOUND_TO_POST_COMMIT_CI_ARTIFACT"
+          identity["qualification_candidate_wheel_sha256"] = "155d9b1bb83b1507b6d98753a8a9fb6bf67e9d479038fc227ccdd7106907fe1f"
+          identity["qualification_candidate_wheel_sha256_scope"] = "QUALIFICATION_RUN_30755394393_EXACT_CANDIDATE_TREE_560ed88624660af7cc6f2bb7ea35ce8e9a49dbd7"
+          identity["final_commit"] = "SELF"
+          identity["final_commit_binding"] = "CONTAINING_GIT_COMMIT_RESOLVED_BY_POST_COMMIT_REVERSE_AUDIT"
+          identity_path.write_text(
+              json.dumps(identity, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          python scripts/update_source_overlay.py --root . \
+            reports/EPDM_PHASE_A4_QUALIFICATION.json \
+            reports/RELEASE_IDENTITY.json
+          git add -A
+          git diff --cached --check
+          git commit --amend -m 'feat: release alpha15 EPDM numerical integration hardening'
+          test "$(git rev-parse HEAD^)" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          test "$(git rev-list --count 8719e59140202aae53cdfb80239b80dedad6767a..HEAD)" = "1"
+          test "$(git show -s --format=%s HEAD)" = "feat: release alpha15 EPDM numerical integration hardening"
+          test "$(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort)" = "ci.yml"
+          test ! -e .github/upgrade
+          git rev-parse HEAD > "$RUNNER_TEMP/alpha15-final.commit"
+          git rev-parse HEAD^ > "$RUNNER_TEMP/alpha15-final.parent"
+          git rev-parse HEAD^{tree} > "$RUNNER_TEMP/alpha15-final.tree"
+      - name: Requalify metadata-closed final commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet -e .[dev]
+          python -m pip check
+          python -m tsao.cli doctor --root . --profile core | tee "$RUNNER_TEMP/alpha15-final-doctor.json"
+          python -m pytest -q -p no:cacheprovider \
+            skills/epdm/tests/test_epdm_phase_a0.py \
+            skills/epdm/tests/test_epdm_phase_a1.py \
+            skills/epdm/tests/test_epdm_phase_a2.py \
+            skills/epdm/tests/test_epdm_phase_a3.py \
+            skills/epdm/tests/test_epdm_phase_a4_integration.py \
+            skills/process-general/tests/test_process_package_runtime.py \
+            tests/test_alpha12_false_pass.py \
+            tests/test_alpha13_numerical_correctness.py \
+            tests/test_alpha14_wheel_contract.py \
+            tests/test_alpha15_wheel_contract.py \
+            tests/test_performance_v2_reports.py \
+            tests/test_release_integrity_alpha6.py \
+            tests/test_repository_contracts.py \
+            tests/test_wheel_contract.py \
+            | tee "$RUNNER_TEMP/alpha15-final-targeted.txt"
+          python scripts/run_ci.py | tee "$RUNNER_TEMP/alpha15-final-ci.json"
+          python -m coverage erase
+          python -m coverage run --branch -m pytest -q -p no:cacheprovider \
+            skills/epdm/tests/test_epdm_phase_a4_integration.py
+          python -m coverage report \
+            --include='skills/epdm/numerical_integration.py' \
+            --fail-under=90 \
+            | tee "$RUNNER_TEMP/alpha15-final-coverage.txt"
+          python -c "from pathlib import Path; Path('.coverage').unlink(missing_ok=True)"
+          rm -rf wheelhouse build dist *.egg-info
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse \
+            | tee "$RUNNER_TEMP/alpha15-final-wheel-contents.json"
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse \
+            | tee "$RUNNER_TEMP/alpha15-final-wheel-runtime.json"
+          python scripts/export_source_snapshot.py \
+            --root . \
+            --out "$RUNNER_TEMP/TSAO-PROCESSING-SKILL-source-alpha.15.zip" \
+            | tee "$RUNNER_TEMP/alpha15-final-source-snapshot.json"
+          wheel="$(find wheelhouse -maxdepth 1 -name '*.whl' -type f -print -quit)"
+          sha256sum "$wheel" | tee "$RUNNER_TEMP/alpha15-final-wheel.sha256"
+          cp "$wheel" "$RUNNER_TEMP/"
+          git diff --exit-code
+          git status --porcelain=v1 --untracked-files=no | tee "$RUNNER_TEMP/alpha15-final-status.txt"
+          test ! -s "$RUNNER_TEMP/alpha15-final-status.txt"
+      - name: Fast-forward final Alpha15 to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse origin/main)" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          git push origin HEAD:main
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: alpha15-finalization-evidence
+          path: |
+            ${{ runner.temp }}/alpha15-final.commit
+            ${{ runner.temp }}/alpha15-final.parent
+            ${{ runner.temp }}/alpha15-final.tree
+            ${{ runner.temp }}/alpha15-final-doctor.json
+            ${{ runner.temp }}/alpha15-final-targeted.txt
+            ${{ runner.temp }}/alpha15-final-ci.json
+            ${{ runner.temp }}/alpha15-final-coverage.txt
+            ${{ runner.temp }}/alpha15-final-wheel-contents.json
+            ${{ runner.temp }}/alpha15-final-wheel-runtime.json
+            ${{ runner.temp }}/alpha15-final-source-snapshot.json
+            ${{ runner.temp }}/alpha15-final-wheel.sha256
+            ${{ runner.temp }}/tsao_processing_skill-0.1.0a15-py3-none-any.whl
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
+            ${{ runner.temp }}/alpha15-final-status.txt
+          if-no-files-found: warn
+          retention-days: 30
