@@ -7,6 +7,7 @@
 - Added convergence, restart-parity, analytic single-channel, external-flow and trajectory-conservation tests with 97% branch coverage for the new integrator.
 - Fixed deterministic source snapshots so overlay-only files, including the Phase A3 executable layer, are included and hashed.
 - Promoted Windows 3.11–3.14 to the core CI matrix and removed macOS from the release Gate.
+- Hardened EPDM scalar Arrhenius, rate, moment and semibatch paths to fail closed on non-finite derived values; small scalar exposures use `expm1` for batch parity.
 - Kept parameter calibration and all scientific, engineering, HSE, customer and industrial approvals `NOT_EVALUATED`.
 
 ## 0.1.0-alpha.14 — 2026-08-02

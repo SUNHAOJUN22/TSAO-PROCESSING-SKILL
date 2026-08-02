@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from .kinetics import EpdmKineticParameters, EpdmKineticState, _insertion_rates_validated
+from .kinetics import EpdmKineticParameters
 
 
 def _finite(value: object, label: str) -> float:
@@ -190,15 +190,26 @@ def entropy_generation_heat_transfer_kW_K(
     return duty * (1.0 / cold - 1.0 / hot)
 
 
+def _raise_nonfinite_semibatch(
+    values: tuple[tuple[str, float], ...],
+) -> None:
+    for label, value in values:
+        if not math.isfinite(value):
+            raise ValueError(f"{label} must be finite")
+    raise ValueError("derived semibatch result must be finite")
+
+
 def _semibatch_step_kernel(
     inventory: SemibatchInventory,
     feed: SemibatchFeed,
     parameters: EpdmKineticParameters,
     operating: _SemibatchOperatingInputs,
+    *,
+    include_details: bool = True,
 ) -> tuple[
     SemibatchInventory,
-    dict[str, float],
-    dict[str, float],
+    dict[str, float] | None,
+    dict[str, float] | None,
     float,
     float,
     float,
@@ -206,20 +217,62 @@ def _semibatch_step_kernel(
 ]:
     active_site, poison, duration, reaction_enthalpy, heat_removal = operating
     volume = inventory.volume_L + feed.liquid_volume_L_s * duration
+    if volume <= 0:
+        raise ValueError("calculated volume must be positive")
     ethylene_available = inventory.ethylene_mol + feed.ethylene_mol_s * duration
     propylene_available = inventory.propylene_mol + feed.propylene_mol_s * duration
     diene_available = inventory.diene_mol + feed.diene_mol_s * duration
-    state = EpdmKineticState(
-        ethylene_available / volume,
-        propylene_available / volume,
-        diene_available / volume,
-        active_site,
-        poison,
-    )
-    rates = _insertion_rates_validated(state, parameters)
-    ethylene_consumed = min(ethylene_available, rates["ethylene"] * volume * duration)
-    propylene_consumed = min(propylene_available, rates["propylene"] * volume * duration)
-    diene_consumed = min(diene_available, rates["diene"] * volume * duration)
+    if not math.isfinite(
+        max(volume, ethylene_available, propylene_available, diene_available)
+    ):
+        _raise_nonfinite_semibatch(
+            (
+                ("calculated volume", volume),
+                ("available ethylene inventory", ethylene_available),
+                ("available propylene inventory", propylene_available),
+                ("available diene inventory", diene_available),
+            )
+        )
+    ethylene_concentration = ethylene_available / volume
+    propylene_concentration = propylene_available / volume
+    diene_concentration = diene_available / volume
+    ethylene_rate = parameters.kp_e_L_mol_s * ethylene_concentration * active_site
+    propylene_rate = parameters.kp_p_L_mol_s * propylene_concentration * active_site
+    diene_rate = parameters.kp_d_L_mol_s * diene_concentration * active_site
+    transfer_rate = parameters.k_transfer_s * active_site
+    deactivation_rate = (
+        parameters.k_deactivation_s + parameters.k_poison_L_mol_s * poison
+    ) * active_site
+    if not (
+        math.isfinite(ethylene_rate)
+        and math.isfinite(propylene_rate)
+        and math.isfinite(diene_rate)
+        and math.isfinite(transfer_rate)
+        and math.isfinite(deactivation_rate)
+    ):
+        _raise_nonfinite_semibatch(
+            (
+                ("ethylene rate", ethylene_rate),
+                ("propylene rate", propylene_rate),
+                ("diene rate", diene_rate),
+                ("transfer rate", transfer_rate),
+                ("deactivation rate", deactivation_rate),
+            )
+        )
+    ethylene_demand = ethylene_rate * volume * duration
+    propylene_demand = propylene_rate * volume * duration
+    diene_demand = diene_rate * volume * duration
+    if not math.isfinite(max(ethylene_demand, propylene_demand, diene_demand)):
+        _raise_nonfinite_semibatch(
+            (
+                ("ethylene consumption demand", ethylene_demand),
+                ("propylene consumption demand", propylene_demand),
+                ("diene consumption demand", diene_demand),
+            )
+        )
+    ethylene_consumed = min(ethylene_available, ethylene_demand)
+    propylene_consumed = min(propylene_available, propylene_demand)
+    diene_consumed = min(diene_available, diene_demand)
     ethylene_remaining = ethylene_available - ethylene_consumed
     propylene_remaining = propylene_available - propylene_consumed
     diene_remaining = diene_available - diene_consumed
@@ -229,6 +282,17 @@ def _semibatch_step_kernel(
     temperature = inventory.temperature_K + (
         heat_generated_kJ - heat_removed_kJ
     ) / inventory.heat_capacity_kJ_K
+    if not math.isfinite(
+        max(abs(temperature), polymer_increment, heat_generated_kJ, heat_removed_kJ)
+    ):
+        _raise_nonfinite_semibatch(
+            (
+                ("polymer repeat-unit increment", polymer_increment),
+                ("generated reaction heat", heat_generated_kJ),
+                ("removed heat", heat_removed_kJ),
+                ("calculated temperature", temperature),
+            )
+        )
     if temperature <= 0:
         raise ValueError("calculated temperature is non-physical")
     feed_total = duration * (
@@ -237,15 +301,40 @@ def _semibatch_step_kernel(
     monomer_before = inventory.ethylene_mol + inventory.propylene_mol + inventory.diene_mol
     remaining_total = sum((ethylene_remaining, propylene_remaining, diene_remaining))
     closure = monomer_before + feed_total - remaining_total - polymer_increment
+    polymer_inventory = inventory.polymer_repeat_mol + polymer_increment
+    if not math.isfinite(max(abs(closure), polymer_inventory)):
+        _raise_nonfinite_semibatch(
+            (
+                ("molar closure residual", closure),
+                ("polymer repeat-unit inventory", polymer_inventory),
+            )
+        )
     next_inventory = SemibatchInventory(
         volume,
         ethylene_remaining,
         propylene_remaining,
         diene_remaining,
-        inventory.polymer_repeat_mol + polymer_increment,
+        polymer_inventory,
         temperature,
         inventory.heat_capacity_kJ_K,
     )
+    if not include_details:
+        return (
+            next_inventory,
+            None,
+            None,
+            polymer_increment,
+            heat_generated_kJ,
+            heat_removed_kJ,
+            closure,
+        )
+    rates = {
+        "ethylene": ethylene_rate,
+        "propylene": propylene_rate,
+        "diene": diene_rate,
+        "transfer": transfer_rate,
+        "deactivation": deactivation_rate,
+    }
     consumed = {
         "ethylene": ethylene_consumed,
         "propylene": propylene_consumed,
@@ -258,6 +347,187 @@ def _semibatch_step_kernel(
         polymer_increment,
         heat_generated_kJ,
         heat_removed_kJ,
+        closure,
+    )
+
+
+_SemibatchTrajectoryContext = tuple[
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+]
+
+
+def _compile_semibatch_trajectory_context(
+    feed: SemibatchFeed,
+    parameters: EpdmKineticParameters,
+    operating: _SemibatchOperatingInputs,
+) -> _SemibatchTrajectoryContext:
+    active_site, poison, duration, reaction_enthalpy, heat_removal = operating
+    ethylene_feed = feed.ethylene_mol_s * duration
+    propylene_feed = feed.propylene_mol_s * duration
+    diene_feed = feed.diene_mol_s * duration
+    volume_feed = feed.liquid_volume_L_s * duration
+    heat_removed = heat_removal * duration
+    feed_total = duration * (
+        feed.ethylene_mol_s + feed.propylene_mol_s + feed.diene_mol_s
+    )
+    transfer_rate = parameters.k_transfer_s * active_site
+    deactivation_rate = (
+        parameters.k_deactivation_s + parameters.k_poison_L_mol_s * poison
+    ) * active_site
+    if not math.isfinite(
+        max(
+            ethylene_feed,
+            propylene_feed,
+            diene_feed,
+            volume_feed,
+            heat_removed,
+            feed_total,
+            transfer_rate,
+            deactivation_rate,
+        )
+    ):
+        _raise_nonfinite_semibatch(
+            (
+                ("available ethylene inventory", ethylene_feed),
+                ("available propylene inventory", propylene_feed),
+                ("available diene inventory", diene_feed),
+                ("calculated volume", volume_feed),
+                ("removed heat", heat_removed),
+                ("total monomer feed", feed_total),
+                ("transfer rate", transfer_rate),
+                ("deactivation rate", deactivation_rate),
+            )
+        )
+    return (
+        active_site,
+        duration,
+        reaction_enthalpy,
+        ethylene_feed,
+        propylene_feed,
+        diene_feed,
+        volume_feed,
+        heat_removed,
+        feed_total,
+        poison,
+    )
+
+
+def _semibatch_trajectory_step_kernel(
+    inventory: SemibatchInventory,
+    parameters: EpdmKineticParameters,
+    context: _SemibatchTrajectoryContext,
+) -> tuple[SemibatchInventory, float, float]:
+    (
+        active_site,
+        duration,
+        reaction_enthalpy,
+        ethylene_feed,
+        propylene_feed,
+        diene_feed,
+        volume_feed,
+        heat_removed_kJ,
+        feed_total,
+        _poison,
+    ) = context
+    volume = inventory.volume_L + volume_feed
+    if volume <= 0:
+        raise ValueError("calculated volume must be positive")
+    ethylene_available = inventory.ethylene_mol + ethylene_feed
+    propylene_available = inventory.propylene_mol + propylene_feed
+    diene_available = inventory.diene_mol + diene_feed
+    if not math.isfinite(
+        max(volume, ethylene_available, propylene_available, diene_available)
+    ):
+        _raise_nonfinite_semibatch(
+            (
+                ("calculated volume", volume),
+                ("available ethylene inventory", ethylene_available),
+                ("available propylene inventory", propylene_available),
+                ("available diene inventory", diene_available),
+            )
+        )
+    ethylene_rate = (
+        parameters.kp_e_L_mol_s * (ethylene_available / volume) * active_site
+    )
+    propylene_rate = (
+        parameters.kp_p_L_mol_s * (propylene_available / volume) * active_site
+    )
+    diene_rate = parameters.kp_d_L_mol_s * (diene_available / volume) * active_site
+    if not (
+        math.isfinite(ethylene_rate)
+        and math.isfinite(propylene_rate)
+        and math.isfinite(diene_rate)
+    ):
+        _raise_nonfinite_semibatch(
+            (
+                ("ethylene rate", ethylene_rate),
+                ("propylene rate", propylene_rate),
+                ("diene rate", diene_rate),
+            )
+        )
+    ethylene_demand = ethylene_rate * volume * duration
+    propylene_demand = propylene_rate * volume * duration
+    diene_demand = diene_rate * volume * duration
+    if not math.isfinite(max(ethylene_demand, propylene_demand, diene_demand)):
+        _raise_nonfinite_semibatch(
+            (
+                ("ethylene consumption demand", ethylene_demand),
+                ("propylene consumption demand", propylene_demand),
+                ("diene consumption demand", diene_demand),
+            )
+        )
+    ethylene_consumed = min(ethylene_available, ethylene_demand)
+    propylene_consumed = min(propylene_available, propylene_demand)
+    diene_consumed = min(diene_available, diene_demand)
+    ethylene_remaining = ethylene_available - ethylene_consumed
+    propylene_remaining = propylene_available - propylene_consumed
+    diene_remaining = diene_available - diene_consumed
+    polymer_increment = ethylene_consumed + propylene_consumed + diene_consumed
+    heat_generated_kJ = polymer_increment * reaction_enthalpy
+    temperature = inventory.temperature_K + (
+        heat_generated_kJ - heat_removed_kJ
+    ) / inventory.heat_capacity_kJ_K
+    if not math.isfinite(max(abs(temperature), polymer_increment, heat_generated_kJ)):
+        _raise_nonfinite_semibatch(
+            (
+                ("polymer repeat-unit increment", polymer_increment),
+                ("generated reaction heat", heat_generated_kJ),
+                ("calculated temperature", temperature),
+            )
+        )
+    if temperature <= 0:
+        raise ValueError("calculated temperature is non-physical")
+    monomer_before = inventory.ethylene_mol + inventory.propylene_mol + inventory.diene_mol
+    remaining_total = sum((ethylene_remaining, propylene_remaining, diene_remaining))
+    closure = monomer_before + feed_total - remaining_total - polymer_increment
+    polymer_inventory = inventory.polymer_repeat_mol + polymer_increment
+    if not math.isfinite(max(abs(closure), polymer_inventory)):
+        _raise_nonfinite_semibatch(
+            (
+                ("molar closure residual", closure),
+                ("polymer repeat-unit inventory", polymer_inventory),
+            )
+        )
+    return (
+        SemibatchInventory(
+            volume,
+            ethylene_remaining,
+            propylene_remaining,
+            diene_remaining,
+            polymer_inventory,
+            temperature,
+            inventory.heat_capacity_kJ_K,
+        ),
+        polymer_increment,
         closure,
     )
 
@@ -307,6 +577,8 @@ def semibatch_material_energy_step(
     ) = _semibatch_step_kernel(
         validated_inventory, validated_feed, validated_parameters, operating
     )
+    assert rates is not None
+    assert consumed is not None
     return {
         "inventory": _inventory_dict(next_inventory),
         "rates_mol_L_s": rates,
@@ -344,16 +616,26 @@ def semibatch_trajectory(
         reaction_enthalpy_kJ_mol=reaction_enthalpy_kJ_mol,
         heat_removal_kW=heat_removal_kW,
     )
+    context = _compile_semibatch_trajectory_context(
+        validated_feed, validated_parameters, operating
+    )
     history: list[dict[str, float]] = []
     total_polymer = 0.0
     maximum_closure = 0.0
     for index in range(steps):
-        current, _, _, polymer_increment, _, _, closure = _semibatch_step_kernel(
-            current, validated_feed, validated_parameters, operating
+        current, polymer_increment, closure = _semibatch_trajectory_step_kernel(
+            current, validated_parameters, context
         )
         total_polymer += polymer_increment
         maximum_closure = max(maximum_closure, abs(closure))
         history.append({"step": index + 1, **_inventory_dict(current)})
+    if not (math.isfinite(total_polymer) and math.isfinite(maximum_closure)):
+        _raise_nonfinite_semibatch(
+            (
+                ("trajectory polymer increment", total_polymer),
+                ("trajectory maximum closure residual", maximum_closure),
+            )
+        )
     return {
         "status": "CALCULATED_REFERENCE_ONLY",
         "steps": steps,
