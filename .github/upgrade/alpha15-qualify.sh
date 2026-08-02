@@ -64,8 +64,49 @@ python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
 python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
 python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 if [[ "${RUN_EXTENDED:-0}" == "1" ]]; then
-  python scripts/benchmark_performance_v2.py --repeats 7 --wheel-dir wheelhouse --output reports/runtime/PERFORMANCE_RESULTS_V2.json
-  python scripts/compare_performance_v2.py --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json --current reports/runtime/PERFORMANCE_RESULTS_V2.json --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
+  baseline_root="${RUNNER_TEMP:-/tmp}/alpha14-performance-baseline"
+  baseline_report="${RUNNER_TEMP:-/tmp}/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json"
+  rm -rf "$baseline_root"
+  git worktree add --detach "$baseline_root" 8719e59140202aae53cdfb80239b80dedad6767a
+  (
+    cd "$baseline_root"
+    rm -rf wheelhouse build dist *.egg-info
+    python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+    python scripts/benchmark_performance_v2.py \
+      --repeats 7 \
+      --wheel-dir wheelhouse \
+      --output "$baseline_report"
+  )
+  python scripts/benchmark_performance_v2.py \
+    --repeats 7 \
+    --wheel-dir wheelhouse \
+    --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+  python scripts/compare_performance_v2.py \
+    --baseline "$baseline_report" \
+    --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+    --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
+  historical_report="reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json"
+  set +e
+  python scripts/compare_performance_v2.py \
+    --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
+    --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+    --output "$historical_report"
+  historical_rc=$?
+  set -e
+  HISTORICAL_RC="$historical_rc" python - <<'INNERPY'
+import json
+import os
+from pathlib import Path
+
+path = Path("reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json")
+data = json.loads(path.read_text(encoding="utf-8"))
+data["qualification_role"] = "NON_BLOCKING_HISTORICAL_TREND"
+data["historical_comparator_exit_code"] = int(os.environ["HISTORICAL_RC"])
+data["qualification_baseline"] = "ALPHA14_SAME_RUN_SAME_PYTHON"
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+INNERPY
+  cp "$baseline_report" reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
+  git worktree remove --force "$baseline_root"
   python scripts/export_source_snapshot.py --root . --out "${RUNNER_TEMP:-/tmp}/TSAO-PROCESSING-SKILL-source-alpha.15.zip"
   python - <<'INNERPY'
 import zipfile
