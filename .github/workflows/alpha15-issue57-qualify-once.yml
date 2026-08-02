@@ -52,7 +52,16 @@ jobs:
           patch_path="$RUNNER_TEMP/alpha15-issue57.patch"
           cp .github/issue57/alpha15-issue57.patch.gz.b64 "$patch_b64"
           git reset --hard "$base"
-          base64 --decode "$patch_b64" | gzip --decompress > "$patch_path"
+          python - "$patch_b64" "$patch_path" <<'PY'
+          import base64
+          import gzip
+          import sys
+          from pathlib import Path
+
+          encoded = b"".join(Path(sys.argv[1]).read_bytes().split())
+          compressed = base64.b64decode(encoded, validate=True)
+          Path(sys.argv[2]).write_bytes(gzip.decompress(compressed))
+          PY
           echo "a151f26a28f15656f1a08e872485c721df702d8dba37f21ce9bcc685514ab40b  $patch_path" | sha256sum --check --status
           git apply --check "$patch_path"
           git apply --whitespace=fix "$patch_path"
