@@ -1,0 +1,53 @@
+name: Verify Alpha15 Issue57 squash tree once
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-tree:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: alpha15-issue57-qualification
+          fetch-depth: 0
+      - name: Verify exact tree and one-commit topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin \
+            refs/heads/alpha15-issue57-final-staging:refs/remotes/origin/alpha15-issue57-final-staging \
+            refs/heads/alpha15-issue57-squash-base:refs/remotes/origin/alpha15-issue57-squash-base
+          stage_commit="$(git rev-parse origin/alpha15-issue57-final-staging)"
+          squash_commit="$(git rev-parse origin/alpha15-issue57-squash-base)"
+          stage_tree="$(git rev-parse "$stage_commit^{tree}")"
+          squash_tree="$(git rev-parse "$squash_commit^{tree}")"
+          parent="$(git rev-parse "$squash_commit^")"
+          count="$(git rev-list --count 8719e59140202aae53cdfb80239b80dedad6767a.."$squash_commit")"
+          test "$stage_commit" = "f0a3b5dedfa0a38300b117b4c77db73f2eb45295"
+          test "$squash_commit" = "f8670286792c8953427888429b5c1f10fdeb894e"
+          test "$stage_tree" = "b623628da2da8338cf1aa3ca85f90b2bc25c8790"
+          test "$squash_tree" = "$stage_tree"
+          test "$parent" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          test "$count" = "1"
+          {
+            echo "stage_commit=$stage_commit"
+            echo "squash_commit=$squash_commit"
+            echo "stage_tree=$stage_tree"
+            echo "squash_tree=$squash_tree"
+            echo "parent=$parent"
+            echo "alpha14_to_squash_commit_count=$count"
+            echo "status=PASS"
+          } | tee "$RUNNER_TEMP/alpha15-issue57-tree-identity.txt"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: alpha15-issue57-squash-tree-identity
+          path: ${{ runner.temp }}/alpha15-issue57-tree-identity.txt
+          if-no-files-found: error
+          retention-days: 14
