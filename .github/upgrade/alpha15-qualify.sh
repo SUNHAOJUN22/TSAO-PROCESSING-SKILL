@@ -16,6 +16,19 @@ cat .github/upgrade/alpha15.performance.gz.part-* | base64 --decode | gzip --dec
 echo "67411bf94b5be73155e7c322979247d592cd2ac48f2e109e18a99fadf26c86a8  $performance_path" | sha256sum --check --status
 git apply --check "$performance_path"
 git apply --whitespace=fix "$performance_path"
+python - <<'PY'
+from pathlib import Path
+
+path = Path("tsao/process_package.py")
+text = path.read_text(encoding="utf-8")
+old = '    stream_ids = _unique_ids(streams, "stream_id", "stream", errors)\n'
+new = '    _unique_ids(streams, "stream_id", "stream", errors)\n'
+if text.count(old) != 1:
+    raise SystemExit("alpha15 lint closure target is missing or ambiguous")
+with path.open("w", encoding="utf-8", newline="\n") as stream:
+    stream.write(text.replace(old, new))
+PY
+python scripts/update_source_overlay.py --root . tsao/process_package.py
 rm -rf .github/upgrade
 rm -f .github/workflows/alpha15-pr-qualify-once.yml
 git config user.name 'TSAO Qualification Bot'
