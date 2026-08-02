@@ -1,4 +1,4 @@
-name: Qualify Alpha15 exact candidate
+name: Finalize Alpha15 exact release once
 
 on:
   pull_request:
@@ -9,99 +9,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: tsao-alpha15-${{ github.event.pull_request.number }}
+  group: tsao-alpha15-final-release
   cancel-in-progress: false
 
 jobs:
-  export-candidate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: alpha15-qualification
-          fetch-depth: 0
-      - name: Reconstruct clean candidate tree
-        shell: bash
-        run: |
-          bash .github/upgrade/inject-alpha15-special.sh
-          awk '/^python -m pip install/{exit} {print}' .github/upgrade/alpha15-qualify.sh > "$RUNNER_TEMP/reconstruct-alpha15.sh"
-          chmod +x "$RUNNER_TEMP/reconstruct-alpha15.sh"
-          bash "$RUNNER_TEMP/reconstruct-alpha15.sh" export
-          rm -f .github/workflows/alpha15-export-candidate-once.yml
-          git add -A
-          git commit --amend --no-edit
-          git archive --format=zip --output="$RUNNER_TEMP/alpha15-exact-candidate.zip" HEAD
-          git rev-parse HEAD > "$RUNNER_TEMP/alpha15-exact-candidate.commit"
-          git rev-parse HEAD^{tree} > "$RUNNER_TEMP/alpha15-exact-candidate.tree"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: alpha15-exact-candidate
-          path: |
-            ${{ runner.temp }}/alpha15-exact-candidate.zip
-            ${{ runner.temp }}/alpha15-exact-candidate.commit
-            ${{ runner.temp }}/alpha15-exact-candidate.tree
-          if-no-files-found: error
-          retention-days: 2
-
-  qualification:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            python: '3.11'
-          - os: windows-latest
-            python: '3.12'
-          - os: windows-latest
-            python: '3.13'
-          - os: windows-latest
-            python: '3.14'
-          - os: ubuntu-latest
-            python: '3.11'
-          - os: ubuntu-latest
-            python: '3.14'
-            extended: true
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: alpha15-qualification
-          fetch-depth: 0
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with:
-          python-version: ${{ matrix.python }}
-          cache: pip
-          cache-dependency-path: pyproject.toml
-      - name: Run audited Alpha15 candidate qualification
-        shell: bash
-        env:
-          RUN_EXTENDED: ${{ matrix.extended && '1' || '0' }}
-        run: |
-          bash .github/upgrade/inject-alpha15-special.sh
-          bash .github/upgrade/alpha15-qualify.sh qualify
-      - name: Upload Linux qualification artifacts
-        if: always() && matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: alpha15-linux-qualification
-          path: |
-            wheelhouse/*.whl
-            reports/runtime/CI_RESULTS.json
-            reports/runtime/PERFORMANCE_RESULTS_V2.json
-            reports/runtime/PERFORMANCE_COMPARISON_V2.json
-            reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
-            reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
-            ${{ runner.temp }}/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
-            ${{ runner.temp }}/alpha15-coverage.txt
-            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip
-            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
-          if-no-files-found: warn
-          retention-days: 14
-
-  promote-evidence:
-    needs: qualification
+  finalize:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -114,25 +26,58 @@ jobs:
           python-version: '3.14'
           cache: pip
           cache-dependency-path: pyproject.toml
-      - name: Rebuild exact qualified candidate evidence
+      - name: Execute audited finalization recipe
         shell: bash
-        env:
-          RUN_EXTENDED: '1'
         run: |
-          bash .github/upgrade/inject-alpha15-special.sh
-          bash .github/upgrade/alpha15-qualify.sh promote
+          set -euo pipefail
+          python -m pip install --quiet 'PyYAML>=6.0,<7'
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          source = Path('.github/workflows/alpha15-finalize-once.yml')
+          data = yaml.safe_load(source.read_text(encoding='utf-8'))
+          expected = [
+              'Reconstruct qualified tree and close release metadata',
+              'Requalify metadata-closed final commit',
+              'Fast-forward final Alpha15 to main',
+          ]
+          scripts = []
+          for step in data['jobs']['finalize']['steps']:
+              if step.get('name') in expected:
+                  scripts.append((step['name'], step['run']))
+          if [name for name, _ in scripts] != expected:
+              raise SystemExit(f'finalization recipe mismatch: {[name for name, _ in scripts]}')
+          root = Path('/tmp/alpha15-finalization-recipes')
+          root.mkdir(parents=True, exist_ok=True)
+          for index, (name, script) in enumerate(scripts, start=1):
+              path = root / f'{index:02d}.sh'
+              path.write_text('set -euo pipefail\n' + script + '\n', encoding='utf-8')
+              path.chmod(0o755)
+          PY
+          for recipe in /tmp/alpha15-finalization-recipes/*.sh; do
+            echo "Executing $recipe"
+            bash "$recipe"
+          done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
         with:
-          name: alpha15-promotion-evidence
+          name: alpha15-finalization-evidence
           path: |
-            ${{ runner.temp }}/alpha15-qualified-candidate.zip
-            ${{ runner.temp }}/alpha15-wheel.sha256
+            ${{ runner.temp }}/alpha15-final.commit
+            ${{ runner.temp }}/alpha15-final.parent
+            ${{ runner.temp }}/alpha15-final.tree
+            ${{ runner.temp }}/alpha15-final-doctor.json
+            ${{ runner.temp }}/alpha15-final-targeted.txt
+            ${{ runner.temp }}/alpha15-final-ci.json
+            ${{ runner.temp }}/alpha15-final-coverage.txt
+            ${{ runner.temp }}/alpha15-final-wheel-contents.json
+            ${{ runner.temp }}/alpha15-final-wheel-runtime.json
+            ${{ runner.temp }}/alpha15-final-source-snapshot.json
+            ${{ runner.temp }}/alpha15-final-wheel.sha256
             ${{ runner.temp }}/tsao_processing_skill-0.1.0a15-py3-none-any.whl
-            reports/runtime/CI_RESULTS.json
-            reports/runtime/PERFORMANCE_RESULTS_V2.json
-            reports/runtime/PERFORMANCE_COMPARISON_V2.json
-            ${{ runner.temp }}/alpha15-coverage.txt
             ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip
             ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
-          if-no-files-found: error
-          retention-days: 14
+            ${{ runner.temp }}/alpha15-final-status.txt
+          if-no-files-found: warn
+          retention-days: 30
