@@ -17,20 +17,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: 8719e59140202aae53cdfb80239b80dedad6767a
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with:
-          python-version: '3.14'
-      - name: Install source exporter
-        run: python -m pip install --quiet -e .
-      - name: Verify and export exact Alpha14 source
+          fetch-depth: 0
+      - name: Verify exact Alpha14 and export complete tracked tree
+        shell: bash
         run: |
-          python -m tsao.cli doctor --root . --profile core
-          python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.14-exact.zip
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          git archive --format=zip --output=TSAO-PROCESSING-SKILL-alpha14-complete-tree.zip HEAD
+          sha256sum TSAO-PROCESSING-SKILL-alpha14-complete-tree.zip > TSAO-PROCESSING-SKILL-alpha14-complete-tree.zip.sha256
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: tsao-alpha14-exact-source
+          name: tsao-alpha14-complete-tree
           path: |
-            TSAO-PROCESSING-SKILL-source-alpha.14-exact.zip
-            TSAO-PROCESSING-SKILL-source-alpha.14-exact.zip.sha256
+            TSAO-PROCESSING-SKILL-alpha14-complete-tree.zip
+            TSAO-PROCESSING-SKILL-alpha14-complete-tree.zip.sha256
           if-no-files-found: error
           retention-days: 2
