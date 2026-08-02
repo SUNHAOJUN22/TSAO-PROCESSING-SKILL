@@ -1,0 +1,178 @@
+name: Qualify Alpha15 Issue57 finite hardening
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tsao-alpha15-issue57-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  qualification:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python: '3.11'
+          - os: windows-latest
+            python: '3.12'
+          - os: windows-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.14'
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.14'
+            extended: true
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: alpha15-issue57-qualification
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Reconstruct exact Issue57 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='e4afd1cf838aeda9078f21021954b326fa0a8494'
+          patch_b64="$RUNNER_TEMP/alpha15-issue57.patch.gz.b64"
+          patch_path="$RUNNER_TEMP/alpha15-issue57.patch"
+          cp .github/issue57/alpha15-issue57.patch.gz.b64 "$patch_b64"
+          git reset --hard "$base"
+          base64 --decode "$patch_b64" | gzip --decompress > "$patch_path"
+          echo "a562a188d637bb41a46752e8c6fcbc3dac4c04374444b59165c6e295552d1603  $patch_path" | sha256sum --check --status
+          git apply --check "$patch_path"
+          git apply --whitespace=fix "$patch_path"
+          python scripts/update_source_overlay.py --root . \
+            CHANGELOG.md \
+            skills/epdm/kinetics.py \
+            skills/epdm/process.py \
+            skills/epdm/tests/test_epdm_scalar_finite_hardening.py
+          git diff --check
+          test "$(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort)" = "ci.yml"
+          test ! -e .github/issue57
+      - name: Install
+        run: python -m pip install --quiet -e .[dev]
+      - name: Dependency integrity
+        run: python -m pip check
+      - name: Doctor and focused numerical hardening
+        run: |
+          python -m tsao.cli doctor --root . --profile core
+          python -m pytest -q -p no:cacheprovider \
+            skills/epdm/tests/test_epdm_scalar_finite_hardening.py \
+            skills/epdm/tests/test_epdm_reference.py \
+            skills/epdm/tests/test_epdm_phase_a3.py \
+            skills/epdm/tests/test_epdm_phase_a4_integration.py \
+            tests/test_alpha13_numerical_correctness.py \
+            tests/test_performance_contract.py
+      - name: Complete CI and Ruff
+        run: python scripts/run_ci.py
+      - name: Alpha15 adaptive-integrator branch coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        run: |
+          python -m coverage erase
+          python -m coverage run --branch -m pytest -q -p no:cacheprovider skills/epdm/tests/test_epdm_phase_a4_integration.py
+          python -m coverage report --include='skills/epdm/numerical_integration.py' --fail-under=90 | tee "$RUNNER_TEMP/alpha15-issue57-coverage.txt"
+          python -c "from pathlib import Path; Path('.coverage').unlink(missing_ok=True)"
+      - name: Build and verify Wheel
+        run: |
+          rm -rf wheelhouse build dist *.egg-info
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+      - name: Same-run Alpha15 performance and source snapshot
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline_root="$RUNNER_TEMP/alpha15-before-issue57"
+          baseline_report="$RUNNER_TEMP/PERFORMANCE_BASELINE_ALPHA15_PRE_ISSUE57.json"
+          git worktree add --detach "$baseline_root" e4afd1cf838aeda9078f21021954b326fa0a8494
+          (
+            cd "$baseline_root"
+            rm -rf wheelhouse build dist *.egg-info
+            python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+            python scripts/benchmark_performance_v2.py --repeats 7 --wheel-dir wheelhouse --output "$baseline_report"
+          )
+          python scripts/benchmark_performance_v2.py --repeats 7 --wheel-dir wheelhouse --output reports/runtime/PERFORMANCE_RESULTS_V2.json
+          BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          baseline_root = Path(os.environ['BASELINE_ROOT'])
+          baseline_report = Path(os.environ['BASELINE_REPORT'])
+          current_report = root / 'reports/runtime/PERFORMANCE_RESULTS_V2.json'
+
+          def schema_units(worktree: Path) -> float:
+              code = (
+                  "from pathlib import Path; "
+                  "from tsao.doctor import diagnose; "
+                  "print(diagnose(Path('.'), profile='core')['metrics']['schemas'])"
+              )
+              output = subprocess.check_output([sys.executable, '-c', code], cwd=worktree, text=True)
+              return float(output.strip().splitlines()[-1])
+
+          for path, worktree in ((baseline_report, baseline_root), (current_report, root)):
+              report = json.loads(path.read_text(encoding='utf-8'))
+              doctor = next(row for row in report['benchmarks'] if row['name'] == 'doctor_core_repository')
+              doctor['work_units'] = schema_units(worktree)
+              doctor['work_unit'] = 'schema_count'
+              path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          python scripts/compare_performance_v2.py \
+            --baseline "$baseline_report" \
+            --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
+            --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
+          cp "$baseline_report" reports/runtime/PERFORMANCE_BASELINE_ALPHA15_PRE_ISSUE57.json
+          git worktree remove --force "$baseline_root"
+          python scripts/export_source_snapshot.py --root . --out "$RUNNER_TEMP/TSAO-PROCESSING-SKILL-source-alpha.15-issue57.zip"
+          python - <<'PY'
+          import os
+          import zipfile
+          from pathlib import Path
+
+          path = Path(os.environ['RUNNER_TEMP']) / 'TSAO-PROCESSING-SKILL-source-alpha.15-issue57.zip'
+          names = set(zipfile.ZipFile(path).namelist())
+          required = (
+              'skills/epdm/kinetics.py',
+              'skills/epdm/process.py',
+              'skills/epdm/tests/test_epdm_scalar_finite_hardening.py',
+              'reports/EPDM_PHASE_A4_QUALIFICATION.json',
+          )
+          missing = [item for item in required if not any(name.endswith('/' + item) for name in names)]
+          if missing:
+              raise SystemExit(f'source snapshot missing Issue57 members: {missing}')
+          PY
+      - name: Upload qualification evidence
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: alpha15-issue57-qualification
+          path: |
+            wheelhouse/*.whl
+            reports/runtime/CI_RESULTS.json
+            reports/runtime/PERFORMANCE_RESULTS_V2.json
+            reports/runtime/PERFORMANCE_COMPARISON_V2.json
+            reports/runtime/PERFORMANCE_BASELINE_ALPHA15_PRE_ISSUE57.json
+            ${{ runner.temp }}/alpha15-issue57-coverage.txt
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15-issue57.zip
+            ${{ runner.temp }}/TSAO-PROCESSING-SKILL-source-alpha.15-issue57.zip.sha256
+          if-no-files-found: warn
+          retention-days: 14
