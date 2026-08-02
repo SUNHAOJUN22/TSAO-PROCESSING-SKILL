@@ -1,0 +1,39 @@
+name: Export Alpha15 exact candidate once
+
+on:
+  push:
+    branches:
+      - alpha15-qualification
+
+permissions:
+  contents: read
+
+jobs:
+  export-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: alpha15-qualification
+          fetch-depth: 0
+      - name: Reconstruct clean candidate tree
+        shell: bash
+        run: |
+          awk '/^python -m pip install/{exit} {print}' .github/upgrade/alpha15-qualify.sh > "$RUNNER_TEMP/reconstruct-alpha15.sh"
+          chmod +x "$RUNNER_TEMP/reconstruct-alpha15.sh"
+          bash "$RUNNER_TEMP/reconstruct-alpha15.sh" export
+          rm -f .github/workflows/alpha15-export-candidate-once.yml
+          git add -A
+          git commit --amend --no-edit
+          git archive --format=zip --output="$RUNNER_TEMP/alpha15-exact-candidate.zip" HEAD
+          git rev-parse HEAD > "$RUNNER_TEMP/alpha15-exact-candidate.commit"
+          git rev-parse HEAD^{tree} > "$RUNNER_TEMP/alpha15-exact-candidate.tree"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: alpha15-exact-candidate
+          path: |
+            ${{ runner.temp }}/alpha15-exact-candidate.zip
+            ${{ runner.temp }}/alpha15-exact-candidate.commit
+            ${{ runner.temp }}/alpha15-exact-candidate.tree
+          if-no-files-found: error
+          retention-days: 2
