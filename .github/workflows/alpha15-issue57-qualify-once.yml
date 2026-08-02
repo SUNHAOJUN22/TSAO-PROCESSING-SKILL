@@ -53,7 +53,7 @@ jobs:
           cp .github/issue57/alpha15-issue57.patch.gz.b64 "$patch_b64"
           git reset --hard "$base"
           base64 --decode "$patch_b64" | gzip --decompress > "$patch_path"
-          echo "a562a188d637bb41a46752e8c6fcbc3dac4c04374444b59165c6e295552d1603  $patch_path" | sha256sum --check --status
+          echo "d0b447922166230a957d91b8bf4e87c9b3b9c5d5983c22ec7e6d43dca6ad789c  $patch_path" | sha256sum --check --status
           git apply --check "$patch_path"
           git apply --whitespace=fix "$patch_path"
           python scripts/update_source_overlay.py --root . \
