@@ -24,6 +24,7 @@ jobs:
       - name: Reconstruct clean candidate tree
         shell: bash
         run: |
+          bash .github/upgrade/inject-alpha15-special.sh
           awk '/^python -m pip install/{exit} {print}' .github/upgrade/alpha15-qualify.sh > "$RUNNER_TEMP/reconstruct-alpha15.sh"
           chmod +x "$RUNNER_TEMP/reconstruct-alpha15.sh"
           bash "$RUNNER_TEMP/reconstruct-alpha15.sh" export
@@ -77,7 +78,9 @@ jobs:
         shell: bash
         env:
           RUN_EXTENDED: ${{ matrix.extended && '1' || '0' }}
-        run: bash .github/upgrade/alpha15-qualify.sh qualify
+        run: |
+          bash .github/upgrade/inject-alpha15-special.sh
+          bash .github/upgrade/alpha15-qualify.sh qualify
       - name: Upload Linux qualification artifacts
         if: always() && matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -115,7 +118,9 @@ jobs:
         shell: bash
         env:
           RUN_EXTENDED: '1'
-        run: bash .github/upgrade/alpha15-qualify.sh promote
+        run: |
+          bash .github/upgrade/inject-alpha15-special.sh
+          bash .github/upgrade/alpha15-qualify.sh promote
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: alpha15-promotion-evidence
