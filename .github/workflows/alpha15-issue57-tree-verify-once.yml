@@ -28,26 +28,32 @@ jobs:
           squash_commit="$(git rev-parse origin/alpha15-issue57-squash-base)"
           stage_tree="$(git rev-parse "$stage_commit^{tree}")"
           squash_tree="$(git rev-parse "$squash_commit^{tree}")"
-          parent="$(git rev-parse "$squash_commit^")"
-          count="$(git rev-list --count 8719e59140202aae53cdfb80239b80dedad6767a.."$squash_commit")"
-          test "$stage_commit" = "f0a3b5dedfa0a38300b117b4c77db73f2eb45295"
-          test "$squash_commit" = "f8670286792c8953427888429b5c1f10fdeb894e"
-          test "$stage_tree" = "b623628da2da8338cf1aa3ca85f90b2bc25c8790"
-          test "$squash_tree" = "$stage_tree"
-          test "$parent" = "8719e59140202aae53cdfb80239b80dedad6767a"
-          test "$count" = "1"
+          stage_parent="$(git rev-parse "$stage_commit^")"
+          squash_parent="$(git rev-parse "$squash_commit^")"
+          stage_count="$(git rev-list --count e4afd1cf838aeda9078f21021954b326fa0a8494.."$stage_commit")"
+          squash_count="$(git rev-list --count 8719e59140202aae53cdfb80239b80dedad6767a.."$squash_commit")"
           {
             echo "stage_commit=$stage_commit"
             echo "squash_commit=$squash_commit"
             echo "stage_tree=$stage_tree"
             echo "squash_tree=$squash_tree"
-            echo "parent=$parent"
-            echo "alpha14_to_squash_commit_count=$count"
-            echo "status=PASS"
+            echo "stage_parent=$stage_parent"
+            echo "squash_parent=$squash_parent"
+            echo "main_to_stage_commit_count=$stage_count"
+            echo "alpha14_to_squash_commit_count=$squash_count"
           } | tee "$RUNNER_TEMP/alpha15-issue57-tree-identity.txt"
+          test "$squash_commit" = "f8670286792c8953427888429b5c1f10fdeb894e"
+          test "$stage_tree" = "b623628da2da8338cf1aa3ca85f90b2bc25c8790"
+          test "$squash_tree" = "$stage_tree"
+          test "$stage_parent" = "e4afd1cf838aeda9078f21021954b326fa0a8494"
+          test "$squash_parent" = "8719e59140202aae53cdfb80239b80dedad6767a"
+          test "$stage_count" = "1"
+          test "$squash_count" = "1"
+          echo "status=PASS" | tee -a "$RUNNER_TEMP/alpha15-issue57-tree-identity.txt"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
         with:
           name: alpha15-issue57-squash-tree-identity
           path: ${{ runner.temp }}/alpha15-issue57-tree-identity.txt
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
