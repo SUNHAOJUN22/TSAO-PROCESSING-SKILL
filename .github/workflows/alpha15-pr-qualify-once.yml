@@ -55,6 +55,12 @@ jobs:
               path.write_text('set -euo pipefail\n' + script + '\n', encoding='utf-8')
               path.chmod(0o755)
           PY
+          payload_root="$RUNNER_TEMP/alpha15-qualified-payload"
+          rm -rf "$payload_root"
+          cp -a .github/upgrade "$payload_root"
+          git reset --hard 8719e59140202aae53cdfb80239b80dedad6767a
+          mkdir -p .github
+          cp -a "$payload_root" .github/upgrade
           for recipe in /tmp/alpha15-finalization-recipes/*.sh; do
             echo "Executing $recipe"
             bash "$recipe"
