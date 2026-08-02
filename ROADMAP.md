@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered through Alpha.13
+## Delivered through Alpha.14
 
 - universal process-package object model, evidence ledger, acceptance records and fail-closed content audit;
 - EPDM Phase A0 evidence/status/applicability closure, A1 contracts and A2 structural network;
@@ -10,7 +10,7 @@
 
 ## Next evidence-driven phase
 
-- Alpha.13: numerical-correctness repair for EPDM site-family moments, POE hot-start balances and bounded-memory DoE;
+- Alpha.14: numerical-correctness repair for EPDM site-family moments, POE hot-start balances and bounded-memory DoE;
 - Alpha.14 / EPDM A3: rate-law contracts, parameter binding, structural RHS and numerical conservation;
 - Alpha.15: solver, moment/PBM, identifiability and uncertainty framework;
 - Beta.1: whole-repository qualification and Windows core matrix;
@@ -18,4 +18,4 @@
 
 ## Boundary
 
-Alpha.13 is software-integrity hardening. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.
+Alpha.14 is software-integrity hardening. It does not provide calibrated kinetics, engineering design, HSE approval, customer qualification or industrial performance guarantees.

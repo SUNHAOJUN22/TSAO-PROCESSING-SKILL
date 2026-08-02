@@ -44,6 +44,13 @@
       "numerical_execution": false
     },
     {
+      "module": "executable_rhs.py",
+      "phase": "A3",
+      "status": "RHS_SOFTWARE_VERIFIED_CALCULATED_REFERENCE_ONLY",
+      "numerical_execution": true,
+      "scientific_calibration": false
+    },
+    {
       "module": "thermodynamics.py",
       "phase": "B",
       "status": "NOT_IMPLEMENTED",

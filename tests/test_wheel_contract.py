@@ -101,6 +101,11 @@ def _valid_runtime_payload(install_root: Path) -> dict[str, object]:
         "a2_propagation_channel_count": 9,
         "a2_network_status": "PASS",
         "a2_numerical_execution": "NOT_IMPLEMENTED_PHASE_A2",
+        "a3_binding_count": 41,
+        "a3_rhs_decision": "PASS",
+        "a3_rhs_reason_code": "A3_RHS_SOFTWARE_VERIFIED",
+        "a3_scientific_status": "CALCULATED_REFERENCE_ONLY",
+        "a3_scientific_technical_approval": "NOT_EVALUATED",
         "skillpacks": {
             "pass": True,
             "delivery": "INSTALLED_SKILLPACK",
@@ -136,11 +141,15 @@ def test_runtime_payload_rejects_host_skillpack_data(tmp_path: Path) -> None:
     errors = _evaluate_payload(payload, "TEST", expected_root=install_root)
     assert "TEST resolved Skillpack data outside the installed root" in errors
 
-def test_runtime_payload_rejects_incomplete_a2_install_contract(tmp_path: Path) -> None:
+def test_runtime_payload_rejects_incomplete_a2_and_a3_install_contract(tmp_path: Path) -> None:
     install_root = tmp_path / "installed"
     payload = _valid_runtime_payload(install_root)
     payload["a2_propagation_channel_count"] = 8
     payload["a2_numerical_execution"] = "IMPLEMENTED"
+    payload["a3_binding_count"] = 40
+    payload["a3_scientific_status"] = "CALIBRATED"
     errors = _evaluate_payload(payload, "TEST", expected_root=install_root)
     assert "TEST A2 propagation matrix is incomplete" in errors
     assert "TEST A2 numerical-execution boundary mismatch" in errors
+    assert "TEST A3 rate-package binding count mismatch" in errors
+    assert "TEST A3 scientific-status boundary mismatch" in errors

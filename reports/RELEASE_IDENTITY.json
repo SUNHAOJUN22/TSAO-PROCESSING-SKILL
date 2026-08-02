@@ -1,6 +1,6 @@
 {
   "format": "TSAO-RELEASE-IDENTITY-3",
-  "version": "0.1.0-alpha.13",
+  "version": "0.1.0-alpha.14",
   "source_core": {
     "manifest": "reports/SOURCE_CORE_MANIFEST.tsv",
     "overlay": "reports/SOURCE_CORE_OVERLAY.tsv",
@@ -17,9 +17,10 @@
     "reference": "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
     "qualification": "NOT_EVALUATED"
   },
-  "qualification_boundary": "SOFTWARE_REFERENCE_NUMERICS_ONLY",
+  "qualification_boundary": "SOFTWARE_EXECUTABLE_RHS_ONLY",
   "alpha12_qualification_run_id": 30714590133,
-  "wheel_filename": "tsao_processing_skill-0.1.0a13-py3-none-any.whl",
-  "wheel_sha256": "083a9e7c999019885a198e4fbf9457ff56976db1a8f6c008de272ab9f6f9f7ae",
-  "alpha13_qualification_run_id": 30715515305
+  "wheel_filename": "tsao_processing_skill-0.1.0a14-py3-none-any.whl",
+  "wheel_sha256": "992a937c4db3a670fcfa965fd2a95620e4238ab5c43459546c6ebba7c7abf686",
+  "alpha13_qualification_run_id": 30715515305,
+  "alpha14_qualification_run_id": 30736637313
 }

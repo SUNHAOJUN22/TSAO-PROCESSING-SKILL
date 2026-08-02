@@ -49,6 +49,10 @@ from tsao.process_package import validate_process_package
 from tsao.skillpacks import skillpack_inventory
 from skills.epdm.core import active_site_fraction, heat_removal_margin, validate_epdm_case
 from skills.epdm.reaction_network import audit_reaction_network, build_reaction_network
+from skills.epdm.executable_rhs import (
+    build_calculated_reference_rate_package,
+    execute_structural_rhs,
+)
 from skills.epdm.state_generator import generate_state_definition
 from skills.poe.core import (
     first_order_pfr_conversion,
@@ -72,6 +76,11 @@ a2_state = generate_state_definition(
 )
 a2_network = build_reaction_network(a2_state)
 a2_audit = audit_reaction_network(a2_network, a2_state)
+a3_package = build_calculated_reference_rate_package(a2_network)
+a3_input = a2_state.pack({{'N_SITE_POTENTIAL:SITE-A': 1.0}}, fill_missing=0.0)
+a3_result = execute_structural_rhs(
+    a2_network, a2_state, a3_package, a3_input, temperature_k=323.15, volume_m3=1.0
+)
 skillpacks = skillpack_inventory()
 skillpack_root = Path(skillpacks['root'])
 link_pattern = re.compile(r"\\[[^\\]]*\\]\\(([^)]+)\\)")
@@ -111,6 +120,11 @@ print(json.dumps({{
     'a2_propagation_channel_count': a2_audit.metrics['propagation_channel_count'],
     'a2_network_status': a2_audit.decision.value,
     'a2_numerical_execution': a2_network.as_dict()['numerical_execution'],
+    'a3_binding_count': len(a3_package.bindings),
+    'a3_rhs_decision': a3_result.decision.value,
+    'a3_rhs_reason_code': a3_result.reason_code,
+    'a3_scientific_status': a3_result.as_dict()['scientific_status'],
+    'a3_scientific_technical_approval': a3_result.as_dict()['scientific_technical_approval'],
     'skillpacks': skillpacks,
     'installed_readme_link_failures': link_failures,
 }}))
@@ -152,6 +166,16 @@ def _evaluate_payload(
         errors.append(f"{label} A2 reaction-network structural audit failed")
     if payload.get("a2_numerical_execution") != "NOT_IMPLEMENTED_PHASE_A2":
         errors.append(f"{label} A2 numerical-execution boundary mismatch")
+    if payload.get("a3_binding_count") != 41:
+        errors.append(f"{label} A3 rate-package binding count mismatch")
+    if payload.get("a3_rhs_decision") != "PASS":
+        errors.append(f"{label} A3 executable RHS smoke failed")
+    if payload.get("a3_rhs_reason_code") != "A3_RHS_SOFTWARE_VERIFIED":
+        errors.append(f"{label} A3 RHS reason-code mismatch")
+    if payload.get("a3_scientific_status") != "CALCULATED_REFERENCE_ONLY":
+        errors.append(f"{label} A3 scientific-status boundary mismatch")
+    if payload.get("a3_scientific_technical_approval") != "NOT_EVALUATED":
+        errors.append(f"{label} A3 scientific approval boundary mismatch")
 
     for field in ("tsao_module_path", "epdm_module_path", "poe_module_path"):
         if not _path_is_within(payload.get(field), expected_root):

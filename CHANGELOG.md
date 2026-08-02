@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.14 — 2026-08-02
+
+- Added strict reaction-channel rate-law and parameter-set binding for every A2 channel.
+- Added SI-unit and Arrhenius parameter contracts with provenance, uncertainty, identifiability and applicability-domain states.
+- Implemented the calculated-reference EPDM structural RHS, live/dead/TDB moment-source terms and explicit external flows.
+- Added named conservation ledgers, zero/single/multi-channel hand calculations and short reference integration smoke tests.
+- Preserved the frozen V1 public API and kept scientific, engineering, HSE, customer and industrial approval `NOT_EVALUATED`.
+
 ## 0.1.0-alpha.13 — 2026-08-02
 
 - Corrected EPDM heterogeneous-site chain moments to use one consistent weighted rate set.
