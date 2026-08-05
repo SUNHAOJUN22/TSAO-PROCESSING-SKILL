@@ -47,11 +47,11 @@ jobs:
           test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "$GITHUB_SHA"
           sha256sum -c .github/upgrade/PARTS.sha256
           cat .github/upgrade/parts/part-* > "$RUNNER_TEMP/upgrade.patch.gz.b64"
-          echo "9a79ab60f7ef63a1d8b2fb496cf42a4feaefcdf01e0b0cefa1a406157e101daa  $RUNNER_TEMP/upgrade.patch.gz.b64" | sha256sum -c --strict
+          echo "7d0e8b075335e83fef0cc34bc0488e59b7ee156859b12c7881e06b99a2c459a7  $RUNNER_TEMP/upgrade.patch.gz.b64" | sha256sum -c --strict
           base64 --decode "$RUNNER_TEMP/upgrade.patch.gz.b64" > "$RUNNER_TEMP/upgrade.patch.gz"
-          echo "ee804b33827bdb409f1aa1a8c4eb30bbadbc5c8a6bab9d65e57dd4a8237e8d18  $RUNNER_TEMP/upgrade.patch.gz" | sha256sum -c --strict
+          echo "0b9dccabf19ca2ff1a549f15fccaa5d9507707b959613b6f0232fba638d205a4  $RUNNER_TEMP/upgrade.patch.gz" | sha256sum -c --strict
           gzip -dc "$RUNNER_TEMP/upgrade.patch.gz" > "$RUNNER_TEMP/upgrade.patch"
-          echo "67e658767ad567073c92c51e8fde0355276e600a5ade1c2fb28f92ab7630a14b  $RUNNER_TEMP/upgrade.patch" | sha256sum -c --strict
+          echo "aa1096d84f30ad1f5d22748cf6b7d4e1ea3a915467e746b452cc8b76479ed3ae  $RUNNER_TEMP/upgrade.patch" | sha256sum -c --strict
           git apply --check "$RUNNER_TEMP/upgrade.patch"
           git apply "$RUNNER_TEMP/upgrade.patch"
           rm -f .github/workflows/main-repair-once.yml
@@ -59,6 +59,8 @@ jobs:
           rm -f .github/workflows/finalize-main-ai-upgrade-once.yml
           rm -rf .github/upgrade
           git diff --check
+          git add -A
+          git diff --cached --check
       - name: Install candidate
         run: |
           python -m pip install --quiet -e .[dev]
