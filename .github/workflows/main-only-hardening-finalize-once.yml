@@ -12,6 +12,7 @@ permissions:
   contents: write
   issues: write
 
+
 concurrency:
   group: tsao-main-only-hardening
   cancel-in-progress: false
@@ -33,11 +34,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mapfile -t parts < <(find .github/hardening -maxdepth 1 -type f -name 'finalize-main.sh.part-*' | sort)
-          test "${#parts[@]}" -eq 17
-          script="${RUNNER_TEMP}/finalize-main.sh"
-          cat "${parts[@]}" > "${script}"
-          echo "d4d6e12c845cef95613d70cbf27ab9a5966f8ed5db160f59fc2ee70fe12001b6  ${script}" | sha256sum --check --strict
+          script=".github/hardening/finalize-main.sh"
+          test -f "${script}"
+          echo "b7e9572b34ae201b849b02ffbb0f027558fbbe93420ed8efdca081902f0602a5  ${script}" \
+            | sha256sum --check --strict
           chmod +x "${script}"
           "${script}"
       - name: Upload qualification evidence
