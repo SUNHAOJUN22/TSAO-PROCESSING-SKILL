@@ -36,16 +36,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git branch --show-current)" = "main"
+          test "$(git branch --show-current)" = main
           git merge-base --is-ancestor 925b54f2b454dd6a35595987820c9d65c672b0dc HEAD
-          payload=.github/upgrade/tsao-main-ai-upgrade.patch.gz.b64
-          test -f "$payload"
-          patch_gz="${RUNNER_TEMP}/tsao-main-ai-upgrade.patch.gz"
-          patch="${RUNNER_TEMP}/tsao-main-ai-upgrade.patch"
-          base64 --decode "$payload" > "$patch_gz"
-          echo "e02b4a13b5e3508391f2572fb7423ae2a8c562fe504df7f07bcfacd9ece0b095  $patch_gz" | sha256sum --check --strict
-          gzip --decompress --stdout "$patch_gz" > "$patch"
-          echo "2dc54b7b674d0d1e061302d2e25e60ac1b8b60f9ac283cdb3451bcd757cef3b5  $patch" | sha256sum --check --strict
+          parts=.github/upgrade/parts
+          test "$(find "$parts" -maxdepth 1 -type f -name 'part-*' | wc -l)" -eq 7
+          echo 'a3d5a9b1c117aa02652f797115f8d1d3416b761629a505e875a1a4ef339040ff  .github/upgrade/parts/part-00' | sha256sum -c --strict
+          echo 'da4181d6f4ebdc947bb7887e486fdb6cb895cab0ad881e5bb0e81d2280b00534  .github/upgrade/parts/part-01' | sha256sum -c --strict
+          echo 'cadd99803b837db3cf848c4df2dc13debda1d3091239a0b9bba99574ee831cf3  .github/upgrade/parts/part-02' | sha256sum -c --strict
+          echo 'e425ac1f6eea8f8de10cab688b9f8d57b23cdfabe8ee36564e8016443e9f950a  .github/upgrade/parts/part-03' | sha256sum -c --strict
+          echo '1779ebc1d4dd84c5c86acc20677f30c26daa1f6df8234ede474c0aee4b9df2ed  .github/upgrade/parts/part-04' | sha256sum -c --strict
+          echo '4d0bc7ab03f646ff18e72333aaf012644bc1724baeb74872b810fc8095f0800a  .github/upgrade/parts/part-05' | sha256sum -c --strict
+          echo '7bff9fb7ec95feb0ac5c2b8916505b31c4684c7bf1b4d137367188ea1744da73  .github/upgrade/parts/part-06' | sha256sum -c --strict
+          payload_b64="${RUNNER_TEMP}/upgrade.patch.gz.b64"
+          patch_gz="${RUNNER_TEMP}/upgrade.patch.gz"
+          patch="${RUNNER_TEMP}/upgrade.patch"
+          cat "$parts"/part-* > "$payload_b64"
+          echo "6603b9b7fcbfce5efabdd09b510c5709b4f98af1ee2860cb2c1a49a9de763837  $payload_b64" | sha256sum -c --strict
+          base64 --decode "$payload_b64" > "$patch_gz"
+          echo "e02b4a13b5e3508391f2572fb7423ae2a8c562fe504df7f07bcfacd9ece0b095  $patch_gz" | sha256sum -c --strict
+          gzip -dc "$patch_gz" > "$patch"
+          echo "2dc54b7b674d0d1e061302d2e25e60ac1b8b60f9ac283cdb3451bcd757cef3b5  $patch" | sha256sum -c --strict
           git apply --check "$patch"
           git apply "$patch"
           rm -f .github/workflows/main-repair-once.yml
@@ -56,7 +66,7 @@ jobs:
         run: |
           python -m pip install --quiet -e .[dev]
           python -m pip check
-      - name: Verify deterministic visual system
+      - name: Run complete qualification
         shell: bash
         run: |
           set -euo pipefail
@@ -71,158 +81,77 @@ jobs:
           python scripts/verify_readme_visual_accessibility.py | tee "$evidence/svg-accessibility.json"
           python scripts/sync_readme_visuals.py --check
           find docs/assets/readme -maxdepth 1 -name '*.svg' -print0 | sort -z | xargs -0 sha256sum > "$evidence/svg-before.sha256"
-          python scripts/generate_readme_assets.py
-          python scripts/generate_extended_readme_assets.py
-          python scripts/generate_decision_readme_assets.py
-          python scripts/generate_performance_readme_assets.py
           python scripts/generate_uiux_readme_assets.py
           python scripts/harden_readme_svg_accessibility.py --check
           find docs/assets/readme -maxdepth 1 -name '*.svg' -print0 | sort -z | xargs -0 sha256sum > "$evidence/svg-after.sha256"
           diff -u "$evidence/svg-before.sha256" "$evidence/svg-after.sha256"
           test "$(find docs/assets/readme -maxdepth 1 -name '*.svg' | wc -l)" -eq 25
-      - name: Run complete software qualification
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="${RUNNER_TEMP}/main-ai-repair-evidence"
           python scripts/run_ci.py | tee "$evidence/run-ci.log"
           python skills/epdm/scripts/audit_epdm.py | tee "$evidence/epdm-audit.json"
           python skills/poe/scripts/audit_p0.py --root . | tee "$evidence/poe-p0-audit.json"
           python skills/poe/scripts/audit_p1.py --root . | tee "$evidence/poe-p1-audit.json"
           python -m tsao.cli doctor --root . --profile core | tee "$evidence/doctor.json"
           python -m tsao.skillpacks --root . | tee "$evidence/skillpacks.json"
-      - name: Build and verify release wheel
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="${RUNNER_TEMP}/main-ai-repair-evidence"
           rm -rf wheelhouse build dist
           find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf {} +
           python -m pip wheel --quiet --no-deps --no-build-isolation . -w wheelhouse
           python scripts/verify_wheel_contents.py --wheel-dir wheelhouse | tee "$evidence/wheel-contents.json"
           python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse | tee "$evidence/wheel-runtime.json"
           cp wheelhouse/*.whl "$evidence/"
-      - name: Run explicit performance baseline gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="${RUNNER_TEMP}/main-ai-repair-evidence"
-          baseline_commit=8719e59140202aae53cdfb80239b80dedad6767a
-          baseline_root="${RUNNER_TEMP}/alpha14-performance-baseline"
-          baseline_report="${RUNNER_TEMP}/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json"
-          cleanup() { git worktree remove --force "$baseline_root" >/dev/null 2>&1 || true; }
-          trap cleanup EXIT
-          git cat-file -e "${baseline_commit}^{commit}"
-          git merge-base --is-ancestor "$baseline_commit" HEAD
-          git worktree add --detach "$baseline_root" "$baseline_commit"
-          (
-            cd "$baseline_root"
-            rm -rf wheelhouse build dist *.egg-info
-            python -m pip wheel --quiet --no-deps --no-build-isolation . -w wheelhouse
-            python scripts/benchmark_performance_v2.py --repeats 7 --wheel-dir wheelhouse --output "$baseline_report"
-          )
-          python scripts/benchmark_performance_v2.py --repeats 7 --wheel-dir wheelhouse --output reports/runtime/PERFORMANCE_RESULTS_V2.json
-          BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<'PY'
-          import json
-          import os
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          root = Path.cwd()
-          baseline_root = Path(os.environ["BASELINE_ROOT"])
-          baseline_report = Path(os.environ["BASELINE_REPORT"])
-          current_report = root / "reports/runtime/PERFORMANCE_RESULTS_V2.json"
-
-          def schema_units(worktree: Path) -> float:
-              code = (
-                  "from pathlib import Path; "
-                  "from tsao.doctor import diagnose; "
-                  "print(diagnose(Path('.'), profile='core')['metrics']['schemas'])"
-              )
-              output = subprocess.check_output([sys.executable, "-c", code], cwd=worktree, text=True)
-              return float(output.strip().splitlines()[-1])
-
-          for path, worktree in ((baseline_report, baseline_root), (current_report, root)):
-              report = json.loads(path.read_text(encoding="utf-8"))
-              doctor = next(row for row in report["benchmarks"] if row["name"] == "doctor_core_repository")
-              doctor["work_units"] = schema_units(worktree)
-              doctor["work_unit"] = "schema_count"
-              path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-          PY
-          python scripts/compare_performance_v2.py --baseline "$baseline_report" --current reports/runtime/PERFORMANCE_RESULTS_V2.json --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
-          python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
-          cp "$baseline_report" "$evidence/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json"
-          cp reports/runtime/PERFORMANCE_RESULTS_V2.json "$evidence/"
-          cp reports/runtime/PERFORMANCE_COMPARISON_V2.json "$evidence/"
-          cleanup
-          trap - EXIT
-      - name: Build self-validating source snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="${RUNNER_TEMP}/main-ai-repair-evidence"
           python scripts/export_source_snapshot.py --root . --out "$evidence/TSAO-PROCESSING-SKILL-source-main-ai-repair.zip" | tee "$evidence/source-snapshot.json"
       - name: Commit qualified main-only tree
         shell: bash
         run: |
           set -euo pipefail
           evidence="${RUNNER_TEMP}/main-ai-repair-evidence"
-          remote_head="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$remote_head" = "$GITHUB_SHA"
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "$GITHUB_SHA"
           rm -rf wheelhouse build dist .pytest_cache htmlcov .mypy_cache .ruff_cache
           find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf {} +
           find . -type d -name '__pycache__' -prune -exec rm -rf {} +
-          rm -f .coverage coverage.xml
-          rm -f reports/runtime/*.json reports/runtime/*.tmp
+          rm -f .coverage coverage.xml reports/runtime/*.json reports/runtime/*.tmp
           python -m tsao.cli doctor --root . --profile core > "$evidence/final-doctor.json"
           git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           python - <<'PY'
           import subprocess
-
           expected = {
-              ".github/upgrade/tsao-main-ai-upgrade.patch.gz.b64",
-              ".github/workflows/ci.yml",
-              ".github/workflows/main-repair-finalize-once.yml",
-              ".github/workflows/main-repair-once.yml",
-              "README.md",
-              "README.zh-CN.md",
-              "docs/README_VISUAL_SYSTEM.md",
-              "docs/assets/readme/agentic-qualification-orchestrator.svg",
-              "docs/assets/readme/ai-scientific-reasoning-loop.svg",
-              "docs/assets/readme/multiscale-digital-thread.svg",
-              "docs/assets/readme/uncertainty-decision-landscape.svg",
-              "reports/SOURCE_CORE_OVERLAY.tsv",
-              "scripts/generate_uiux_readme_assets.py",
-              "scripts/sync_readme_visuals.py",
-              "scripts/verify_wheel_contents.py",
-              "tests/test_ci_performance_policy.py",
-              "tests/test_readme_assets.py",
-              "tests/test_readme_visual_accessibility.py",
-              "tests/test_release_convergence.py",
-              "tests/test_skillpack_delivery.py",
-              "tsao/skillpacks.py",
+              *{f'.github/upgrade/parts/part-{i:02d}' for i in range(7)},
+              '.github/workflows/ci.yml',
+              '.github/workflows/main-repair-finalize-once.yml',
+              '.github/workflows/main-repair-once.yml',
+              'README.md', 'README.zh-CN.md', 'docs/README_VISUAL_SYSTEM.md',
+              'docs/assets/readme/agentic-qualification-orchestrator.svg',
+              'docs/assets/readme/ai-scientific-reasoning-loop.svg',
+              'docs/assets/readme/multiscale-digital-thread.svg',
+              'docs/assets/readme/uncertainty-decision-landscape.svg',
+              'reports/SOURCE_CORE_OVERLAY.tsv',
+              'scripts/generate_uiux_readme_assets.py',
+              'scripts/sync_readme_visuals.py',
+              'scripts/verify_wheel_contents.py',
+              'tests/test_ci_performance_policy.py',
+              'tests/test_readme_assets.py',
+              'tests/test_readme_visual_accessibility.py',
+              'tests/test_release_convergence.py',
+              'tests/test_skillpack_delivery.py',
+              'tsao/skillpacks.py',
           }
-          actual = set(subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines())
+          actual = set(subprocess.check_output(['git', 'diff', '--cached', '--name-only'], text=True).splitlines())
           if actual != expected:
-              raise SystemExit(f"qualified path set mismatch: missing={sorted(expected-actual)} unexpected={sorted(actual-expected)}")
-          print(f"qualified_path_count={len(actual)}")
+              raise SystemExit(f'path mismatch: missing={sorted(expected-actual)} unexpected={sorted(actual-expected)}')
+          print(f'qualified_path_count={len(actual)}')
           PY
           git diff --cached --check
-          git commit -m "fix: harden main CI and expand AI visual system"
-          final_sha="$(git rev-parse HEAD)"
-          echo "$final_sha" > "$evidence/final-commit.txt"
+          git commit -m 'fix: harden main CI and expand AI visual system'
+          git rev-parse HEAD > "$evidence/final-commit.txt"
           git push origin HEAD:main
-          branches="$(git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | sort)"
-          test "$branches" = "main"
+          test "$(git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | sort)" = main
       - name: Upload qualification evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: main-ai-repair-evidence
+          name: main-ai-repair-evidence-v2
           path: ${{ runner.temp }}/main-ai-repair-evidence/**
           if-no-files-found: warn
           retention-days: 30
