@@ -11,6 +11,43 @@
 
 ![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)
 
+
+## AI-native scientific operating loop
+
+The platform treats AI as a **traceable scientific orchestrator**, not an authority that can override conservation laws, evidence gaps or named approvals. Eight governed diagrams describe how observations become hypotheses, models, experiments and process-package decisions.
+
+![Scientific AI reasoning loop](docs/assets/readme/ai-scientific-reasoning-loop.svg)
+
+The reasoning loop records every transition from evidence to a candidate mechanism, simulation, falsification result and next action. `HOLD` remains a legitimate scientific result when evidence is incomplete.
+
+![Agentic qualification orchestrator](docs/assets/readme/agentic-qualification-orchestrator.svg)
+
+The agent control plane routes requests and tools, while independent balance, numerical, evidence and approval Gates retain decision authority.
+
+![Multiscale digital thread](docs/assets/readme/multiscale-digital-thread.svg)
+
+The digital thread connects molecular interactions, chain architecture, mesoscale transport, reactors and the process package through explicit state, unit, provenance, uncertainty and Gate contracts.
+
+![Law-to-Grade inverse design](docs/assets/readme/law-to-grade-inverse-design.svg)
+
+The inverse workflow starts from observed product or plant behavior, infers hidden states and missing closure terms, proposes candidate interactions, reconstructs the system forward and rejects non-identifiable explanations.
+
+![Autonomous experiment loop](docs/assets/readme/autonomous-experiment-loop.svg)
+
+Active learning selects experiments by information gain, feasibility, cost and risk. Execution remains bounded by instrument, equipment, operator and HSE constraints.
+
+![Process knowledge graph](docs/assets/readme/process-knowledge-graph.svg)
+
+Claims are linked to sources, conditions, variables, model versions, equipment, risks, accountable owners and decision rationale.
+
+![Uncertainty-to-decision landscape](docs/assets/readme/uncertainty-decision-landscape.svg)
+
+Uncertainty and applicability are evaluated before a result may become `PASS`; missing evidence produces `HOLD`, a violated contract produces `FAIL`, and unassessed scopes remain `NOT_EVALUATED`.
+
+![Model risk governance](docs/assets/readme/model-risk-governance.svg)
+
+Model registration, software verification, scientific validation, named approval, monitoring and retirement are distinct lifecycle stages. Computational correctness alone does not establish industrial validity.
+
 ## One platform, four delivered Skills
 
 | Skill | Executable or delivered scope | Truthful boundary |
@@ -28,7 +65,7 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 21 README diagrams are present.
+The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 29 README diagrams are present.
 
 ![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
 
@@ -261,7 +298,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
 Wheel verification has two independent gates:
 
-1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 21 diagrams;
+1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 29 diagrams;
 2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
 
 CI treats Windows/Python 3.11–3.14 as the core release matrix and verifies Linux compatibility on Python 3.11 and 3.14; macOS is not a release Gate. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.

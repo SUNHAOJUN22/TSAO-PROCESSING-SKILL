@@ -30,7 +30,7 @@ def test_svg_hardener_is_idempotent_and_adds_required_root_attributes() -> None:
 def test_committed_readme_visuals_pass_accessibility_contract() -> None:
     result = verify(ROOT / "docs/assets/readme")
     assert result["pass"] is True, result["errors"]
-    assert result["asset_count"] == 21
+    assert result["asset_count"] == 29
     assert result["minimum_text_size_px"] == MINIMUM_TEXT_SIZE_PX
     assert all(row["pass"] for row in result["contrast"].values())
 

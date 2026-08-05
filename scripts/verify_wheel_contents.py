@@ -134,6 +134,14 @@ _POLYMER_SCRIPTS = (
     "scaleup_numbers.py",
 )
 _README_ASSETS = (
+    "model-risk-governance.svg",
+    "process-knowledge-graph.svg",
+    "autonomous-experiment-loop.svg",
+    "law-to-grade-inverse-design.svg",
+    "uncertainty-decision-landscape.svg",
+    "agentic-qualification-orchestrator.svg",
+    "multiscale-digital-thread.svg",
+    "ai-scientific-reasoning-loop.svg",
     "batch-parameter-scan.svg",
     "control-safety-cause-effect.svg",
     "dependency-lock-supply-chain.svg",

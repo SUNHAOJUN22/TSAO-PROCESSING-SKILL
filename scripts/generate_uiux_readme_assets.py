@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from html import escape
+from itertools import pairwise
 from pathlib import Path
 from textwrap import wrap
 
@@ -1084,7 +1085,264 @@ def render_main_only_delivery() -> str:
     )
 
 
+
+def render_ai_scientific_reasoning_loop() -> str:
+    parts = svg_start(
+        "Scientific AI reasoning loop",
+        "A governed loop connecting observations, hypotheses, simulation, falsification and decisions.",
+    )
+    header(
+        parts,
+        "Scientific AI reasoning loop",
+        "AI proposes; evidence, invariants and falsification decide",
+        eyebrow="AI FOR PROCESS SCIENCE",
+        accent=CYAN,
+    )
+    nodes = [
+        (70, 245, "OBSERVE", "plant, laboratory and literature evidence", BLUE, "database"),
+        (292, 205, "HYPOTHESIZE", "mechanisms, hidden states and closure terms", PURPLE, "molecule"),
+        (706, 205, "SIMULATE", "reference kernels and scale bridges", CYAN, "cpu"),
+        (928, 245, "FALSIFY", "balances, residuals and conflicting evidence", RED, "shield"),
+        (706, 475, "QUALIFY", "uncertainty, applicability and named Gates", AMBER, "chart"),
+        (292, 475, "DECIDE", "next experiment, model or package action", GREEN, "flow"),
+    ]
+    centers: list[tuple[float, float]] = []
+    for x, y, title_value, detail, color, icon in nodes:
+        node_card(parts, x, y, 202, 122, title_value, detail, color, icon=icon, tag="TRACEABLE", title_size=15)
+        centers.append((x + 101, y + 61))
+    sequence = centers + [centers[0]]
+    for (x1, y1), (x2, y2) in pairwise(sequence):
+        parts.append(line(x1, y1, x2, y2, stroke=DIM, width=2.2, arrow=True, opacity=0.92))
+    parts.extend([
+        circle(600, 388, 90, fill="#0C1A2C", stroke=CYAN, width=2),
+        text(600, 372, "TSAO", size=27, weight=850, anchor="middle"),
+        text(600, 402, "reasoning core", size=15, fill=CYAN, weight=750, anchor="middle"),
+        multiline(600, 431, "No silent promotion\nHOLD is a valid result", width_chars=22, size=13, fill=MUTED, weight=650, anchor="middle", line_height=19),
+    ])
+    footer_gate(parts, "EVIDENCE -> MODEL -> TEST -> DECISION; EVERY TRANSITION IS RECORDED")
+    return finish(parts)
+
+
+def render_multiscale_digital_thread() -> str:
+    parts = svg_start(
+        "Multiscale digital thread",
+        "A governed model and data thread from molecular evidence through reactors to process-package decisions.",
+    )
+    header(parts, "Multiscale digital thread", "Every scale carries units, provenance, assumptions and uncertainty", eyebrow="MECHANISM TO PROCESS PACKAGE", accent=PURPLE)
+    stages = [
+        (54, "MOLECULE", "electronic structure\nand active sites", PURPLE, "molecule"),
+        (278, "CHAIN", "kinetics, sequence\nand distributions", BLUE, "flow"),
+        (502, "MESOSCALE", "phase, rheology\nand transport", CYAN, "chart"),
+        (726, "REACTOR", "balances, mixing\nand heat removal", ORANGE, "cpu"),
+        (950, "PACKAGE", "controls, HSE\nand acceptance", GREEN, "shield"),
+    ]
+    for index, (x, title_value, detail, color, icon) in enumerate(stages):
+        node_card(parts, x, 250, 196, 172, title_value, detail, color, icon=icon, tag=f"L{index}", title_size=16)
+        if index < len(stages) - 1:
+            parts.append(line(x + 196, 336, stages[index + 1][0] - 12, 336, stroke=color, width=2.5, arrow=True))
+    parts.append(rect(84, 482, 1032, 126, fill="#0B182A", stroke=TEAL, radius=24))
+    parts.append(text(112, 522, "DIGITAL THREAD CONTRACT", size=15, fill=TEAL, weight=800, letter=0.8))
+    rows = [
+        (112, "STATE", "named variables"),
+        (275, "UNITS", "dimensional closure"),
+        (438, "SOURCE", "evidence lineage"),
+        (601, "MODEL", "equations + domain"),
+        (764, "UNCERTAINTY", "intervals + sensitivity"),
+        (956, "GATE", "PASS / HOLD / FAIL"),
+    ]
+    for x, label, value in rows:
+        parts.append(text(x, 560, label, size=12, fill=DIM, weight=750, mono=True))
+        parts.append(text(x, 586, value, size=13, weight=650))
+    footer_gate(parts, "NO SCALE JUMP WITHOUT A MACHINE-READABLE CONTRACT")
+    return finish(parts)
+
+
+def render_agentic_qualification_orchestrator() -> str:
+    parts = svg_start(
+        "Agentic qualification orchestrator",
+        "An AI agent coordinates evidence, scientific kernels and verification without overriding independent Gates.",
+    )
+    header(parts, "Agentic qualification orchestrator", "Automation executes the protocol; independent Gates retain authority", eyebrow="AGENT CONTROL PLANE", accent=BLUE)
+    sources = [
+        (58, 222, "EVIDENCE", "sources, conflicts, conditions and units", TEAL, "database"),
+        (58, 374, "MODELS", "contracts, kernels, solvers and simulators", PURPLE, "cpu"),
+        (58, 526, "REQUEST", "scope, CQA, risk and acceptance criteria", BLUE, "flow"),
+    ]
+    for x, y, title_value, detail, color, icon in sources:
+        node_card(parts, x, y, 238, 112, title_value, detail, color, icon=icon, title_size=16)
+        parts.append(line(296, y + 56, 458, 390, stroke=color, width=2.2, arrow=True))
+    parts.extend([
+        circle(605, 390, 126, fill="#0C1B30", stroke=BLUE, width=2.2),
+        circle(605, 390, 96, fill="#10243D", stroke=CYAN, width=1.4),
+        text(605, 360, "AI", size=42, weight=900, anchor="middle"),
+        text(605, 394, "ORCHESTRATOR", size=15, fill=CYAN, weight=800, anchor="middle", letter=1.0),
+        multiline(605, 426, "route - execute - compare\nrecord - explain", width_chars=26, size=13, fill=MUTED, weight=650, anchor="middle", line_height=20),
+    ])
+    gates = [
+        (912, 216, "BALANCE", "mass / energy", GREEN),
+        (912, 330, "NUMERICS", "stability / parity", CYAN),
+        (912, 444, "EVIDENCE", "lineage / conflict", AMBER),
+        (912, 558, "APPROVAL", "named authority", RED),
+    ]
+    for x, y, title_value, detail, color in gates:
+        node_card(parts, x, y, 232, 80, title_value, detail, color, icon="shield", title_size=15)
+        parts.append(line(731, 390, x - 14, y + 40, stroke=color, width=2.1, arrow=True))
+    footer_gate(parts, "AGENT OUTPUT IS NOT ENGINEERING, HSE OR CUSTOMER APPROVAL")
+    return finish(parts)
+
+
+def render_uncertainty_decision_landscape() -> str:
+    parts = svg_start(
+        "Uncertainty-to-decision landscape",
+        "A qualification landscape where uncertainty and applicability determine PASS, HOLD, FAIL or NOT_EVALUATED.",
+    )
+    header(parts, "Uncertainty-to-decision landscape", "Precision is not confidence; confidence requires independent closure", eyebrow="DECISION SCIENCE", accent=AMBER)
+    panels = [(72, PURPLE, "1 - UNCERTAINTY"), (435, CYAN, "2 - APPLICABILITY"), (798, GREEN, "3 - DECISION GATE")]
+    for x, color, title_value in panels:
+        parts.append(rect(x, 226, 330, 360, fill="#101D31", stroke=color, radius=28, shadow=True))
+        parts.append(text(x + 30, 272, title_value, size=18, fill=color, weight=800))
+    left = [("PARAMETER", "identified / prior / nuisance"), ("MODEL FORM", "candidate closures and bias"), ("NUMERICAL", "tolerance, stiffness and drift"), ("MEASUREMENT", "noise, censoring and calibration")]
+    middle = [("DOMAIN", "temperature / pressure / composition"), ("SCALE", "laboratory / pilot / plant"), ("REGIME", "phase / transport / kinetics"), ("EVIDENCE", "direct / inferred / missing")]
+    for index, (label, value) in enumerate(left):
+        y = 320 + index * 62
+        parts.append(pill(102, y - 22, label, PURPLE, width=116, height=26, mono=True))
+        parts.append(text(232, y, value, size=13, weight=650))
+    for index, (label, value) in enumerate(middle):
+        y = 320 + index * 62
+        parts.append(pill(465, y - 22, label, CYAN, width=104, height=26, mono=True))
+        parts.append(text(583, y, value, size=13, weight=650))
+    gates = [("PASS", "declared Gate closed", GREEN), ("HOLD", "evidence incomplete", AMBER), ("FAIL", "contract violated", RED), ("NOT EVALUATED", "no qualified claim", DIM)]
+    for index, (label, value, color) in enumerate(gates):
+        y = 304 + index * 66
+        parts.append(rect(832, y, 264, 50, fill=f"{color}18", stroke=color, radius=14))
+        parts.append(text(850, y + 31, label, size=13, fill=color, weight=800, mono=True))
+        parts.append(text(1080, y + 31, value, size=12, weight=650, anchor="end"))
+    parts.append(line(402, 406, 435, 406, stroke=PURPLE, width=3, arrow=True))
+    parts.append(line(765, 406, 798, 406, stroke=CYAN, width=3, arrow=True))
+    footer_gate(parts, "TRACEABILITY TURNS UNCERTAINTY INTO AN ACTIONABLE DECISION")
+    return finish(parts)
+
+
+def render_law_to_grade_inverse_design() -> str:
+    parts = svg_start(
+        "Law-to-Grade inverse design",
+        "An inverse scientific workflow from observed product behavior to hidden mechanisms and forward reconstruction.",
+    )
+    header(parts, "Law-to-Grade inverse design", "Infer missing physics, then reconstruct the grade and process forward", eyebrow="INVERSE PROBLEM", accent=PURPLE)
+    top = [
+        (62, "OBSERVED", "quality, failure and operating signatures", BLUE, "chart"),
+        (300, "INFER", "hidden states, parameters and closure terms", PURPLE, "cpu"),
+        (538, "PROPOSE", "candidate interactions and elementary events", CYAN, "molecule"),
+        (776, "REBUILD", "chain, particle, reactor and finishing", TEAL, "flow"),
+        (1014, "TEST", "new perturbations and falsification", GREEN, "shield"),
+    ]
+    for i, (x, title_value, detail, color, icon) in enumerate(top):
+        node_card(parts, x, 238, 190, 160, title_value, detail, color, icon=icon, tag=f"S{i+1}", title_size=15)
+        if i < len(top) - 1:
+            parts.append(line(x + 190, 318, top[i + 1][0] - 10, 318, stroke=color, width=2.4, arrow=True))
+    parts.append(rect(132, 474, 936, 118, fill="#0B182A", stroke=AMBER, radius=24))
+    parts.append(text(160, 514, "IDENTIFIABILITY GATE", size=16, fill=AMBER, weight=800))
+    checks = ["multiple experiments", "independent observables", "prior sensitivity", "out-of-sample perturbation", "mechanism competition"]
+    for index, label in enumerate(checks):
+        x = 160 + index * 178
+        parts.append(pill(x, 542, label.upper(), AMBER, width=158, height=28, mono=True))
+    footer_gate(parts, "A GOOD FIT WITHOUT IDENTIFIABILITY REMAINS HOLD")
+    return finish(parts)
+
+
+def render_autonomous_experiment_loop() -> str:
+    parts = svg_start(
+        "Autonomous experiment loop",
+        "A safe closed-loop workflow for selecting experiments, executing measurements and updating models.",
+    )
+    header(parts, "Autonomous experiment loop", "Maximize information gain while preserving safety and evidence quality", eyebrow="ACTIVE LEARNING", accent=TEAL)
+    center_x, center_y = 600, 392
+    parts.extend([
+        circle(center_x, center_y, 90, fill="#0C1B30", stroke=TEAL, width=2),
+        text(center_x, center_y - 5, "DoE", size=30, weight=850, anchor="middle"),
+        text(center_x, center_y + 25, "information gain", size=14, fill=TEAL, weight=750, anchor="middle"),
+    ])
+    nodes = [
+        (84, 238, "CANDIDATES", "feasible conditions and controllable factors", BLUE, "database"),
+        (328, 190, "SELECT", "expected information, cost and risk", PURPLE, "chart"),
+        (720, 190, "EXECUTE", "instrument recipe and operator boundary", ORANGE, "cpu"),
+        (964, 238, "MEASURE", "calibrated signals and metadata", CYAN, "chart"),
+        (720, 486, "UPDATE", "posterior, residuals and model ranking", GREEN, "database"),
+        (328, 486, "REVIEW", "human approval and next-cycle decision", AMBER, "shield"),
+    ]
+    centers = []
+    for x, y, title_value, detail, color, icon in nodes:
+        node_card(parts, x, y, 190, 118, title_value, detail, color, icon=icon, title_size=15)
+        centers.append((x + 95, y + 59))
+    seq = centers + [centers[0]]
+    for (x1, y1), (x2, y2) in pairwise(seq):
+        parts.append(line(x1, y1, x2, y2, stroke=DIM, width=2.2, arrow=True))
+    footer_gate(parts, "NO AUTONOMOUS ACTION MAY BYPASS EQUIPMENT OR HSE LIMITS")
+    return finish(parts)
+
+
+def render_process_knowledge_graph() -> str:
+    parts = svg_start(
+        "Process knowledge graph",
+        "A traceable knowledge graph connecting evidence, variables, models, equipment, risks and decisions.",
+    )
+    header(parts, "Process knowledge graph", "Every claim is connected to its source, conditions and decision boundary", eyebrow="KNOWLEDGE ARCHITECTURE", accent=BLUE)
+    center = (600, 388)
+    parts.extend([
+        circle(*center, 94, fill="#0D2038", stroke=BLUE, width=2),
+        text(600, 374, "PROCESS", size=24, weight=850, anchor="middle"),
+        text(600, 405, "KNOWLEDGE GRAPH", size=14, fill=CYAN, weight=800, anchor="middle", letter=0.8),
+    ])
+    nodes = [
+        (94, 222, "EVIDENCE", "papers, tests, plant records", TEAL, "database"),
+        (94, 488, "DECISIONS", "Gates, owners and rationale", GREEN, "shield"),
+        (360, 180, "VARIABLES", "states, units and observability", BLUE, "chart"),
+        (752, 180, "MODELS", "equations, domains and versions", PURPLE, "cpu"),
+        (1018, 222, "EQUIPMENT", "streams, controls and limits", ORANGE, "flow"),
+        (1018, 488, "RISKS", "hazards, uncertainty and conflicts", RED, "shield"),
+    ]
+    for x, y, title_value, detail, color, icon in nodes:
+        node_card(parts, x, y, 184, 118, title_value, detail, color, icon=icon, title_size=15)
+        start_x = x + 184 if x < center[0] else x
+        end_x = center[0] - 96 if x < center[0] else center[0] + 96
+        parts.append(line(start_x, y + 59, end_x, center[1], stroke=color, width=2.1, arrow=True))
+    footer_gate(parts, "A CLAIM WITHOUT SOURCE, CONDITIONS OR OWNER IS NOT DECISION-READY")
+    return finish(parts)
+
+
+def render_model_risk_governance() -> str:
+    parts = svg_start(
+        "Model risk governance",
+        "A layered governance architecture for scientific models from registration through retirement.",
+    )
+    header(parts, "Model risk governance", "Separate computational correctness from scientific validity and operational approval", eyebrow="MODEL GOVERNANCE", accent=RED)
+    layers = [
+        (210, "REGISTER", "purpose, owner, version, equations and dependencies", BLUE, "database"),
+        (296, "VERIFY", "tests, invariants, numerical stability and reproducibility", CYAN, "cpu"),
+        (382, "VALIDATE", "independent evidence, uncertainty and applicability", PURPLE, "chart"),
+        (468, "APPROVE", "named technical, engineering, HSE and customer authorities", AMBER, "shield"),
+        (554, "MONITOR", "drift, incidents, change control and retirement", GREEN, "flow"),
+    ]
+    widths = [980, 870, 760, 650, 540]
+    for index, ((y, title_value, detail, color, icon), width) in enumerate(zip(layers, widths, strict=True)):
+        x = (1200 - width) / 2
+        parts.append(rect(x, y, width, 64, fill=f"{color}14", stroke=color, radius=18, shadow=index == 0))
+        small_icon(parts, x + 38, y + 32, icon, color)
+        parts.append(text(x + 74, y + 28, title_value, size=15, fill=color, weight=850, mono=True))
+        parts.append(text(x + 74, y + 49, detail, size=13, weight=650))
+    footer_gate(parts, "MODEL USE OUTSIDE ITS APPROVED DOMAIN RETURNS HOLD OR FAIL")
+    return finish(parts)
+
+
 ASSETS = {
+    "ai-scientific-reasoning-loop.svg": render_ai_scientific_reasoning_loop,
+    "multiscale-digital-thread.svg": render_multiscale_digital_thread,
+    "agentic-qualification-orchestrator.svg": render_agentic_qualification_orchestrator,
+    "uncertainty-decision-landscape.svg": render_uncertainty_decision_landscape,
+    "law-to-grade-inverse-design.svg": render_law_to_grade_inverse_design,
+    "autonomous-experiment-loop.svg": render_autonomous_experiment_loop,
+    "process-knowledge-graph.svg": render_process_knowledge_graph,
+    "model-risk-governance.svg": render_model_risk_governance,
     "tsao-process-intelligence-os.svg": render_platform,
     "universal-process-package.svg": lambda: render_linear(
         "Universal process-package lifecycle",

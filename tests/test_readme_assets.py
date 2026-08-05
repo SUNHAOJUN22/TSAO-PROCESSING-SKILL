@@ -25,7 +25,7 @@ def declared_asset_names() -> set[str]:
 
 def test_master_generator_covers_the_complete_legacy_asset_contract() -> None:
     assert legacy_asset_names().issubset(declared_asset_names())
-    assert len(declared_asset_names()) == 21
+    assert len(declared_asset_names()) == 29
 
 
 def test_bilingual_readmes_reference_every_declared_local_svg_asset() -> None:
@@ -59,7 +59,7 @@ def test_readme_assets_are_deterministically_declared_by_master_generator() -> N
 
     committed_names = {path.name for path in OUT.glob("*.svg")}
     assert set(ASSETS) == committed_names
-    assert len(ASSETS) == 21
+    assert len(ASSETS) == 29
 
 
 def test_visual_system_is_persisted_and_linked() -> None:
@@ -70,3 +70,11 @@ def test_visual_system_is_persisted_and_linked() -> None:
     assert "UI/UX Pro Max" in text
     for readme_name in ("README.md", "README.zh-CN.md"):
         assert "docs/README_VISUAL_SYSTEM.md" in (ROOT / readme_name).read_text(encoding="utf-8")
+
+
+
+def test_ai_native_visual_family_is_complete() -> None:
+    expected = {
+        'ai-scientific-reasoning-loop.svg', 'multiscale-digital-thread.svg', 'agentic-qualification-orchestrator.svg', 'uncertainty-decision-landscape.svg', 'law-to-grade-inverse-design.svg', 'autonomous-experiment-loop.svg', 'process-knowledge-graph.svg', 'model-risk-governance.svg'
+    }
+    assert expected.issubset(declared_asset_names())

@@ -116,7 +116,7 @@ def _valid_runtime_payload(install_root: Path) -> dict[str, object]:
             "pass": True,
             "delivery": "INSTALLED_SKILLPACK",
             "root": str(install_root / "share/tsao-processing-skill"),
-            "readme_svg_assets": 21,
+            "readme_svg_assets": 29,
             "process_general_modules_present": 14,
             "process_general_workflows_present": 6,
         },
@@ -135,9 +135,9 @@ def test_runtime_payload_rejects_incomplete_readme_assets(tmp_path: Path) -> Non
     payload = _valid_runtime_payload(install_root)
     skillpacks = payload["skillpacks"]
     assert isinstance(skillpacks, dict)
-    skillpacks["readme_svg_assets"] = 20
+    skillpacks["readme_svg_assets"] = 28
     errors = _evaluate_payload(payload, "TEST", expected_root=install_root)
-    assert "TEST does not contain all twenty-one README assets" in errors
+    assert "TEST does not contain all 29 README assets" in errors
 
 
 def test_runtime_payload_rejects_host_editable_import(tmp_path: Path) -> None:

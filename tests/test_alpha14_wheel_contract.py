@@ -36,7 +36,7 @@ def _payload(root: Path) -> dict[str, object]:
             "pass": True,
             "delivery": "INSTALLED_SKILLPACK",
             "root": str(root / "share/tsao-processing-skill"),
-            "readme_svg_assets": 21,
+            "readme_svg_assets": 29,
             "process_general_modules_present": 14,
             "process_general_workflows_present": 6,
         },

@@ -217,8 +217,8 @@ def _evaluate_payload(
             errors.append(f"{label} did not resolve the installed skillpack data root")
         if not _path_is_within(skillpacks.get("root"), expected_root):
             errors.append(f"{label} resolved Skillpack data outside the installed root")
-        if skillpacks.get("readme_svg_assets", 0) < 21:
-            errors.append(f"{label} does not contain all twenty-one README assets")
+        if skillpacks.get("readme_svg_assets", 0) < 29:
+            errors.append(f"{label} does not contain all 29 README assets")
         if skillpacks.get("process_general_modules_present") != 14:
             errors.append(f"{label} process-general module registry is incomplete")
         if skillpacks.get("process_general_workflows_present") != 6:

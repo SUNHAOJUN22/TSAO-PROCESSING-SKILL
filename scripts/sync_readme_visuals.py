@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+VISUAL_COUNT = 29
 
 
 def _replace_once(text: str, old: str, new: str, *, label: str) -> str:
@@ -15,101 +16,39 @@ def _replace_once(text: str, old: str, new: str, *, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-def _ensure_figure(
-    text: str,
-    *,
-    marker: str,
-    old: str,
-    new: str,
-    label: str,
-) -> str:
-    """Insert a governed local figure once while tolerating surrounding copy revisions."""
-    if marker in text:
-        return text
-    return _replace_once(text, old, new, label=label)
-
-
 def _english(text: str) -> str:
     text = _replace_once(
         text,
-        "[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md)",
-        "[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md) · [README visual system](docs/README_VISUAL_SYSTEM.md)",
-        label="English navigation",
+        "all 21 README diagrams",
+        f"all {VISUAL_COUNT} README diagrams",
+        label="English inventory count",
     )
     text = _replace_once(
         text,
-        "The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and at least 16 README diagrams are present.",
-        "The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 21 README diagrams are present.",
-        label="English inventory",
-    )
-    text = _ensure_figure(
-        text,
-        marker="docs/assets/readme/batch-parameter-scan.svg",
-        old="The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.\n\n## Install and run",
-        new="The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.\n\n### Batch scenario screening\n\n![EPDM batch parameter-scan data flow](docs/assets/readme/batch-parameter-scan.svg)\n\nBroadcast-compatible scenario arrays are validated once and retain explicit dimensions, numerical parity and the `CALCULATED_REFERENCE_ONLY` boundary.\n\n## Install and run",
-        label="English batch figure",
-    )
-    text = _ensure_figure(
-        text,
-        marker="docs/assets/readme/performance-regression-gate.svg",
-        old="Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.\n\n```bash",
-        new="Performance claims are versioned software evidence, not engineering or industrial qualification. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.\n\n![Performance regression qualification gate](docs/assets/readme/performance-regression-gate.svg)\n\n```bash",
-        label="English performance figure",
-    )
-    text = _replace_once(
-        text,
-        "python scripts/generate_decision_readme_assets.py\npython scripts/run_ci.py",
-        "python scripts/generate_decision_readme_assets.py\npython scripts/generate_performance_readme_assets.py\npython scripts/generate_uiux_readme_assets.py\npython scripts/harden_readme_svg_accessibility.py\npython scripts/verify_readme_visual_accessibility.py\npython scripts/sync_readme_visuals.py --check\npython scripts/run_ci.py",
-        label="English generator commands",
-    )
-    text = _replace_once(
-        text,
-        "all 16 diagrams",
         "all 21 diagrams",
-        label="English Wheel diagram count",
+        f"all {VISUAL_COUNT} diagrams",
+        label="English Wheel count",
     )
+    if "docs/assets/readme/ai-scientific-reasoning-loop.svg" not in text:
+        raise ValueError("English AI visual section is missing")
     return text
 
 
 def _chinese(text: str) -> str:
     text = _replace_once(
         text,
-        "[English](README.md) · [总体架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [科研诚信](docs/RESEARCH_INTEGRITY.md)",
-        "[English](README.md) · [总体架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [科研诚信](docs/RESEARCH_INTEGRITY.md) · [README 视觉系统](docs/README_VISUAL_SYSTEM.md)",
-        label="Chinese navigation",
+        "全部 21 幅 README 图",
+        f"全部 {VISUAL_COUNT} 幅 README 图",
+        label="Chinese inventory count",
     )
     text = _replace_once(
         text,
-        "四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或至少 16 幅 README 图中缺少任何一项，库存检查都会失败关闭。",
-        "四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 21 幅 README 图中缺少任何一项，库存检查都会失败关闭。",
-        label="Chinese inventory",
-    )
-    text = _ensure_figure(
-        text,
-        marker="docs/assets/readme/batch-parameter-scan.svg",
-        old="活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。\n\n## 安装与运行",
-        new="活性位证据、二烯拓扑、移热、高黏混合、相稳定、循环毒物闭合、非平衡脱挥或“生胶—客户线”桥接不完整时，EPDM 审计默认失败关闭。\n\n### 批量情景筛选\n\n![EPDM 批量参数扫描数据流](docs/assets/readme/batch-parameter-scan.svg)\n\n广播兼容的情景数组只在入口校验一次，同时保留明确维度、数值等价性和 `CALCULATED_REFERENCE_ONLY` 边界。\n\n## 安装与运行",
-        label="Chinese batch figure",
-    )
-    text = _ensure_figure(
-        text,
-        marker="docs/assets/readme/performance-regression-gate.svg",
-        old="性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。\n\n```bash",
-        new="性能结论属于版本化的软件证据，不等于工程或工业资格。发布基准使用 `timeit.repeat` 中位数计时、`cProfile` 定位热点，并用结果 SHA-256 拒绝任何数值漂移。\n\n![性能回归资格门](docs/assets/readme/performance-regression-gate.svg)\n\n```bash",
-        label="Chinese performance figure",
-    )
-    text = _replace_once(
-        text,
-        "python scripts/generate_decision_readme_assets.py\npython scripts/run_ci.py",
-        "python scripts/generate_decision_readme_assets.py\npython scripts/generate_performance_readme_assets.py\npython scripts/generate_uiux_readme_assets.py\npython scripts/harden_readme_svg_accessibility.py\npython scripts/verify_readme_visual_accessibility.py\npython scripts/sync_readme_visuals.py --check\npython scripts/run_ci.py",
-        label="Chinese generator commands",
-    )
-    text = _replace_once(
-        text,
-        "全部 16 幅图",
         "全部 21 幅图",
-        label="Chinese Wheel diagram count",
+        f"全部 {VISUAL_COUNT} 幅图",
+        label="Chinese Wheel count",
     )
+    if "docs/assets/readme/ai-scientific-reasoning-loop.svg" not in text:
+        raise ValueError("Chinese AI visual section is missing")
     return text
 
 

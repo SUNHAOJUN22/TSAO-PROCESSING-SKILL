@@ -11,6 +11,43 @@
 
 ![TSAO 工艺智能操作系统总览](docs/assets/readme/tsao-process-intelligence-os.svg)
 
+
+## AI 原生科研操作闭环
+
+平台把 AI 定义为**可追溯的科研编排器**，而不是能够覆盖守恒定律、证据缺口或具名审批的权威。以下八幅受治理示意图描述“观测—假设—模型—实验—工艺包决策”的完整闭环。
+
+![科研 AI 推理闭环](docs/assets/readme/ai-scientific-reasoning-loop.svg)
+
+推理闭环记录从证据、候选机理、模拟、证伪结果到下一步行动的每次转换；证据不足时，`HOLD` 是合理的科研结果。
+
+![智能体资格编排器](docs/assets/readme/agentic-qualification-orchestrator.svg)
+
+智能体控制平面负责路由请求和工具，物料/能量衡算、数值、证据和审批门仍保持独立裁决权。
+
+![多尺度数字主线](docs/assets/readme/multiscale-digital-thread.svg)
+
+数字主线以显式状态、单位、来源、不确定度和 Gate 合同连接分子相互作用、链结构、介观传递、反应器与工艺包。
+
+![Law-to-Grade 逆向设计](docs/assets/readme/law-to-grade-inverse-design.svg)
+
+逆向流程从产品或装置观测出发，反演隐状态与缺失闭合项，提出候选相互作用，重新正向构建系统，并拒绝不可辨识的解释。
+
+![自主实验闭环](docs/assets/readme/autonomous-experiment-loop.svg)
+
+主动学习按信息增益、可行性、成本和风险选择实验；执行始终受仪器、设备、操作人员和 HSE 边界约束。
+
+![工艺知识图谱](docs/assets/readme/process-knowledge-graph.svg)
+
+每项结论均连接来源、条件、变量、模型版本、设备、风险、责任人和决策依据。
+
+![不确定度到决策地形](docs/assets/readme/uncertainty-decision-landscape.svg)
+
+结果进入 `PASS` 前必须评估不确定度与适用域；缺失证据输出 `HOLD`，违反合同输出 `FAIL`，未评估范围保持 `NOT_EVALUATED`。
+
+![模型风险治理](docs/assets/readme/model-risk-governance.svg)
+
+模型登记、软件验证、科学有效性验证、具名审批、运行监测与退役属于不同阶段；计算正确不等于工业有效。
+
 ## 一个平台，交付四条 Skill
 
 | Skill | 当前可执行或可交付范围 | 真实边界 |
@@ -28,7 +65,7 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 21 幅 README 图中缺少任何一项，库存检查都会失败关闭。
+四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 29 幅 README 图中缺少任何一项，库存检查都会失败关闭。
 
 ![通用工艺包生命周期](docs/assets/readme/universal-process-package.svg)
 
@@ -261,7 +298,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
 Wheel 具有两道独立质量门：
 
-1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 21 幅图；
+1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 29 幅图；
 2. **安装门：**同时验证 `pip install --target` 与不继承系统 site-packages 的干净标准虚拟环境；TSAO、EPDM、POE 模块及 Skill 数据根必须全部位于所选安装根内，随后才允许通过安装态 README 与已知解检查。
 
 CI 将 Windows/Python 3.11–3.14 作为核心发布矩阵，并在 Linux/Python 3.11、3.14 上验证兼容性；macOS 不作为发布门槛；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。覆盖率完成后，独立审计并行执行；Ubuntu/Python 3.14 还强制执行版本化性能回归门。
