@@ -85,6 +85,12 @@ jobs:
             ${{ runner.temp }}/main-hardening-evidence/**
           if-no-files-found: error
           retention-days: 30
+      - name: Report publication artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh issue comment 68 --repo "${GITHUB_REPOSITORY}"
+          --body "Verified main-only publication artifact is ready in run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. No branch or success claim was changed yet."
 
   notify-failure:
     needs: finalize
