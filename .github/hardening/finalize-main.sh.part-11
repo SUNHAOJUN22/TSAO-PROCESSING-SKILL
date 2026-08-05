@@ -1,0 +1,13 @@
+IT_2026-08-05.json",
+    "reports/SOURCE_CORE_OVERLAY.tsv",
+    "reports/SOURCE_SNAPSHOT_SELF_VALIDATION_2026-08-05.md",
+    "requirements.lock",
+    "scripts/generate_uiux_readme_assets.py",
+    "scripts/sync_readme_visuals.py",
+    "scripts/verify_dependency_lock.py",
+    "scripts/verify_wheel_contents.py",
+    "scripts/verify_wheel_runtime.py",
+    "tests/test_alpha14_wheel_contract.py",
+    "tests/test_dependency_lock.py",
+    "tests/test_readme_assets.py",
+    "tests/test_readme_visual_acce

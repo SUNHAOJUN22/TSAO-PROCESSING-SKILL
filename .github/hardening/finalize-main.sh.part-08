@@ -1,0 +1,10 @@
+RUNNER_TEMP}/main-hardening-evidence"
+mkdir -p "${evidence_dir}"
+cp wheelhouse/*.whl "${evidence_dir}/"
+cp "${snapshot}" "${evidence_dir}/"
+cp "${RUNNER_TEMP}/WHEEL_CONTENT_VERIFICATION.json" "${evidence_dir}/"
+cp "${RUNNER_TEMP}/WHEEL_RUNTIME_VERIFICATION.json" "${evidence_dir}/"
+cp "${RUNNER_TEMP}/SOURCE_SNAPSHOT_VERIFICATION.json" "${evidence_dir}/"
+
+rm -rf wheelhouse build dist .pytest_cache htmlcov .coverage .mypy_cache .ruff_cache
+find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf 

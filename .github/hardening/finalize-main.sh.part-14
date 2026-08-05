@@ -1,0 +1,16 @@
+-v '^main$' || true
+)"
+if [[ -n "${remaining}" ]]; then
+  printf 'non-main branches remain:\n%s\n' "${remaining}" >&2
+  exit 1
+fi
+
+lock_sha="$(sha256sum requirements.lock | awk '{print $1}')"
+comment="${RUNNER_TEMP}/main-hardening-comment.md"
+cat > "${comment}" <<EOF
+Main-only hardening completed in commit \`${final_sha}\`.
+
+- exact Python 3.11 dependency lock: \`${lock_sha}\`;
+- lock structure and SHA-256 policy: PASS;
+- pip-audit vulnerability gate: PASS;
+- full repository qualification, 21-fi

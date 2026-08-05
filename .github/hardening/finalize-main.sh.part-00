@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "${GITHUB_WORKSPACE:?}"
+export PYTHONUTF8=1
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+
+mapfile -t patch_parts < <(
+  find .github/hardening -maxdepth 1 -type f \
+    -name 'main-hardening.patch.gz.b64.part-*' | sort
+)
+test "${#patch_parts[@]}" -eq 13
+patch_archive="${RUNNER_TEMP}/main-hardening.patch.gz"
+cat "${patch_parts[@]}" | base64 --decode > "${patch_archive}"
+echo "a4c9610d8217b374f965fda55c64b302587b724add097e3f9d7cfb7bcd0c554d  ${patch_archive}" \

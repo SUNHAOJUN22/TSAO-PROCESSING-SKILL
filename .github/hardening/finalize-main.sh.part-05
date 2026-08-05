@@ -1,0 +1,11 @@
+h-CN.md docs/assets/readme/*.svg \
+  > "${RUNNER_TEMP}/readme-visuals.after.sha256"
+diff -u "${RUNNER_TEMP}/readme-visuals.before.sha256" \
+  "${RUNNER_TEMP}/readme-visuals.after.sha256"
+
+python scripts/run_ci.py
+python -m pip wheel --quiet --no-deps --no-build-isolation . -w wheelhouse
+python scripts/verify_wheel_contents.py --wheel-dir wheelhouse \
+  > "${RUNNER_TEMP}/WHEEL_CONTENT_VERIFICATION.json"
+python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse \
+  > "${RUNNER_TEMP}/WHEEL_RUNT

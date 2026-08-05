@@ -1,0 +1,15 @@
+lay.py --root . \
+  requirements.lock \
+  reports/DEPENDENCY_LOCK_QUALIFICATION_2026-08-05.json \
+  reports/PIP_AUDIT_2026-08-05.json
+
+venv="${RUNNER_TEMP}/tsao-main-hardening-venv"
+python -m venv "${venv}"
+# shellcheck disable=SC1091
+source "${venv}/bin/activate"
+python -m pip install --quiet --require-hashes -r requirements.lock
+python -m pip install --quiet --no-deps --no-build-isolation -e .
+python -m pip check
+python -m tsao.cli doctor --root . --profile core
+
+sha256sum README.md README.zh-

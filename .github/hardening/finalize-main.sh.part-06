@@ -1,0 +1,14 @@
+IME_VERIFICATION.json"
+
+snapshot="${RUNNER_TEMP}/TSAO-PROCESSING-SKILL-source-main-hardening.zip"
+python scripts/export_source_snapshot.py --root . --out "${snapshot}" \
+  > "${RUNNER_TEMP}/SOURCE_SNAPSHOT_VERIFICATION.json"
+rm -rf "${RUNNER_TEMP}/source-extracted"
+mkdir -p "${RUNNER_TEMP}/source-extracted"
+python - <<'PY'
+import os
+import zipfile
+from pathlib import Path
+
+archive = Path(os.environ["RUNNER_TEMP"]) / "TSAO-PROCESSING-SKILL-source-main-hardening.zip"
+target = Path(os.environ["RUNN
