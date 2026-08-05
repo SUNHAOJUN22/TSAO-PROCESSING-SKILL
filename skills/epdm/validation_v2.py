@@ -73,7 +73,7 @@ def validate_v2_project(
     project: object,
     *,
     schema_dir: Path | None = None,
-) -> V2ValidationResult:
+) -> _core.V2ValidationResult:
     result = _core.validate_v2_project(project, schema_dir=schema_dir)
     if result.errors or not isinstance(project, Mapping):
         return result
@@ -83,13 +83,13 @@ def validate_v2_project(
     error = _qualification_error(qualification)
     if error is None:
         return result
-    issue = ValidationIssue(
+    issue = _core.ValidationIssue(
         "ERROR",
         GateReasonCode.APPROVAL_MISSING,
         "$.qualification",
         f"qualification gate contract is invalid: {error}",
     )
-    return V2ValidationResult(
+    return _core.V2ValidationResult(
         GateDecision.FAIL,
         result.issues + (issue,),
         schema_version=result.schema_version,

@@ -1,6 +1,7 @@
 # ruff: noqa: F403, F405
 from skills.epdm.tests.contract_negative_cases import *  # noqa: F403
 
+
 @pytest.mark.parametrize(
     "factory",
     [
