@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -66,28 +68,29 @@ def _assert_process_gone(pid: int) -> None:
     pytest.fail(f"descendant process remained live: {pid}")
 
 
+def _posix_shell() -> str:
+    shell = shutil.which("sh")
+    assert shell is not None, "POSIX process-group tests require sh"
+    return shell
+
+
 @pytest.mark.skipif(os.name != "posix", reason="process-group assertion is POSIX-specific")
 def test_ci_runner_timeout_kills_descendants(tmp_path: Path) -> None:
     child_pid_file = tmp_path / "child.pid"
-    code = (
-        "import pathlib, subprocess, sys, time; "
-        "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
-        f"pathlib.Path({str(child_pid_file)!r}).write_text(str(p.pid)); "
-        "time.sleep(30)"
-    )
-    result = run([sys.executable, "-c", code], cwd=tmp_path, timeout=1)
+    target = shlex.quote(str(child_pid_file))
+    code = f"sleep 30 & child=$!; printf '%s' \"$child\" > {target}; wait"
+    result = run([_posix_shell(), "-c", code], cwd=tmp_path, timeout=2)
     assert result["timed_out"] is True
+    assert child_pid_file.is_file(), "child PID handshake was not written before timeout"
     _assert_process_gone(int(child_pid_file.read_text()))
 
 
 @pytest.mark.skipif(os.name != "posix", reason="process-group assertion is POSIX-specific")
 def test_ci_runner_success_reaps_lingering_descendants(tmp_path: Path) -> None:
     child_pid_file = tmp_path / "child-success.pid"
-    code = (
-        "import pathlib, subprocess, sys; "
-        "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
-        f"pathlib.Path({str(child_pid_file)!r}).write_text(str(p.pid))"
-    )
-    result = run([sys.executable, "-c", code], cwd=tmp_path, timeout=5)
+    target = shlex.quote(str(child_pid_file))
+    code = f"sleep 30 & child=$!; printf '%s' \"$child\" > {target}"
+    result = run([_posix_shell(), "-c", code], cwd=tmp_path, timeout=5)
     assert result["returncode"] == 0
+    assert child_pid_file.is_file(), "child PID handshake was not written"
     _assert_process_gone(int(child_pid_file.read_text()))

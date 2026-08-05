@@ -15,7 +15,7 @@ The lock verifier rejects:
 - duplicate package names after PEP 503-style normalization;
 - a lock that omits any runtime or `dev` direct dependency declared in `pyproject.toml`.
 
-The finalization workflow installs with `pip --require-hashes`, runs `pip check`, executes the complete repository qualification suite and records `pip-audit` JSON evidence. A vulnerability report is software supply-chain evidence only; it is not scientific, engineering, HSE, customer or industrial approval.
+The permanent qualification workflow validates the committed lock, installs it with `pip --require-hashes`, installs TSAO with `--no-deps --no-build-isolation`, runs `pip check`, and executes the complete repository, Wheel and source-snapshot Gates. The workflow does not currently claim an automated vulnerability scan; any future vulnerability report will remain software supply-chain evidence only, not scientific, engineering, HSE, customer or industrial approval.
 
 ## Regeneration
 

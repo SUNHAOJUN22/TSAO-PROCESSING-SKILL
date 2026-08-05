@@ -10,6 +10,8 @@ permissions:
 
 env:
   PERFORMANCE_BASELINE_COMMIT: "8719e59140202aae53cdfb80239b80dedad6767a"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_INPUT: "1"
 
 concurrency:
   group: tsao-main-${{ github.workflow }}
@@ -47,16 +49,16 @@ jobs:
             pyproject.toml
             requirements.txt
             requirements.lock
-      - name: Install
-        run: python -m pip install --quiet -e .[dev]
-      - name: Dependency integrity
-        run: python -m pip check
-      - name: Verify hashed dependency lock when present
+      - name: Verify exact hashed dependency lock
         run: >-
           python scripts/verify_dependency_lock.py requirements.lock
           --pyproject pyproject.toml
           --json-out reports/runtime/DEPENDENCY_LOCK_VERIFICATION.json
-          --allow-missing
+      - name: Install locked qualification environment
+        run: |
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
+          python -m pip check
       - name: Verify permanent repository hygiene
         run: >-
           python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name or p.startswith('.github/upgrade/')]; assert not f,f"
@@ -226,9 +228,14 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: pyproject.toml
-      - name: Install
-        run: python -m pip install --quiet -e .
+          cache-dependency-path: requirements.lock
+      - name: Verify exact hashed dependency lock
+        run: python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+      - name: Install locked snapshot environment
+        run: |
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
+          python -m pip check
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
       - name: Build and inspect deterministic public-source snapshot

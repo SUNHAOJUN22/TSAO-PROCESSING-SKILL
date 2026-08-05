@@ -16,7 +16,7 @@ Harden the sole `main` branch, remove temporary publication machinery, make the 
 
 ## Validation
 
-Validation results are generated from the local qualified source snapshot before the atomic `main` update.
+Validation results below are from GitHub Actions run `31014677125`, whose fully qualified commit object was later fast-forwarded to `main` without rewriting history.
 
 ## Qualification results
 
@@ -32,7 +32,7 @@ Validation results are generated from the local qualified source snapshot before
 - SVG generation, deterministic regeneration, XML accessibility, external-resource prohibition and contrast checks: PASS for all 29 assets.
 - Wheel build and content verification: PASS; the Wheel contains all 29 diagrams and the complete governed Skillpack tree.
 - Isolated PIP_TARGET Wheel runtime: PASS.
-- Standard-venv Wheel runtime was not completed in the local sandbox because its package index could not supply PyYAML; permanent GitHub CI retains this network-backed gate.
+- Clean standard-venv Wheel installation, dependency checking, import-origin enforcement and runtime smoke: PASS in GitHub Actions run `31014677125`.
 - Deterministic public-source snapshot: PASS with 410 governed manifest files and provenance/release-metadata self-validation.
 
 These are software-artifact results only. Scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.

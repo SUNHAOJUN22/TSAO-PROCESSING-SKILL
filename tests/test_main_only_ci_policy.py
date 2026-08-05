@@ -33,3 +33,11 @@ def test_repository_tracks_only_the_permanent_ci_workflow() -> None:
     workflows = sorted(path.name for path in (ROOT / ".github/workflows").glob("*.yml"))
     assert workflows == ["ci.yml"]
     assert not (ROOT / ".github/upgrade").exists()
+
+
+def test_ci_installs_the_verified_lock_without_dependency_resolution() -> None:
+    text = _workflow_text()
+    assert text.count("python -m pip install --quiet --require-hashes -r requirements.lock") == 2
+    assert text.count("python -m pip install --quiet --no-deps --no-build-isolation -e .") == 2
+    assert "--allow-missing" not in text
+    assert "pip install --quiet -e .[dev]" not in text
