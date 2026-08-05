@@ -56,17 +56,29 @@ def v1_case_to_v2_reference_case(v1_case: object) -> dict[str, Any]:
     source = copy.deepcopy(dict(v1_case))
     evidence_ids = sorted(_collect_evidence_ids(source))
     holds = [
-        "Phase A1 adapter is metadata-only; V2 reaction network and calculations are not implemented"
+        "Phase A1 adapter is metadata-only; V2 reaction network and calculations "
+        "are not implemented"
     ]
     if not evidence_ids:
         holds.append("source V1 case has no evidence IDs; migration must not fabricate evidence")
+
+    try:
+        source_sha256 = _canonical_hash(source)
+    except (TypeError, ValueError):
+        return {
+            "status": "FAIL",
+            "errors": ["V1 case must contain only finite JSON-compatible values"],
+            "holds": [],
+            "v2_calculation_invoked": False,
+            "compatibility_adapter_version": ADAPTER_VERSION,
+        }
 
     mapped = {
         "schema_version": "2.0.0",
         "adapter_kind": "V1_METADATA_ONLY",
         "compatibility_adapter_version": ADAPTER_VERSION,
         "model_generation": "V1_LUMPED_REFERENCE",
-        "source_v1_case_sha256": _canonical_hash(source),
+        "source_v1_case_sha256": source_sha256,
         "source_v1_case": source,
         "evidence_ids": evidence_ids,
         "transformations": [
