@@ -54,6 +54,31 @@ jobs:
           echo "aa1096d84f30ad1f5d22748cf6b7d4e1ea3a915467e746b452cc8b76479ed3ae  $RUNNER_TEMP/upgrade.patch" | sha256sum -c --strict
           git apply --check "$RUNNER_TEMP/upgrade.patch"
           git apply "$RUNNER_TEMP/upgrade.patch"
+          python - <<'PYHOTFIX'
+          from pathlib import Path
+
+          path = Path("scripts/generate_uiux_readme_assets.py")
+          text = path.read_text(encoding="utf-8")
+          import_anchor = "from html import escape\n"
+          pairwise_import = "from itertools import pairwise\n"
+          if pairwise_import not in text:
+              if text.count(import_anchor) != 1:
+                  raise SystemExit("UI/UX generator import anchor mismatch")
+              text = text.replace(import_anchor, import_anchor + pairwise_import, 1)
+
+          replacements = {
+              "for (x1, y1), (x2, y2) in zip(sequence, sequence[1:], strict=True):":
+                  "for (x1, y1), (x2, y2) in pairwise(sequence):",
+              "for (x1, y1), (x2, y2) in zip(seq, seq[1:], strict=True):":
+                  "for (x1, y1), (x2, y2) in pairwise(seq):",
+          }
+          for old, new in replacements.items():
+              if old not in text and new not in text:
+                  raise SystemExit(f"UI/UX generator loop anchor mismatch: {old}")
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8")
+          PYHOTFIX
+          python scripts/update_source_overlay.py --root . scripts/generate_uiux_readme_assets.py
           rm -f .github/workflows/main-repair-once.yml
           rm -f .github/workflows/main-repair-finalize-once.yml
           rm -f .github/workflows/finalize-main-ai-upgrade-once.yml
