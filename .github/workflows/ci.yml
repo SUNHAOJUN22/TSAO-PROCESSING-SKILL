@@ -250,3 +250,40 @@ jobs:
             TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
           if-no-files-found: error
           retention-days: 14
+
+  qualification-ledger:
+    needs: [qualification, source-snapshot]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Record main qualification result
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUALIFICATION_RESULT: ${{ needs.qualification.result }}
+          SNAPSHOT_RESULT: ${{ needs.source-snapshot.result }}
+        run: |
+          set -euo pipefail
+          verdict=FAIL
+          if [[ "$QUALIFICATION_RESULT" == success && "$SNAPSHOT_RESULT" == success ]]; then
+            verdict=PASS
+          fi
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          body=$(cat <<EOF
+          Permanent main qualification: **$verdict**
+
+          - commit: \`$GITHUB_SHA\`
+          - run: $run_url
+          - matrix qualification: \`$QUALIFICATION_RESULT\`
+          - source snapshot: \`$SNAPSHOT_RESULT\`
+          - event: \`$GITHUB_EVENT_NAME\`
+
+          This ledger records software-artifact qualification only. Scientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`.
+          EOF
+          )
+          gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
+          test "$verdict" = PASS
