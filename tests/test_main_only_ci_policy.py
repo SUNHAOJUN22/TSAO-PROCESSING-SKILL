@@ -39,6 +39,11 @@ def test_ci_installs_the_verified_lock_without_dependency_resolution() -> None:
     text = _workflow_text()
     assert text.count("python -m pip install --quiet --require-hashes -r requirements.lock") == 2
     assert text.count("python -m pip install --quiet --no-deps --no-build-isolation -e .") == 2
+    assert text.count("- name: Install exact locked dependencies") == 2
+    assert text.count("- name: Install TSAO without dependency resolution") == 2
+    assert text.count("- name: Verify installed dependency graph") == 2
+    assert "Install locked qualification environment" not in text
+    assert "Install locked snapshot environment" not in text
     assert "--allow-missing" not in text
     assert "pip install --quiet -e .[dev]" not in text
 

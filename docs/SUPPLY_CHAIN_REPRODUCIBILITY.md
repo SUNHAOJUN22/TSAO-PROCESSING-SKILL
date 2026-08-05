@@ -15,7 +15,7 @@ The lock verifier rejects:
 - duplicate package names after PEP 503-style normalization;
 - a lock that omits any runtime or `dev` direct dependency declared in `pyproject.toml`.
 
-The permanent qualification workflow validates the committed lock, installs it with `pip --require-hashes`, installs TSAO with `--no-deps --no-build-isolation`, runs `pip check`, and executes the complete repository, Wheel and source-snapshot Gates. The workflow does not currently claim an automated vulnerability scan; any future vulnerability report will remain software supply-chain evidence only, not scientific, engineering, HSE, customer or industrial approval.
+The permanent qualification workflow validates the committed lock, installs it with `pip --require-hashes`, installs TSAO with `--no-deps --no-build-isolation`, runs `pip check`, and executes the complete repository, Wheel and source-snapshot Gates. The lock also carries platform-conditional transitive packages required by the supported Windows runners, so hash mode does not delegate dependency resolution back to the network. The workflow does not currently claim an automated vulnerability scan; any future vulnerability report will remain software supply-chain evidence only, not scientific, engineering, HSE, customer or industrial approval.
 
 ## Regeneration
 

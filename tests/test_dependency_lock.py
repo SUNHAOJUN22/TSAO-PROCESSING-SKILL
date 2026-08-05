@@ -71,3 +71,16 @@ def test_lock_rejects_credentials_and_non_pinned_rows(tmp_path: Path) -> None:
     assert report["status"] == "FAIL"
     assert any("must not contain credentials" in error for error in report["errors"])
     assert any("not exactly pinned" in error for error in report["errors"])
+
+def test_committed_lock_covers_windows_pytest_dependency() -> None:
+    root = Path(__file__).resolve().parents[1]
+    report = verify_lock(root / "requirements.lock", root / "pyproject.toml")
+    assert report["status"] == "PASS", report["errors"]
+    colorama = report["packages"].get("colorama")
+    assert colorama == {
+        "version": "0.4.6",
+        "hashes": [
+            "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44",
+            "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+        ],
+    }

@@ -14,6 +14,10 @@ attrs==26.1.0 \
     # via
     #   jsonschema
     #   referencing
+colorama==0.4.6 \
+    --hash=sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44 \
+    --hash=sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6
+    # via pytest
 coverage==7.15.3 \
     --hash=sha256:00cbdc5e322927dc30c5e42b863819b1bb867cc66f26ab5372c585850876ab93 \
     --hash=sha256:0b273f4ff657446a06c2d85bf80e134fa869a92852ba5f87854a70e1fb44da77 \

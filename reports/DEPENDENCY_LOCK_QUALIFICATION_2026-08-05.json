@@ -6,9 +6,9 @@
   "global_options": [],
   "industrial_performance_guarantee": "NOT_EVALUATED",
   "lock_path": "requirements.lock",
-  "lock_sha256": "55ee4635d00010b423cf469865322b63209b90c3249270fac1aa2eb29eb6c04e",
+  "lock_sha256": "faf1b0bdf60bb5f5139216343ca0cb0503f6078a4b6a5411a788c86bcad33ccf",
   "missing_direct_dependencies": [],
-  "package_count": 29,
+  "package_count": 30,
   "packages": {
     "arrow": {
       "hashes": [
@@ -23,6 +23,13 @@
         "d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32"
       ],
       "version": "26.1.0"
+    },
+    "colorama": {
+      "hashes": [
+        "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44",
+        "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
+      ],
+      "version": "0.4.6"
     },
     "coverage": {
       "hashes": [
