@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   issues: write
 
 concurrency:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - name: Execute verified finalizer
+      - name: Execute verified finalizer and export final tree
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -52,14 +52,32 @@ jobs:
           """
           if old not in text:
               raise SystemExit("finalizer overlay-update anchor not found")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          text = text.replace(old, new, 1)
+
+          push_marker = "git push origin HEAD:main\n"
+          if push_marker not in text:
+              raise SystemExit("finalizer push anchor not found")
+          prefix = text.split(push_marker, 1)[0]
+          export_tail = r'''final_sha="$(git rev-parse HEAD)"
+          git archive --format=zip \
+            --output="${evidence_dir}/FINAL_MAIN_TREE.zip" "${final_sha}"
+          git diff --binary "${GITHUB_SHA}" "${final_sha}" \
+            > "${evidence_dir}/FINAL_MAIN_PATCH.diff"
+          git ls-tree -r --full-tree "${final_sha}" \
+            > "${evidence_dir}/FINAL_MAIN_TREE.tsv"
+          lock_sha="$(sha256sum requirements.lock | awk '{print $1}')"
+          printf 'FINAL_SHA=%s\nBASE_SHA=%s\nLOCK_SHA=%s\n' \
+            "${final_sha}" "${GITHUB_SHA}" "${lock_sha}" \
+            | tee "${evidence_dir}/FINALIZATION_RESULT.txt"
+          '''
+          path.write_text(prefix + export_tail, encoding="utf-8")
           PY
           chmod +x "${script}"
           "${script}"
-      - name: Upload qualification evidence
+      - name: Upload qualification evidence and final tree
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: main-only-hardening-evidence
+          name: main-only-hardening-publication
           path: |
             requirements.lock
             reports/DEPENDENCY_LOCK_QUALIFICATION_2026-08-05.json
