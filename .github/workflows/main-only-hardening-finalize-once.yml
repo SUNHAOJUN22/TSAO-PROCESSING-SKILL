@@ -1,0 +1,67 @@
+name: Finalize main-only hardening
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/main-only-hardening-finalize-once.yml
+      - .github/hardening/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: tsao-main-only-hardening
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Execute verified finalizer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t parts < <(find .github/hardening -maxdepth 1 -type f -name 'finalize-main.sh.part-*' | sort)
+          test "${#parts[@]}" -eq 17
+          script="${RUNNER_TEMP}/finalize-main.sh"
+          cat "${parts[@]}" > "${script}"
+          echo "d4d6e12c845cef95613d70cbf27ab9a5966f8ed5db160f59fc2ee70fe12001b6  ${script}" | sha256sum --check --strict
+          chmod +x "${script}"
+          "${script}"
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: main-only-hardening-evidence
+          path: |
+            requirements.lock
+            reports/DEPENDENCY_LOCK_QUALIFICATION_2026-08-05.json
+            reports/PIP_AUDIT_2026-08-05.json
+            ${{ runner.temp }}/main-hardening-evidence/**
+          if-no-files-found: error
+          retention-days: 30
+
+  notify-failure:
+    needs: finalize
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Report finalization failure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh issue comment 68 --repo "${GITHUB_REPOSITORY}"
+          --body "Main-only hardening finalization failed in run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. No success claim or branch cleanup was recorded."
