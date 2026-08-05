@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import tsao  # noqa: E402
+from scripts.windows_job import WindowsKillJob, close_kill_job, popen_in_kill_job  # noqa: E402
 
 __version__ = tsao.__version__
 
@@ -234,34 +235,68 @@ def _cleanup_windows_descendants(root_pid: int) -> list[str]:
     return sorted(set(issues))
 
 
-def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
+def run(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout: int = 300,
+    _windows_job_test_fault: str | None = None,
+) -> dict[str, Any]:
     if timeout <= 0:
         raise ValueError("timeout must be positive")
+    if _windows_job_test_fault is not None and os.name != "nt":
+        raise ValueError("Windows Job Object test faults require Windows")
+
     started = time.perf_counter()
+    cleanup_issues: list[str] = []
+    process_control = "POSIX_PROCESS_GROUP" if os.name == "posix" else "DIRECT_PROCESS"
+    job: WindowsKillJob | None = None
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
-        process = subprocess.Popen(
-            command,
-            cwd=cwd,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=os.name == "posix",
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
-        )
+        if os.name == "nt":
+            process, job, launch_issues = popen_in_kill_job(
+                command,
+                cwd=cwd,
+                log=log,
+                test_fault=_windows_job_test_fault,
+            )
+            cleanup_issues.extend(launch_issues)
+            process_control = (
+                "WINDOWS_JOB_OBJECT"
+                if job is not None and job.bound
+                else "WINDOWS_TOOLHELP_FALLBACK"
+            )
+        else:
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                text=True,
+                start_new_session=os.name == "posix",
+            )
         try:
             returncode = process.wait(timeout=timeout)
             timed_out = False
         except subprocess.TimeoutExpired:
             timed_out = True
             returncode = 124
-            _terminate_process_tree(process)
         finally:
-            cleanup_issues: list[str] = []
-            if process.poll() is not None:
-                if os.name == "posix":
+            if os.name == "posix":
+                if process.poll() is None:
+                    _terminate_process_tree(process)
+                if process.poll() is not None:
                     _cleanup_successful_process_group(process)
-                elif os.name == "nt":
+            elif os.name == "nt":
+                job_was_bound = job is not None and job.bound
+                job_issues = close_kill_job(job)
+                cleanup_issues.extend(job_issues)
+                if process.poll() is None:
+                    _terminate_process_tree(process)
+                if not job_was_bound or job_issues:
                     cleanup_issues.extend(_cleanup_windows_descendants(process.pid))
+            elif process.poll() is None:
+                _terminate_process_tree(process)
+        cleanup_issues = sorted(set(cleanup_issues))
         if cleanup_issues and returncode == 0:
             returncode = 125
         log.flush()
@@ -273,6 +308,8 @@ def run(command: list[str], *, cwd: Path, timeout: int = 300) -> dict[str, Any]:
         "timed_out": timed_out,
         "duration_s": time.perf_counter() - started,
         "output": output,
+        "process_control": process_control,
+        "job_object_bound": bool(job is not None and job.bound),
         "cleanup_issues": cleanup_issues,
     }
 
