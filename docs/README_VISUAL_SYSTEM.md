@@ -48,7 +48,7 @@ This document is the persistent source of truth for the repository-owned README 
 5. Color is never the only carrier of status; labels such as `PASS`, `HOLD`, `FAIL` and `NOT_EVALUATED` remain visible.
 6. Body text stays at or above 12 px; principal labels stay at or above 15 px.
 7. Connectors use consistent arrowheads and avoid crossing wherever practical.
-8. The same semantic color means the same thing across all 18 diagrams.
+8. The same semantic color means the same thing across all 21 diagrams.
 
 ## Accessibility and quality checks
 
@@ -57,7 +57,7 @@ This document is the persistent source of truth for the repository-owned README 
 - The palette uses high-contrast light text on dark surfaces.
 - No information relies on hover, animation or color alone.
 - No external font, image, JavaScript or network request is required.
-- The master generator is deterministic and produces the complete 18-file set.
+- The master generator is deterministic and produces the complete 21-file set.
 - English and Chinese READMEs must reference exactly the same SVG filenames.
 
 ## Anti-patterns
@@ -82,7 +82,7 @@ python scripts/verify_readme_visual_accessibility.py
 python scripts/sync_readme_visuals.py --check
 ```
 
-The four historical generators remain available for lineage and focused maintenance. `generate_uiux_readme_assets.py` remains the master visual-normalization layer for all 18 files; `harden_readme_svg_accessibility.py` then adds stable responsive/rendering metadata, and `verify_readme_visual_accessibility.py` fail-closes on contrast, text size, external resources, emoji, missing title/description or inconsistent root attributes. The committed palette exceeds 4.5:1 for primary text and 3:1 for secondary text and semantic glyphs on the dark surfaces.
+The four historical generators remain available for lineage and focused maintenance. `generate_uiux_readme_assets.py` remains the master visual-normalization layer for all 21 files; `harden_readme_svg_accessibility.py` then adds stable responsive/rendering metadata, and `verify_readme_visual_accessibility.py` fail-closes on contrast, text size, external resources, emoji, missing title/description or inconsistent root attributes. The committed palette exceeds 4.5:1 for primary text and 3:1 for secondary text and semantic glyphs on the dark surfaces.
 
 ---
 
@@ -92,4 +92,4 @@ The four historical generators remain available for lineage and focused maintena
 
 核心口径：**Swiss/Minimal + Bento Grid + 克制的 AI-Native Data UI**。采用深海军蓝背景、蓝青色计算链、绿色合格软件证据、琥珀色条件门和红色失败路径；使用 Inter 与 JetBrains Mono；全部图标均为仓库内原创 SVG 几何，不使用 emoji、外链图片或装饰性动效。
 
-所有 18 幅图必须保持统一层级、统一语义色、明确文字标签和底部责任边界。修改图形时只修改主生成器，不得直接手工改写生成后的 SVG。软件通过状态不得被视觉上包装成科学、工程、HSE、客户或工业批准。
+所有 21 幅图必须保持统一层级、统一语义色、明确文字标签和底部责任边界。修改图形时只修改主生成器，不得直接手工改写生成后的 SVG。软件通过状态不得被视觉上包装成科学、工程、HSE、客户或工业批准。

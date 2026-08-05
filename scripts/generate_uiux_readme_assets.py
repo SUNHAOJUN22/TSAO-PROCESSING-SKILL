@@ -1030,6 +1030,60 @@ def render_product_bridge() -> str:
     )
 
 
+def render_dependency_lock() -> str:
+    stages = [
+        ("Dependency intent", "pyproject ranges\nruntime + dev extras", BLUE, "database"),
+        ("Deterministic resolver", "Python 3.11\nbacktracking resolver", CYAN, "cpu"),
+        ("Exact hashed lock", "name == version\nSHA-256 per artifact", PURPLE, "shield"),
+        ("Clean installation", "--require-hashes\nno implicit upgrades", TEAL, "flow"),
+        ("Vulnerability audit", "pip-audit\nmachine JSON evidence", AMBER, "chart"),
+        ("Release Gate", "lock identity\nsource provenance", GREEN, "shield"),
+    ]
+    return render_linear(
+        "Hashed dependency supply-chain gate",
+        "Declared ranges become an exact, auditable and fail-closed installation contract",
+        stages,
+        footer="UNPINNED, UNHASHED OR VULNERABLE DEPENDENCY → HOLD",
+        eyebrow="SOFTWARE SUPPLY CHAIN",
+    )
+
+
+def render_snapshot_self_validation() -> str:
+    stages = [
+        ("Source manifest", "canonical paths\nSHA-256 + bytes", BLUE, "database"),
+        ("Snapshot staging", "manifest + overlay\nruntime support files", CYAN, "flow"),
+        ("Identity metadata", "snapshot contract\nrelease SBOM", PURPLE, "database"),
+        ("Re-extracted tree", "portable source\nno hidden checkout state", TEAL, "flow"),
+        ("Self-validation", "provenance\nmetadata + Doctor", GREEN, "shield"),
+        ("Archive digest", "deterministic ZIP\nexternal SHA-256", AMBER, "shield"),
+    ]
+    return render_linear(
+        "Self-validating source snapshot",
+        "The exported source must pass the same integrity rules after extraction",
+        stages,
+        footer="ARCHIVE CREATED ≠ ARCHIVE QUALIFIED",
+        eyebrow="REPRODUCIBLE SOURCE DELIVERY",
+    )
+
+
+def render_main_only_delivery() -> str:
+    stages = [
+        ("main commit", "single authority\nno feature branch", BLUE, "database"),
+        ("Qualification matrix", "Windows + Linux\nPython 3.11–3.14", CYAN, "cpu"),
+        ("Evidence artifacts", "tests · coverage\nwheel · snapshot", PURPLE, "chart"),
+        ("Atomic finalization", "lock + reports\nself-delete workflow", TEAL, "flow"),
+        ("Branch cleanup", "delete stale refs\nretain commit history", AMBER, "shield"),
+        ("main only", "auditable head\nreproducible release", GREEN, "shield"),
+    ]
+    return render_linear(
+        "Main-only delivery lifecycle",
+        "A one-shot release path qualifies the exact tree before removing obsolete branches",
+        stages,
+        footer="DELETE BRANCHES ONLY AFTER QUALIFICATION PASS",
+        eyebrow="REPOSITORY GOVERNANCE",
+    )
+
+
 ASSETS = {
     "tsao-process-intelligence-os.svg": render_platform,
     "universal-process-package.svg": lambda: render_linear(
@@ -1075,6 +1129,9 @@ ASSETS = {
     "verification-pipeline.svg": render_verification,
     "batch-parameter-scan.svg": render_batch_scan,
     "performance-regression-gate.svg": render_perf_gate,
+    "dependency-lock-supply-chain.svg": render_dependency_lock,
+    "source-snapshot-self-validation.svg": render_snapshot_self_validation,
+    "main-only-delivery-lifecycle.svg": render_main_only_delivery,
 }
 
 

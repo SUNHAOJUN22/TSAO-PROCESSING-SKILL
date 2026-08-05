@@ -31,6 +31,7 @@ _SELF_MANIFESTS = {
     "FILE_MANIFEST.tsv",
     "checksums.sha256",
     "SBOM.json",
+    "SOURCE_SNAPSHOT_IDENTITY.json",
 }
 
 

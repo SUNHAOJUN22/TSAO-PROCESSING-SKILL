@@ -1,0 +1,22 @@
+# Supply-chain reproducibility
+
+## Objective
+
+TSAO separates dependency intent from an exact installation contract. `pyproject.toml` retains compatible version ranges for maintainability; `requirements.lock` records the resolved Python 3.11 development and runtime environment with exact versions and SHA-256 hashes.
+
+## Fail-closed rules
+
+The lock verifier rejects:
+
+- any requirement not pinned with `==`;
+- any package row without a SHA-256 hash;
+- editable, VCS, local-file or direct-URL requirements;
+- credential-bearing, insecure or unsupported package indexes;
+- duplicate package names after PEP 503-style normalization;
+- a lock that omits any runtime or `dev` direct dependency declared in `pyproject.toml`.
+
+The finalization workflow installs with `pip --require-hashes`, runs `pip check`, executes the complete repository qualification suite and records `pip-audit` JSON evidence. A vulnerability report is software supply-chain evidence only; it is not scientific, engineering, HSE, customer or industrial approval.
+
+## Regeneration
+
+The permanent repository never keeps a lock-generation workflow. A one-shot workflow may generate and qualify the lock on `main`, commit the resulting lock and evidence, remove itself in the same final commit, and then delete obsolete branches after qualification passes.

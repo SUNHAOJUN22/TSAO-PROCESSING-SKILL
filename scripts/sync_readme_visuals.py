@@ -39,7 +39,7 @@ def _english(text: str) -> str:
     text = _replace_once(
         text,
         "The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and at least 16 README diagrams are present.",
-        "The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 18 README diagrams are present.",
+        "The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 21 README diagrams are present.",
         label="English inventory",
     )
     text = _ensure_figure(
@@ -65,7 +65,7 @@ def _english(text: str) -> str:
     text = _replace_once(
         text,
         "all 16 diagrams",
-        "all 18 diagrams",
+        "all 21 diagrams",
         label="English Wheel diagram count",
     )
     return text
@@ -81,7 +81,7 @@ def _chinese(text: str) -> str:
     text = _replace_once(
         text,
         "四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或至少 16 幅 README 图中缺少任何一项，库存检查都会失败关闭。",
-        "四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 18 幅 README 图中缺少任何一项，库存检查都会失败关闭。",
+        "四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 21 幅 README 图中缺少任何一项，库存检查都会失败关闭。",
         label="Chinese inventory",
     )
     text = _ensure_figure(
@@ -107,7 +107,7 @@ def _chinese(text: str) -> str:
     text = _replace_once(
         text,
         "全部 16 幅图",
-        "全部 18 幅图",
+        "全部 21 幅图",
         label="Chinese Wheel diagram count",
     )
     return text

@@ -12,7 +12,7 @@ import yaml
 DISTRIBUTION_NAME = "tsao-processing-skill"
 INSTALLED_SHARE = Path("share") / DISTRIBUTION_NAME
 EXPECTED_SUBSKILLS = {"process-general", "epdm", "poe", "polymer-general"}
-README_ASSET_MINIMUM = 18
+README_ASSET_MINIMUM = 21
 PROCESS_MODULES = (
     "01_chemistry_reaction_basis.md",
     "02_measurement_data.md",

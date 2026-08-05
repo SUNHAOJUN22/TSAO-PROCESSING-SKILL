@@ -7,7 +7,7 @@
 
 **面向化工工艺包的可追溯、默认失败关闭 Skill 平台；EPDM 是最深的旗舰路线，POE 是证据谱系最完整的专业路线。**
 
-[English](README.md) · [总体架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [科研诚信](docs/RESEARCH_INTEGRITY.md) · [README 视觉系统](docs/README_VISUAL_SYSTEM.md)
+[English](README.md) · [总体架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [科研诚信](docs/RESEARCH_INTEGRITY.md) · [README 视觉系统](docs/README_VISUAL_SYSTEM.md) · [供应链复现](docs/SUPPLY_CHAIN_REPRODUCIBILITY.md)
 
 ![TSAO 工艺智能操作系统总览](docs/assets/readme/tsao-process-intelligence-os.svg)
 
@@ -28,7 +28,7 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 18 幅 README 图中缺少任何一项，库存检查都会失败关闭。
+四条 Skill、14 个通用模块、6 条工作流、6 个聚合物通用脚本或全部 21 幅 README 图中缺少任何一项，库存检查都会失败关闭。
 
 ![通用工艺包生命周期](docs/assets/readme/universal-process-package.svg)
 
@@ -223,6 +223,24 @@ v2 性能门保护 17 个共用负载和 3 条新增优化路径。结构稳定�
 
 ![自动验证流水线](docs/assets/readme/verification-pipeline.svg)
 
+### 哈希依赖供应链
+
+![哈希依赖供应链资格门](docs/assets/readme/dependency-lock-supply-chain.svg)
+
+`requirements.lock` 在 Python 3.11 上生成，锁定精确版本与 SHA-256。仓库校验器会拒绝未锁定条目、缺失哈希、带凭据的索引、非受控来源以及任何遗漏的直接依赖；最终化流程使用 `--require-hashes` 安装，并保存机器可读的漏洞审计证据。
+
+### 可自校验源代码交付
+
+![可自校验源快照](docs/assets/readme/source-snapshot-self-validation.svg)
+
+源快照导出器会复制受治理的运行时支持标记，写入快照身份和发布元数据，并在生成确定性 ZIP 之前重新核验溯源与元数据。仅仅成功生成压缩包，不再等同于快照通过资格验证。
+
+### 仅 main 最终化
+
+![仅 main 交付生命周期](docs/assets/readme/main-only-delivery-lifecycle.svg)
+
+一次性最终化流程直接运行于 `main`：先验证精确代码树，再原子提交依赖锁与证据，删除自身临时工作流，并且只在所有 Gate 通过后清理远端旧分支。
+
 ```bash
 python scripts/generate_readme_assets.py
 python scripts/generate_extended_readme_assets.py
@@ -243,7 +261,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
 Wheel 具有两道独立质量门：
 
-1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 18 幅图；
+1. **内容门：**必须包含可执行内核、完整四 Skill 树、合同、Schema、报告、维护脚本、示例和全部 21 幅图；
 2. **安装门：**同时验证 `pip install --target` 与不继承系统 site-packages 的干净标准虚拟环境；TSAO、EPDM、POE 模块及 Skill 数据根必须全部位于所选安装根内，随后才允许通过安装态 README 与已知解检查。
 
 CI 将 Windows/Python 3.11–3.14 作为核心发布矩阵，并在 Linux/Python 3.11、3.14 上验证兼容性；macOS 不作为发布门槛；检查编译、测试、分支覆盖率、合同、溯源、Ruff、EPDM/POE 审计、确定性图形、Wheel 内容、真实安装态运行和 CLI 冒烟测试。覆盖率完成后，独立审计并行执行；Ubuntu/Python 3.14 还强制执行版本化性能回归门。

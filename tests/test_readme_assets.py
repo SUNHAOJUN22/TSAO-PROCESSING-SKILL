@@ -24,8 +24,8 @@ def declared_asset_names() -> set[str]:
 
 
 def test_master_generator_covers_the_complete_legacy_asset_contract() -> None:
-    assert declared_asset_names() == legacy_asset_names()
-    assert len(declared_asset_names()) == 18
+    assert legacy_asset_names().issubset(declared_asset_names())
+    assert len(declared_asset_names()) == 21
 
 
 def test_bilingual_readmes_reference_every_declared_local_svg_asset() -> None:
@@ -59,7 +59,7 @@ def test_readme_assets_are_deterministically_declared_by_master_generator() -> N
 
     committed_names = {path.name for path in OUT.glob("*.svg")}
     assert set(ASSETS) == committed_names
-    assert len(ASSETS) == 18
+    assert len(ASSETS) == 21
 
 
 def test_visual_system_is_persisted_and_linked() -> None:

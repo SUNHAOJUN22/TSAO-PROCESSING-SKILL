@@ -8,11 +8,16 @@ from typing import Any
 
 from . import __version__
 from .archive import deterministic_zip
-from .integrity import build_release_metadata, sha256_file
+from .integrity import (
+    build_release_metadata,
+    sha256_file,
+    verify_release_metadata,
+)
 from .provenance import verify_manifest
 
 _SOURCE_MANIFEST = Path("reports/SOURCE_CORE_MANIFEST.tsv")
 _SOURCE_OVERLAY = Path("reports/SOURCE_CORE_OVERLAY.tsv")
+_SOURCE_SNAPSHOT_SUPPORT_FILES = (Path("reports/runtime/README.md"),)
 
 
 def _manifest_paths(manifest: Path, overlay: Path | None = None) -> list[str]:
@@ -47,18 +52,33 @@ def build_source_snapshot(root: Path, output: Path) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="tsao-source-snapshot-") as directory:
         stage = Path(directory) / f"TSAO-PROCESSING-SKILL-source-{__version__}"
         stage.mkdir()
+        copied_paths: set[str] = set()
         for relative in paths:
             source = root / relative
             destination = stage / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
+            copied_paths.add(Path(relative).as_posix())
+        support_files: list[str] = []
+        for relative in _SOURCE_SNAPSHOT_SUPPORT_FILES:
+            source = root / relative
+            if not source.is_file():
+                raise ValueError(f"missing source snapshot support file: {relative.as_posix()}")
+            destination = stage / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+            normalized = relative.as_posix()
+            support_files.append(normalized)
+            copied_paths.add(normalized)
         manifest_target = stage / _SOURCE_MANIFEST
         manifest_target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(manifest, manifest_target)
+        copied_paths.add(_SOURCE_MANIFEST.as_posix())
         if overlay.is_file():
             overlay_target = stage / _SOURCE_OVERLAY
             overlay_target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(overlay, overlay_target)
+            copied_paths.add(_SOURCE_OVERLAY.as_posix())
         identity = {
             "format": "TSAO-SOURCE-SNAPSHOT-1",
             "version": __version__,
@@ -66,6 +86,8 @@ def build_source_snapshot(root: Path, output: Path) -> dict[str, Any]:
             "source_manifest_sha256": sha256_file(manifest),
             "source_overlay_sha256": sha256_file(overlay) if overlay.is_file() else None,
             "overlay_included": overlay.is_file(),
+            "snapshot_support_files": support_files,
+            "snapshot_file_count_before_metadata": len(copied_paths),
             "scientific_technical_approval": "NOT_EVALUATED",
             "engineering_design_approval": "NOT_EVALUATED",
             "industrial_performance_guarantee": "NOT_EVALUATED",
@@ -75,10 +97,22 @@ def build_source_snapshot(root: Path, output: Path) -> dict[str, Any]:
             encoding="utf-8",
         )
         metadata = build_release_metadata(stage)
+        provenance_issues = verify_manifest(stage, manifest_target)
+        release_metadata_issues = verify_release_metadata(stage)
+        if provenance_issues or release_metadata_issues:
+            details = [
+                *(f"provenance: {issue}" for issue in provenance_issues),
+                *(f"release_metadata: {issue}" for issue in release_metadata_issues),
+            ]
+            raise ValueError("source snapshot self-validation failed: " + "; ".join(details))
         archive_sha = deterministic_zip(stage, output)
     result = {
         **identity,
         "release_metadata_files": metadata["files"],
+        "self_validation": {
+            "provenance": "PASS",
+            "release_metadata": "PASS",
+        },
         "archive": str(output),
         "archive_sha256": archive_sha,
     }

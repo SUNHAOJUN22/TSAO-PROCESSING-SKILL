@@ -9,7 +9,7 @@ from tsao import __version__
 from tsao.archive import validate_zip_archive
 from tsao.doctor import diagnose
 from tsao.integrity import build_release_metadata, verify_release_metadata
-from tsao.provenance import build_manifest
+from tsao.provenance import build_manifest, verify_manifest
 from tsao.snapshot import build_source_snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,12 +30,19 @@ def test_source_snapshot_is_deterministic_and_self_describing(tmp_path: Path) ->
     root = tmp_path / "source"
     (root / "reports").mkdir(parents=True)
     (root / "README.md").write_text("# demo\n", encoding="utf-8")
+    runtime_marker = root / "reports/runtime/README.md"
+    runtime_marker.parent.mkdir(parents=True)
+    runtime_marker.write_text("# Runtime reports\n", encoding="utf-8")
     build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
     first = tmp_path / "first.zip"
     second = tmp_path / "second.zip"
     result_one = build_source_snapshot(root, first)
     result_two = build_source_snapshot(root, second)
     assert result_one["archive_sha256"] == result_two["archive_sha256"]
+    assert result_one["self_validation"] == {
+        "provenance": "PASS",
+        "release_metadata": "PASS",
+    }
     assert first.read_bytes() == second.read_bytes()
     assert validate_zip_archive(first) == []
     with zipfile.ZipFile(first) as archive:
@@ -43,11 +50,34 @@ def test_source_snapshot_is_deterministic_and_self_describing(tmp_path: Path) ->
         assert any(name.endswith("SOURCE_SNAPSHOT_IDENTITY.json") for name in names)
         assert any(name.endswith("FILE_MANIFEST.tsv") for name in names)
         assert any(name.endswith("reports/SOURCE_CORE_MANIFEST.tsv") for name in names)
+        assert any(name.endswith("reports/runtime/README.md") for name in names)
+        archive.extractall(tmp_path / "extracted")
+    extracted_roots = [path for path in (tmp_path / "extracted").iterdir() if path.is_dir()]
+    assert len(extracted_roots) == 1
+    extracted = extracted_roots[0]
+    assert verify_manifest(extracted, extracted / "reports/SOURCE_CORE_MANIFEST.tsv") == []
+    assert verify_release_metadata(extracted) == []
+
+
+def test_source_snapshot_fails_closed_without_required_support_file(tmp_path: Path) -> None:
+    root = tmp_path / "source-missing-support"
+    (root / "reports").mkdir(parents=True)
+    (root / "README.md").write_text("# demo\n", encoding="utf-8")
+    build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
+    try:
+        build_source_snapshot(root, tmp_path / "missing-support.zip")
+    except ValueError as exc:
+        assert "missing source snapshot support file" in str(exc)
+    else:
+        raise AssertionError("snapshot creation must fail without the required runtime marker")
 
 
 def test_source_snapshot_includes_overlay_only_files(tmp_path: Path) -> None:
     root = tmp_path / "source-overlay"
-    (root / "reports").mkdir(parents=True)
+    (root / "reports/runtime").mkdir(parents=True)
+    (root / "reports/runtime/README.md").write_text(
+        "# Runtime reports\n", encoding="utf-8"
+    )
     (root / "base.txt").write_text("base\n", encoding="utf-8")
     build_manifest(
         root,

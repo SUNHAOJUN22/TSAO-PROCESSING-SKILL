@@ -7,7 +7,7 @@
 
 **A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
 
-[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md) · [README visual system](docs/README_VISUAL_SYSTEM.md)
+[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md) · [README visual system](docs/README_VISUAL_SYSTEM.md) · [Supply-chain reproducibility](docs/SUPPLY_CHAIN_REPRODUCIBILITY.md)
 
 ![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)
 
@@ -28,7 +28,7 @@ python -m tsao.skillpacks --root .
 tsao-skillpacks
 ```
 
-The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 18 README diagrams are present.
+The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 21 README diagrams are present.
 
 ![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
 
@@ -223,6 +223,24 @@ Decision-facing results retain source IDs, conditions, units, method boundaries,
 
 ![Verification pipeline](docs/assets/readme/verification-pipeline.svg)
 
+### Hashed dependency supply chain
+
+![Hashed dependency supply-chain gate](docs/assets/readme/dependency-lock-supply-chain.svg)
+
+`requirements.lock` is generated on Python 3.11 with exact versions and SHA-256 hashes. The repository verifier rejects unpinned rows, missing hashes, credential-bearing indexes, unsupported sources and any missing direct dependency. The finalization run installs with `--require-hashes` and records a machine-readable vulnerability audit.
+
+### Self-validating source delivery
+
+![Self-validating source snapshot](docs/assets/readme/source-snapshot-self-validation.svg)
+
+The source exporter now copies governed runtime support markers, writes snapshot identity and release metadata, and then re-verifies provenance plus metadata before creating the deterministic ZIP. An archive that merely exists is not treated as qualified.
+
+### Main-only finalization
+
+![Main-only delivery lifecycle](docs/assets/readme/main-only-delivery-lifecycle.svg)
+
+The one-shot finalizer runs on `main`, qualifies the exact tree, commits the lock and evidence atomically, removes its own temporary workflow and deletes obsolete remote branches only after all Gates pass.
+
 ```bash
 python scripts/generate_readme_assets.py
 python scripts/generate_extended_readme_assets.py
@@ -243,7 +261,7 @@ python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
 
 Wheel verification has two independent gates:
 
-1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 18 diagrams;
+1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 21 diagrams;
 2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
 
 CI treats Windows/Python 3.11–3.14 as the core release matrix and verifies Linux compatibility on Python 3.11 and 3.14; macOS is not a release Gate. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.

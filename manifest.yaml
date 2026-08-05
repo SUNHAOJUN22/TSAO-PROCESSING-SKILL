@@ -10,7 +10,7 @@ principles: [traceable, scientific, auditable, operational, fail-closed, softwar
 lifecycle_gates: [G0, G1, G2, G3, G4, G5, G6, G7, G8, G9, G10, G11, G12, G13, G14, G15, G16, G17, G18]
 delivery_verification:
   python_versions: ["3.11", "3.12", "3.13", "3.14"]
-  readme_assets: 18_OF_18
+  readme_assets: 21_OF_21
   readme_visual_system: SCIENTIFIC_MIDNIGHT_BENTO_UIUX_PRO_MAX_ALIGNED
   installed_readme_links: VERIFIED
   wheel_install_modes: [PIP_TARGET, STANDARD_VENV]
