@@ -193,54 +193,59 @@ def popen_in_kill_job(
         )
         return process, None, issues
 
-    original_create_process = _winapi.CreateProcess
     launch_issues = list(issues)
-
-    def create_suspended(
-        application_name: Any,
-        command_line: Any,
-        process_attributes: Any,
-        thread_attributes: Any,
-        inherit_handles: Any,
-        creation_flags: int,
-        environment: Any,
-        current_directory: Any,
-        startup_info: Any,
-    ) -> tuple[int, int, int, int]:
-        process_handle, thread_handle, pid, thread_id = original_create_process(
-            application_name,
-            command_line,
-            process_attributes,
-            thread_attributes,
-            inherit_handles,
-            creation_flags | _CREATE_SUSPENDED,
-            environment,
-            current_directory,
-            startup_info,
-        )
-        binding_issues = _assign(job, int(process_handle), int(pid), test_fault)
-        if binding_issues:
-            launch_issues.extend(binding_issues)
-            try:
-                _winapi.TerminateProcess(process_handle, 125)
-            except OSError as exc:
-                launch_issues.append(f"cannot terminate uncontained PID {pid}: {exc}")
-                resume_issue = _resume(int(thread_handle), int(pid))
-                if resume_issue:
-                    launch_issues.append(resume_issue)
-            return process_handle, thread_handle, pid, thread_id
-
-        resume_issue = _resume(int(thread_handle), int(pid))
-        if resume_issue:
-            launch_issues.append(resume_issue)
-            try:
-                _winapi.TerminateProcess(process_handle, 125)
-            except OSError as exc:
-                launch_issues.append(f"cannot terminate unresumable PID {pid}: {exc}")
-        return process_handle, thread_handle, pid, thread_id
 
     try:
         with _CREATE_PROCESS_LOCK:
+            # Capture the native function only after acquiring the process-wide lock.
+            # Capturing it earlier lets a concurrent caller retain another caller's
+            # temporary wrapper, causing nested assignment/resume and a false cleanup
+            # failure even though the child is correctly contained.
+            original_create_process = _winapi.CreateProcess
+
+            def create_suspended(
+                application_name: Any,
+                command_line: Any,
+                process_attributes: Any,
+                thread_attributes: Any,
+                inherit_handles: Any,
+                creation_flags: int,
+                environment: Any,
+                current_directory: Any,
+                startup_info: Any,
+            ) -> tuple[int, int, int, int]:
+                process_handle, thread_handle, pid, thread_id = original_create_process(
+                    application_name,
+                    command_line,
+                    process_attributes,
+                    thread_attributes,
+                    inherit_handles,
+                    creation_flags | _CREATE_SUSPENDED,
+                    environment,
+                    current_directory,
+                    startup_info,
+                )
+                binding_issues = _assign(job, int(process_handle), int(pid), test_fault)
+                if binding_issues:
+                    launch_issues.extend(binding_issues)
+                    try:
+                        _winapi.TerminateProcess(process_handle, 125)
+                    except OSError as exc:
+                        launch_issues.append(f"cannot terminate uncontained PID {pid}: {exc}")
+                        resume_issue = _resume(int(thread_handle), int(pid))
+                        if resume_issue:
+                            launch_issues.append(resume_issue)
+                    return process_handle, thread_handle, pid, thread_id
+
+                resume_issue = _resume(int(thread_handle), int(pid))
+                if resume_issue:
+                    launch_issues.append(resume_issue)
+                    try:
+                        _winapi.TerminateProcess(process_handle, 125)
+                    except OSError as exc:
+                        launch_issues.append(f"cannot terminate unresumable PID {pid}: {exc}")
+                return process_handle, thread_handle, pid, thread_id
+
             _winapi.CreateProcess = create_suspended
             try:
                 process = subprocess.Popen(

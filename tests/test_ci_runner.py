@@ -209,6 +209,26 @@ def test_ci_runner_windows_job_timeout_kills_multilevel_descendants(tmp_path: Pa
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows Job Object coverage requires Windows")
+def test_ci_runner_windows_job_concurrent_launches_do_not_nest_wrappers(tmp_path: Path) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    def execute(index: int) -> dict[str, object]:
+        return run(
+            [sys.executable, "-c", f"print({index})"],
+            cwd=tmp_path,
+            timeout=5,
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(execute, range(16)))
+
+    assert all(result["returncode"] == 0 for result in results), results
+    assert all(result["process_control"] == "WINDOWS_JOB_OBJECT" for result in results)
+    assert all(result["job_object_bound"] is True for result in results)
+    assert all(result["cleanup_issues"] == [] for result in results), results
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows Job Object coverage requires Windows")
 def test_ci_runner_windows_job_fast_exit_has_no_leak(tmp_path: Path) -> None:
     child_pids: list[int] = []
     for index in range(8):
