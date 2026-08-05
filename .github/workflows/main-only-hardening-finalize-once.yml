@@ -12,7 +12,6 @@ permissions:
   contents: write
   issues: write
 
-
 concurrency:
   group: tsao-main-only-hardening
   cancel-in-progress: false
@@ -38,6 +37,23 @@ jobs:
           test -f "${script}"
           echo "b7e9572b34ae201b849b02ffbb0f027558fbbe93420ed8efdca081902f0602a5  ${script}" \
             | sha256sum --check --strict
+          python - "${script}" <<'PY'
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding="utf-8")
+          old = """python scripts/update_source_overlay.py --root . \\
+            requirements.lock \\
+          """
+          new = """python scripts/update_source_overlay.py --root . \\
+            scripts/verify_dependency_lock.py \\
+            requirements.lock \\
+          """
+          if old not in text:
+              raise SystemExit("finalizer overlay-update anchor not found")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
           chmod +x "${script}"
           "${script}"
       - name: Upload qualification evidence
