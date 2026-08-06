@@ -1,292 +1,81 @@
 # TSAO Process Intelligence OS
 
-[![CI](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.14-2563eb)](pyproject.toml)
-[![License](https://img.shields.io/badge/License-Apache--2.0-15803d)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha.15-d97706)](reports/QUALIFICATION_BOUNDARY.md)
+[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Visual system](docs/README_VISUAL_SYSTEM.md)
 
-**A traceable, fail-closed Skill platform for chemical-process packages. EPDM is the deepest flagship route; POE is the evidence-rich specialist route.**
+**Fail-closed software delivery for chemical-process Skills, governed mathematics, evidence, provenance and acceptance.**
 
-[简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Research integrity](docs/RESEARCH_INTEGRITY.md) · [README visual system](docs/README_VISUAL_SYSTEM.md) · [Supply-chain reproducibility](docs/SUPPLY_CHAIN_REPRODUCIBILITY.md)
+## Delivered system
 
-![TSAO Process Intelligence OS overview](docs/assets/readme/tsao-process-intelligence-os.svg)
+TSAO installs four Skills: `process-general`, `epdm`, `poe`, and `polymer-general`. The source tree and Wheel must expose the same modules, schemas, reports, CLI, tests and **32 deterministic SVG diagrams**. `PASS` qualifies software behavior only; scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.
 
-
-## AI-native scientific operating loop
-
-The platform treats AI as a **traceable scientific orchestrator**, not an authority that can override conservation laws, evidence gaps or named approvals. Eight governed diagrams describe how observations become hypotheses, models, experiments and process-package decisions.
-
-![Scientific AI reasoning loop](docs/assets/readme/ai-scientific-reasoning-loop.svg)
-
-The reasoning loop records every transition from evidence to a candidate mechanism, simulation, falsification result and next action. `HOLD` remains a legitimate scientific result when evidence is incomplete.
-
-![Agentic qualification orchestrator](docs/assets/readme/agentic-qualification-orchestrator.svg)
-
-The agent control plane routes requests and tools, while independent balance, numerical, evidence and approval Gates retain decision authority.
-
-![Multiscale digital thread](docs/assets/readme/multiscale-digital-thread.svg)
-
-The digital thread connects molecular interactions, chain architecture, mesoscale transport, reactors and the process package through explicit state, unit, provenance, uncertainty and Gate contracts.
-
-![Law-to-Grade inverse design](docs/assets/readme/law-to-grade-inverse-design.svg)
-
-The inverse workflow starts from observed product or plant behavior, infers hidden states and missing closure terms, proposes candidate interactions, reconstructs the system forward and rejects non-identifiable explanations.
-
-![Autonomous experiment loop](docs/assets/readme/autonomous-experiment-loop.svg)
-
-Active learning selects experiments by information gain, feasibility, cost and risk. Execution remains bounded by instrument, equipment, operator and HSE constraints.
-
-![Process knowledge graph](docs/assets/readme/process-knowledge-graph.svg)
-
-Claims are linked to sources, conditions, variables, model versions, equipment, risks, accountable owners and decision rationale.
-
-![Uncertainty-to-decision landscape](docs/assets/readme/uncertainty-decision-landscape.svg)
-
-Uncertainty and applicability are evaluated before a result may become `PASS`; missing evidence produces `HOLD`, a violated contract produces `FAIL`, and unassessed scopes remain `NOT_EVALUATED`.
-
-![Model risk governance](docs/assets/readme/model-risk-governance.svg)
-
-Model registration, software verification, scientific validation, named approval, monitoring and retirement are distinct lifecycle stages. Computational correctness alone does not establish industrial validity.
-
-## One platform, four delivered Skills
-
-| Skill | Executable or delivered scope | Truthful boundary |
-|---|---|---|
-| `process-general` | universal process-package contracts, 14 modules and 6 workflows | project engineering data and approvals remain external |
-| `epdm` | active sites, E/P/diene kinetics, three model levels, semibatch closure, phase/mixing/heat, recycle poison and devolatilization | reference calculations, not industrial parameter certification |
-| `poe` | P0/P1 reference kernels and controlled lineage for 139 historical assets | specialist alpha with explicit evidence boundaries |
-| `polymer-general` | reusable evidence, balance, DoE, planning and scale-up utilities | generic planning tools, not a qualified product recipe |
-
-The source checkout and installed Wheel expose the same inventory:
+## Acceptance commands
 
 ```bash
-python -m tsao.skillpacks --root .
-# after Wheel installation:
-tsao-skillpacks
-```
-
-The inventory fails closed unless the four Skills, 14 general-process modules, 6 workflows, 6 polymer-general scripts and all 29 README diagrams are present.
-
-![Universal process-package lifecycle](docs/assets/readme/universal-process-package.svg)
-
-## Universal process-package platform
-
-The general route treats a process package as a connected engineering system. It covers chemistry, measurements, thermodynamics, reactors, transport, separation, recycle, utilities, equipment, control, abnormal cases, HSE, scale-up, TEA/LCA and acceptance. The same contract extends to polymer, bioprocess, electrochemical, solids/crystallization, fine-batch and petrochemical work.
-
-![Layered process-package architecture](docs/assets/readme/process-package-architecture.svg)
-
-### Connected data model
-
-![Universal process-package data model](docs/assets/readme/process-package-data-model.svg)
-
-```text
-design basis
-  ├─ streams and components
-  ├─ equipment and operating envelopes
-  ├─ mass / component / energy balances
-  ├─ thermodynamic and model basis
-  ├─ controls / alarms / interlocks / abnormal cases
-  ├─ HSE and acceptance requirements
-  └─ evidence ledger and named approvals
-```
-
-Unknown or unsupported claims produce `HOLD` or `FAIL`; they are never silently promoted to `PASS`.
-
-### Control, safety and simulator-neutral interfaces
-
-![Control, interlock and process-safety chain](docs/assets/readme/control-safety-cause-effect.svg)
-
-![Simulator-neutral integration contract](docs/assets/readme/simulation-integration-contract.svg)
-
-The platform structures alarms, interlocks, Cause & Effect, abnormal response and HAZID/HAZOP/LOPA/SIL interfaces. Aspen Plus, Aspen HYSYS, DWSIM, custom models and DCS/PLC exchanges remain governed by the same design basis, evidence ledger and model passport; simulator convergence is not qualification.
-
-## EPDM flagship specialist
-
-EPDM adds a deeper mechanism-to-package chain on top of the universal platform.
-
-![EPDM multiscale chain](docs/assets/readme/epdm-multiscale-chain.svg)
-
-### Catalyst and kinetic network
-
-![EPDM catalyst-to-architecture network](docs/assets/readme/epdm-catalyst-kinetics-network.svg)
-
-```text
-application / CQA
-→ catalyst benchmark and active-site evidence
-→ E/P/diene insertion, transfer, deactivation and poison memory
-→ sequence, MWD/CCD, retained unsaturation, branching and gel risk
-→ phase stability, viscosity, mixing, residence time and heat removal
-→ quench, deashing, devolatilization, solvent/monomer recovery and purge
-→ raw polymer, compound, cure, part durability and customer-line evidence
-→ process-package acceptance
-```
-
-### Three model levels
-
-![Three EPDM model levels](docs/assets/readme/epdm-three-level-models.svg)
-
-| Level | Implemented reference calculations | Use |
-|---|---|---|
-| 1 — screening | active-site normalization, ternary propagation/transfer/deactivation, insertion fractions and rapid conversions | ranking and input checks |
-| 2 — engineering | Arrhenius adjustment, residence-time conversion, conservative semibatch material/energy step, heat/mixing, recycle poison and devolatilization Damköhler number | flowsheet studies and experiment planning |
-| 3 — detailed reference | heterogeneous site families, chain moments/dispersity, branching/gel, Flory–Huggins stability and heat-transfer entropy generation | deciding whether PBM/CFD/EOS work is justified |
-
-### Batch screening and long trajectories
-
-![EPDM broadcast parameter-scan pipeline](docs/assets/readme/batch-parameter-scan.svg)
-
-`batch_pseudo_first_order_screening` broadcasts temperature, residence time, active-site concentration and propagation multipliers without Python-loop dispatch. `semibatch_trajectory` validates the model boundary once while preserving the complete step history, and POE offers an explicitly named terminal-only RK4 path when online loops do not need history allocation. Scalar APIs remain the reference parity anchors.
-
-![EPDM reactor-mode decision map](docs/assets/readme/epdm-reactor-mode-map.svg)
-
-Every level returns `CALCULATED_REFERENCE_ONLY`. It does not claim fitted kinetics, licensed thermodynamics, qualified CFD, equipment design, HAZOP/LOPA/SIL approval, customer qualification or an industrial guarantee.
-
-### Executable RHS and adaptive integration
-
-Alpha.14 binds every A2 reaction channel to a strict calculated-reference rate package and exposes a structured A3 RHS. Alpha.15 adds an opt-in Dormand–Prince 5(4) integrator with explicit error control, non-negative-state rejection, restart parity, monotonic-time checks and internal/external conservation ledgers. The original A3 reference Euler path remains unchanged; missing bindings, non-identifiable parameters, applicability violations, suspected stiffness and minimum-step exhaustion return machine-readable `HOLD` or `FAIL`.
-
-### Identifiability, uncertainty and product evidence
-
-![EPDM parameter identifiability and uncertainty ladder](docs/assets/readme/epdm-identifiability-uncertainty.svg)
-
-![EPDM raw-polymer-to-customer evidence bridge](docs/assets/readme/epdm-product-customer-bridge.svg)
-
-Parameters remain classified as measured, estimated, literature-prior, nuisance, fixed or non-identifiable. A reactor result cannot become a durability or customer claim without controlled compound, cure, part and line evidence.
-
-### Process, finishing and recycle
-
-![EPDM process-package reference flowsheet](docs/assets/readme/epdm-process-flowsheet.svg)
-
-![EPDM recovery, recycle and impurity-risk loop](docs/assets/readme/recovery-recycle-risk-loop.svg)
-
-The EPDM audit fails closed when active-site evidence, diene topology, heat removal, high-viscosity mixing, phase stability, recycle-poison closure, non-equilibrium devolatilization or the raw-polymer-to-customer bridge is incomplete.
-
-
-## Install and run
-
-```bash
-git clone https://github.com/SUNHAOJUN22/TSAO-PROCESSING-SKILL.git
-cd TSAO-PROCESSING-SKILL
 python -m pip install -e .[dev]
 python -m tsao.cli doctor --root . --profile core
+python -m tsao.cli delivery-report --root .
 python -m tsao.skillpacks --root .
-```
-
-### Generic process package
-
-```bash
 python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
-python -m tsao.cli audit --root work/demo
-python -m tsao.cli package template --family "continuous chemical process"
+python -m tsao.cli audit project --root work/demo
+python -m tsao.cli epdm validate-v2 --file skills/epdm/fixtures/v2_phase_a2_reference_project.json
+python -m tsao.cli epdm canonicalize --file skills/epdm/fixtures/v2_phase_a2_reference_project.json --out work/canonical.json
+python -m tsao.cli epdm qualify-acceptance --project skills/epdm/fixtures/v2_phase_a1_reference_project.json --output reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json --load-samples 7
 ```
 
-### EPDM
+Source identity is bound by `SHA256` over canonical bytes. The EPDM V2 path is transactional: strict JSON → explicit version → Schema → frozen dataclasses → temporary `ContractRegistry` → cross-reference closure → immutable publication. Duplicate keys, non-finite values, type confusion, duplicate IDs and unresolved references fail closed.
+
+## Governed mathematical program
+
+The following equations are transparent calculated-reference contracts. They do not replace qualified process engineering or calibrated industrial models.
+
+$$
+\frac{d\mathbf{N}}{dt}=F_{in}\mathbf{z}-F_{out}\mathbf{x}+V\boldsymbol{\nu}^{\mathsf T}\mathbf{r}
+$$
+$$
+mC_p\frac{dT}{dt}=\sum F_i h_i-V\sum_j\Delta H_jr_j-UA(T-T_c)
+$$
+$$
+k_j(T)=A_j\exp\!\left(-\frac{E_j}{RT}\right),\qquad r_j=k_j(T)a_s\prod_i C_i^{\alpha_{ij}}
+$$
+$$
+f_m=\frac{r_m}{\sum_n r_n},\qquad \sum_m f_m=1
+$$
+$$
+\mu_k=\sum_{p=0}^{\infty}p^kn_p,\quad M_n\propto\frac{\mu_1}{\mu_0},\quad M_w\propto\frac{\mu_2}{\mu_1},\quad Đ=\frac{\mu_0\mu_2}{\mu_1^2}
+$$
+$$
+\frac{\Delta G_{mix}}{RT}=\frac{\phi_1}{N_1}\ln\phi_1+\frac{\phi_2}{N_2}\ln\phi_2+\chi\phi_1\phi_2
+$$
+$$
+\mathrm{Da}_v=k_v\tau,\qquad \dot S_{gen}=\dot Q\left(\frac1{T_c}-\frac1{T_h}\right)\ge0
+$$
+$$
+e_i=\frac{y_i^{(5)}-y_i^{(4)}}{\mathrm{atol}_i+\mathrm{rtol}_i\max(|y_i|,|y_i^{(5)}|)},\qquad \|\mathbf e\|_2\le1
+$$
+$$
+J(\boldsymbol\theta)=\sum_iw_i[y_i-\hat y_i(\boldsymbol\theta)]^2,\qquad \mathbf{F}=\mathbf{S}^\mathsf{T}\mathbf{W}\mathbf{S}
+$$
+$$
+\operatorname{Cov}(\hat{\boldsymbol\theta})\approx\sigma^2\mathbf F^{-1},\qquad \operatorname{Var}[g]\approx\nabla g^\mathsf T\operatorname{Cov}(\boldsymbol\theta)\nabla g
+$$
+
+DOPRI5(4) accepts a step only when the scaled error, conservation, finiteness and monotonic-time Gates pass. Singular Fisher information, unresolved evidence or out-of-domain prediction returns `HOLD`, not false confidence.
+
+## Use strategy
+
+1. Route the brief to the narrowest Skill.
+2. Register evidence and applicability before parameters.
+3. Close material and energy balances before optimization.
+4. Publish canonical contracts before A2/A3/A4 execution.
+5. Separate parameter fitting from scientific qualification.
+6. Use uncertainty and identifiability to select the next experiment.
+7. Build the Wheel and source snapshot from the exact qualified tree.
+8. Advance approval states only with named accountable evidence.
+
+## Verification
 
 ```bash
-python -m tsao.cli epdm status
-python -m tsao.cli epdm reference-demo
-python -m tsao.cli epdm model-suite --temperature-k 323.15 --residence-s 300
-python -m tsao.cli epdm audit
-```
-
-### POE
-
-```bash
-python -m tsao.cli poe status --root .
-python -m tsao.cli poe audit-p0 --root .
-python -m tsao.cli poe audit-p1 --root .
-python -m tsao.cli poe reference-demo
-```
-
-## Measured performance and reproducibility
-
-![Fail-closed performance regression gate](docs/assets/readme/performance-regression-gate.svg)
-
-Performance claims are versioned software evidence, not engineering or industrial qualification. Alpha.15 qualification benchmarks the exact Alpha.14 parent and Alpha.15 candidate on the same runner and Python runtime; the frozen Alpha.10 file is retained only for non-blocking historical trend evidence. The release harness uses `timeit.repeat` medians for timing, `cProfile` for hotspot attribution and SHA-256 result digests to reject numerical drift.
-
-
-```bash
-python scripts/benchmark_performance_v2.py \
-  --repeats 5 --wheel-dir wheelhouse \
-  --output reports/runtime/PERFORMANCE_RESULTS_V2.json
-python scripts/compare_performance_v2.py \
-  --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
-  --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
-  --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
-python scripts/update_performance_readme.py \
-  --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
-```
-
-<!-- PERFORMANCE_RESULTS_START -->
-| Workload | Baseline median | Optimized median | Ratio | Peak memory | Parity |
-|---|---:|---:|---:|---:|---|
-| EPDM three-level model, 64 site families | 129.96 µs | 131.24 µs | 0.99× | 37.23 KiB | exact |
-| EPDM three-level model, 512 site families | 937.65 µs | 946.63 µs | 0.99× | 276.29 KiB | exact |
-| EPDM semibatch material-energy step | 13.24 µs | 14.34 µs | 0.92× | 3.12 KiB | exact |
-| EPDM semibatch trajectory, 10,000 public steps | 129.11 ms | 142.58 ms | 0.91× | 4.35 MiB | exact |
-| EPDM screening, 1,000 scalar scenarios | 13.50 ms | 13.61 ms | 0.99× | 566.29 KiB | exact |
-| POE RK4, 400 steps | 13.93 ms | 6.64 ms | 2.10× | 303.02 KiB | exact |
-| POE RK4, 10,000 steps | 345.90 ms | 165.92 ms | 2.08× | 7.26 MiB | exact |
-| POE finite-difference Jacobian, 8 × 200 | 503.52 µs | 493.41 µs | 1.02× | 33.92 KiB | exact |
-| POE one-parameter fit, 401 points | 1.00 ms | 1.01 ms | 0.99× | 31.07 KiB | exact |
-| POE dynamic response, 10,000 points | 241.69 µs | 241.34 µs | 1.00× | 569.67 KiB | exact |
-| Universal process package, 500 equipment items | 4.43 ms | 4.38 ms | 1.01× | 179.53 KiB | exact |
-| Universal process package, 5,000 equipment items | 44.28 ms | 44.12 ms | 1.00× | 1.95 MiB | exact |
-| Source identity, 300 files build + verify | 25.91 ms | 24.80 ms | 1.04× | 424.10 KiB | exact |
-| Source identity, 3,000 files build + verify | 228.88 ms | 229.13 ms | 1.00× | 1.68 MiB | exact |
-| Repository Doctor, core profile | 126.28 ms | 129.83 ms | 0.97× | 1.29 MiB | tolerance / semantic |
-| Four-Skill inventory | 5.95 ms | 6.35 ms | 0.94× | 137.26 KiB | tolerance / semantic |
-| Wheel content verification | 2.93 ms | 3.13 ms | 0.94× | 593.27 KiB | tolerance / semantic |
-| EPDM screening, 1,000 broadcast scenarios | 13.50 ms | 1.41 ms | 9.56× | 613.93 KiB | tolerance / semantic |
-| EPDM semibatch trajectory, once-validated 10,000 steps | 129.11 ms | 47.21 ms | 2.73× | 4.35 MiB | exact |
-| POE RK4 terminal-only, 10,000 steps | 345.90 ms | 143.77 ms | 2.41× | 5.59 KiB | tolerance / semantic |
-
-| Scale pair | Normalized time ratio | Limit | Gate |
-|---|---:|---:|---|
-| EPDM three-level model, 64 site families → EPDM three-level model, 512 site families | 0.902 | 1.25 | PASS |
-| Universal process package, 500 equipment items → Universal process package, 5,000 equipment items | 1.006 | 1.25 | PASS |
-| Source identity, 300 files build + verify → Source identity, 3,000 files build + verify | 0.924 | 1.25 | PASS |
-<!-- PERFORMANCE_RESULTS_END -->
-
-The v2 gate protects 17 common workloads and three optimized paths. Stable structures retain exact SHA-256 identity; floating-point array/LAPACK paths use named analytical tolerance tests; Doctor and Wheel use semantic contracts. The gate also enforces peak-memory and 10× scale-efficiency limits. NumPy remains the only required acceleration dependency; SciPy, Numba and JAX remain optional research candidates until separate cross-platform qualification proves a net benefit.
-
-## Evidence and qualification
-
-![Evidence and qualification gates](docs/assets/readme/evidence-gate-system.svg)
-
-Decision-facing results retain source IDs, conditions, units, method boundaries, assumptions, uncertainty, conflicts and the current Gate. Software tests establish software behavior only; they do not approve chemistry, equipment, safety, customer performance or plant economics.
-
-## Verification and Wheel delivery
-
-![Verification pipeline](docs/assets/readme/verification-pipeline.svg)
-
-### Hashed dependency supply chain
-
-![Hashed dependency supply-chain gate](docs/assets/readme/dependency-lock-supply-chain.svg)
-
-`requirements.lock` is generated on Python 3.11 with exact versions and SHA-256 hashes. The repository verifier rejects unpinned rows, missing hashes, credential-bearing indexes, unsupported sources and any missing direct dependency. The finalization run installs with `--require-hashes` and records a machine-readable vulnerability audit.
-
-### Self-validating source delivery
-
-![Self-validating source snapshot](docs/assets/readme/source-snapshot-self-validation.svg)
-
-The source exporter now copies governed runtime support markers, writes snapshot identity and release metadata, and then re-verifies provenance plus metadata before creating the deterministic ZIP. An archive that merely exists is not treated as qualified.
-
-### Main-only finalization
-
-![Main-only delivery lifecycle](docs/assets/readme/main-only-delivery-lifecycle.svg)
-
-The one-shot finalizer runs on `main`, qualifies the exact tree, commits the lock and evidence atomically, removes its own temporary workflow and deletes obsolete remote branches only after all Gates pass.
-
-```bash
-python scripts/generate_readme_assets.py
-python scripts/generate_extended_readme_assets.py
-python scripts/generate_decision_readme_assets.py
-python scripts/generate_performance_readme_assets.py
-python scripts/generate_uiux_readme_assets.py
-python scripts/harden_readme_svg_accessibility.py
-python scripts/verify_readme_visual_accessibility.py
-python scripts/sync_readme_visuals.py --check
+python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
 python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
@@ -294,42 +83,49 @@ python skills/poe/scripts/audit_p1.py --root .
 python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
 python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
 python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
+python scripts/export_source_snapshot.py --root . --out dist/source.zip
 ```
 
-Wheel verification has two independent gates:
+CI qualifies Windows and Ubuntu with Python 3.11–3.14. Installation is checked through `pip install --target` and a standard virtual environment with no inherited system site packages.
 
-1. **content gate:** requires the executable core, complete four-Skill tree, contracts, schemas, reports, maintenance scripts, examples and all 29 diagrams;
-2. **installation gate:** verifies `pip install --target` and a clean standard virtual environment with no inherited system site packages; every TSAO, EPDM and POE module plus the Skillpack data root must resolve inside the selected installation root before installed-README and known-solution checks may pass.
+The visual system extends the 21-asset historical core to a governed 32-asset acceptance atlas.
 
-CI treats Windows/Python 3.11–3.14 as the core release matrix and verifies Linux compatibility on Python 3.11 and 3.14; macOS is not a release Gate. It checks compilation, tests, branch coverage, contracts, provenance, Ruff, EPDM/POE audits, deterministic graphics, Wheel members, real installed runtime and CLI smoke. Independent post-coverage audits run concurrently, and Ubuntu/Python 3.14 enforces the versioned performance-regression gate.
+## Governed visual atlas
 
-The source manifest is part of release identity: a source change without the matching `reports/SOURCE_CORE_MANIFEST.tsv` update is designed to fail the repository doctor.
+![Acceptance Readiness Map](docs/assets/readme/acceptance-readiness-map.svg)
+![Agentic Qualification Orchestrator](docs/assets/readme/agentic-qualification-orchestrator.svg)
+![Ai Scientific Reasoning Loop](docs/assets/readme/ai-scientific-reasoning-loop.svg)
+![Autonomous Experiment Loop](docs/assets/readme/autonomous-experiment-loop.svg)
+![Batch Parameter Scan](docs/assets/readme/batch-parameter-scan.svg)
+![Control Safety Cause Effect](docs/assets/readme/control-safety-cause-effect.svg)
+![Dependency Lock Supply Chain](docs/assets/readme/dependency-lock-supply-chain.svg)
+![Epdm Canonical Publication Pipeline](docs/assets/readme/epdm-canonical-publication-pipeline.svg)
+![Epdm Catalyst Kinetics Network](docs/assets/readme/epdm-catalyst-kinetics-network.svg)
+![Epdm Identifiability Uncertainty](docs/assets/readme/epdm-identifiability-uncertainty.svg)
+![Epdm Multiscale Chain](docs/assets/readme/epdm-multiscale-chain.svg)
+![Epdm Process Flowsheet](docs/assets/readme/epdm-process-flowsheet.svg)
+![Epdm Product Customer Bridge](docs/assets/readme/epdm-product-customer-bridge.svg)
+![Epdm Reactor Mode Map](docs/assets/readme/epdm-reactor-mode-map.svg)
+![Epdm Three Level Models](docs/assets/readme/epdm-three-level-models.svg)
+![Evidence Gate System](docs/assets/readme/evidence-gate-system.svg)
+![Governed Math Stack](docs/assets/readme/governed-math-stack.svg)
+![Law To Grade Inverse Design](docs/assets/readme/law-to-grade-inverse-design.svg)
+![Main Only Delivery Lifecycle](docs/assets/readme/main-only-delivery-lifecycle.svg)
+![Model Risk Governance](docs/assets/readme/model-risk-governance.svg)
+![Multiscale Digital Thread](docs/assets/readme/multiscale-digital-thread.svg)
+![Performance Regression Gate](docs/assets/readme/performance-regression-gate.svg)
+![Process Knowledge Graph](docs/assets/readme/process-knowledge-graph.svg)
+![Process Package Architecture](docs/assets/readme/process-package-architecture.svg)
+![Process Package Data Model](docs/assets/readme/process-package-data-model.svg)
+![Recovery Recycle Risk Loop](docs/assets/readme/recovery-recycle-risk-loop.svg)
+![Simulation Integration Contract](docs/assets/readme/simulation-integration-contract.svg)
+![Source Snapshot Self Validation](docs/assets/readme/source-snapshot-self-validation.svg)
+![Tsao Process Intelligence Os](docs/assets/readme/tsao-process-intelligence-os.svg)
+![Uncertainty Decision Landscape](docs/assets/readme/uncertainty-decision-landscape.svg)
+![Universal Process Package](docs/assets/readme/universal-process-package.svg)
+![Verification Pipeline](docs/assets/readme/verification-pipeline.svg)
 
-## Repository map
+## Responsibility boundary
 
-```text
-tsao/                       universal executable core, CLI and Skillpack inventory
-skills/process-general/     14 general-process modules and 6 workflows
-skills/epdm/                flagship EPDM calculations, contracts and audits
-skills/poe/                 POE specialist and controlled evidence lineage
-skills/polymer-general/     reusable polymer planning and balance tools
-schemas/                    machine-readable cross-project contracts
-scripts/                    CI, provenance, packaging and graphics generation
-docs/assets/readme/         deterministic repository-owned SVG diagrams
-reports/                    qualification, lineage and consolidation records
-tests/                      repository, security, schema and integration tests
-```
-
-## Status language
-
-| Status | Meaning |
-|---|---|
-| `PASS` | declared software or evidence Gate is satisfied |
-| `HOLD` | required evidence, qualification or approval is incomplete |
-| `FAIL` | schema, balance, invariant, reference or integrity rule is violated |
-| `NOT_EVALUATED` | no qualified conclusion has been made |
-| `CALCULATED_REFERENCE_ONLY` | transparent calculation, not a fitted or approved design result |
-
-## Branch and responsibility policy
-
-`main` is the sole authoritative branch. The consolidation record is in [reports/BRANCH_CONSOLIDATION_2026-07-23.md](reports/BRANCH_CONSOLIDATION_2026-07-23.md). This repository does not replace qualified process engineering, laboratory work, equipment/relief design, HAZOP/LOPA/SIL, legal review, environmental permitting, customer trials or operating approval.
+`main` is the sole authoritative branch. TSAO does not replace qualified process engineering, laboratory evidence, commercial property packages, equipment or relief design, HAZOP/LOPA/SIL, legal/environmental review, customer trials or operating approval.
