@@ -62,6 +62,12 @@ def _parser() -> argparse.ArgumentParser:
     snapshot_parser.add_argument("--root", default=".")
     snapshot_parser.add_argument("--out", required=True)
 
+    delivery_parser = commands.add_parser(
+        "delivery-report", help="emit deterministic software-delivery readiness evidence"
+    )
+    delivery_parser.add_argument("--root", default=".")
+    delivery_parser.add_argument("--strict-source-clean", action="store_true")
+
     verify_parser = commands.add_parser("verify-archive", help="validate ZIP safety and integrity")
     verify_parser.add_argument("--archive", required=True)
 
@@ -87,6 +93,15 @@ def _parser() -> argparse.ArgumentParser:
     epdm_audit = epdm_commands.add_parser("audit")
     epdm_audit.add_argument("--file")
     epdm_commands.add_parser("reference-demo")
+    epdm_validate = epdm_commands.add_parser(
+        "validate-v2", help="validate an EPDM V2 project and its canonical publication"
+    )
+    epdm_validate.add_argument("--file", required=True)
+    epdm_canonicalize = epdm_commands.add_parser(
+        "canonicalize", help="publish a deterministic immutable EPDM V2 manifest"
+    )
+    epdm_canonicalize.add_argument("--file", required=True)
+    epdm_canonicalize.add_argument("--out")
     epdm_model = epdm_commands.add_parser(
         "model-suite", help="run the three-level EPDM kinetic and semibatch reference suite"
     )
@@ -195,6 +210,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "snapshot":
             _print(build_source_snapshot(Path(args.root), Path(args.out)))
             return 0
+        if args.command == "delivery-report":
+            from .delivery import delivery_report
+
+            result = delivery_report(
+                Path(args.root),
+                strict_source_clean=args.strict_source_clean,
+            )
+            _print(result)
+            return 0 if result["pass"] else 2
         if args.command == "verify-archive":
             issues = validate_zip_archive(Path(args.archive))
             _print({"pass": not issues, "issues": issues})
@@ -231,6 +255,28 @@ def main(argv: list[str] | None = None) -> int:
                 result = audit_epdm_process_package(payload)
                 _print(result)
                 return 0 if result["pass"] else 2
+            if args.epdm_command == "validate-v2":
+                from skills.epdm.validation_v2 import validate_v2_project
+
+                payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+                result = validate_v2_project(payload)
+                result_payload = result.as_dict()
+                _print(result_payload)
+                return 0 if result_payload["pass"] else 2
+            if args.epdm_command == "canonicalize":
+                from skills.epdm.canonical_loader import load_canonical_project_file
+
+                snapshot = load_canonical_project_file(Path(args.file))
+                manifest = json.loads(snapshot.to_json())
+                if args.out:
+                    target = Path(args.out)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(
+                        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                _print(manifest)
+                return 0
             if args.epdm_command == "reference-demo":
                 from skills.epdm.core import (
                     EpdmKineticParameters,
