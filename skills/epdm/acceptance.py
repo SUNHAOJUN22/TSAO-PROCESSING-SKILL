@@ -14,10 +14,10 @@ import json
 import math
 import time
 import tracemalloc
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
 
 from .canonical_loader import (
     CanonicalProjectSnapshot,
