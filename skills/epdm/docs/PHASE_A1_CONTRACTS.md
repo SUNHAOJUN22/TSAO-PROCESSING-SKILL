@@ -9,7 +9,7 @@ or an industrial prediction.
 ## Delivered
 
 - immutable domain contracts and frozen enumerations in `contracts.py`;
-- unique-ID registries in `registry.py`;
+- append-only, type-bound unique-ID registries in `registry.py`, with per-registry atomic writes, snapshot isolation, deterministic content hashes and fail-closed cross-registry references;
 - structural JSON Schema plus semantic cross-reference validation in `validation_v2.py`;
 - gate invariant and layered qualification aggregation in `qualification_v2.py`;
 - metadata-only V1 adapter skeleton in `migration.py`;
