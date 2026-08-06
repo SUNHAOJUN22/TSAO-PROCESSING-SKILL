@@ -8,6 +8,7 @@ from typing import Any
 
 from . import _validation_v2_core as _core
 from ._validation_v2_core import *  # noqa: F403
+from .canonical_loader import CanonicalProjectLoadError, load_canonical_project
 from .contracts import (
     ContractValidationError,
     GateDecision,
@@ -81,18 +82,36 @@ def validate_v2_project(
     if not isinstance(qualification, Mapping):
         return result
     error = _qualification_error(qualification)
-    if error is None:
-        return result
-    issue = _core.ValidationIssue(
-        "ERROR",
-        GateReasonCode.APPROVAL_MISSING,
-        "$.qualification",
-        f"qualification gate contract is invalid: {error}",
-    )
-    return _core.V2ValidationResult(
-        GateDecision.FAIL,
-        result.issues + (issue,),
-        schema_version=result.schema_version,
-        semantic_validator_version=result.semantic_validator_version,
-        v2_numerical_execution=result.v2_numerical_execution,
-    )
+    if error is not None:
+        issue = _core.ValidationIssue(
+            "ERROR",
+            GateReasonCode.APPROVAL_MISSING,
+            "$.qualification",
+            f"qualification gate contract is invalid: {error}",
+        )
+        return _core.V2ValidationResult(
+            GateDecision.FAIL,
+            result.issues + (issue,),
+            schema_version=result.schema_version,
+            semantic_validator_version=result.semantic_validator_version,
+            v2_numerical_execution=result.v2_numerical_execution,
+        )
+
+    try:
+        load_canonical_project(project, schema_dir=schema_dir)
+    except CanonicalProjectLoadError as exc:
+        issue = _core.ValidationIssue(
+            "ERROR",
+            GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+            exc.issue.path,
+            f"canonical contract publication failed during {exc.issue.phase}: "
+            f"{exc.issue.message}",
+        )
+        return _core.V2ValidationResult(
+            GateDecision.FAIL,
+            result.issues + (issue,),
+            schema_version=result.schema_version,
+            semantic_validator_version=result.semantic_validator_version,
+            v2_numerical_execution=result.v2_numerical_execution,
+        )
+    return result

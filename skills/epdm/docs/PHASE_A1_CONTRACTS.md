@@ -10,7 +10,8 @@ or an industrial prediction.
 
 - immutable domain contracts and frozen enumerations in `contracts.py`;
 - append-only, type-bound unique-ID registries in `registry.py`, with per-registry atomic writes, snapshot isolation, deterministic content hashes and fail-closed cross-registry references;
-- structural JSON Schema plus semantic cross-reference validation in `validation_v2.py`;
+- transactional JSON-to-contract publication in `canonical_loader.py`: explicit schema-version decision, strict JSON parsing, frozen dataclass construction, temporary registry closure, deterministic manifest/hash, and immutable publication only after every Gate succeeds;
+- structural JSON Schema plus semantic cross-reference validation in `validation_v2.py`, which now requires canonical publication for every non-failing V2 project;
 - gate invariant and layered qualification aggregation in `qualification_v2.py`;
 - metadata-only V1 adapter skeleton in `migration.py`;
 - strict schemas, Gate/reason/state/reaction catalogs, requirement traceability and a synthetic fixture;

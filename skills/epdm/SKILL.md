@@ -47,7 +47,7 @@ All historical catalyst experiments, licensed EOS/CFD, HAZOP/LOPA/SIL, equipment
 
 ## Phase A1 — V2 scientific contracts and schemas
 
-- `contracts.py`, `registry.py`, `validation_v2.py`, `qualification_v2.py`, and `migration.py` are implemented as a contract-only opt-in layer.
+- `contracts.py`, `registry.py`, `canonical_loader.py`, `validation_v2.py`, `qualification_v2.py`, and `migration.py` form the governed contract layer. Valid/HOLD V2 projects must now pass transactional canonical publication before the public validator returns.
 - Stable V2 schemas reject unknown fields outside `extensions`; semantic validation resolves IDs, units, evidence states, applicability, dataset leakage, parameter binding, and state-basis consistency.
 - The V1 migration adapter is metadata-only and never fabricates evidence or invokes unfinished V2 calculations.
 - No V2 kinetic, thermodynamic, calibration, GPC, moment, reactor, or dynamic numerical result is claimed in Phase A1.
