@@ -43,7 +43,6 @@ from skills.epdm.registry import (
     CrossRegistryReferenceError,
     DuplicateRegistryIdError,
     IndexedRegistry,
-    RegistryError,
     RegistryIdentifierError,
     RegistryItemTypeError,
     UnresolvedRegistryIdError,
