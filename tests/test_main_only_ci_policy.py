@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,21 @@ def test_performance_baseline_is_explicit_and_ancestry_checked() -> None:
     assert 'git merge-base --is-ancestor "$baseline_commit" HEAD' in text
     assert 'git worktree add --detach "$baseline_root" "$baseline_commit"' in text
     assert "trap - EXIT" in text
+
+
+def test_ci_qualifies_full_windows_and_linux_python_matrix() -> None:
+    pairs = re.findall(
+        r'^\s+- os: (windows-latest|ubuntu-latest)\n\s+python-version: "(3\.1[1-4])"$',
+        _workflow_text(),
+        flags=re.MULTILINE,
+    )
+    expected = {
+        (os_name, version)
+        for os_name in ("windows-latest", "ubuntu-latest")
+        for version in ("3.11", "3.12", "3.13", "3.14")
+    }
+    assert len(pairs) == len(expected)
+    assert set(pairs) == expected
 
 
 def test_repository_tracks_only_the_permanent_ci_workflow() -> None:

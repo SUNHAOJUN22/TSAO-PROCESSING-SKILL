@@ -6,7 +6,7 @@
 - EPDM Phase A0 evidence/status closure, A1 contracts, A2 structural network, A3 executable RHS and A4 adaptive numerical integration;
 - zero-false-PASS hardening, numerical-correctness repair and deterministic source-snapshot overlay closure;
 - POE P1 specialist and four-Skill installed delivery;
-- Python 3.11–3.14 with Windows as the core release platform and Linux compatibility.
+- full Windows and Linux release qualification across Python 3.11–3.14.
 
 ## Next evidence-driven phase
 

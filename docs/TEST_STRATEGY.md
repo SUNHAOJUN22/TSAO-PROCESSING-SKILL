@@ -18,6 +18,6 @@ TSAO uses layered tests rather than a single happy-path demo:
 - target-directory installation and a clean standard virtual-environment installation;
 - import-origin checks for TSAO, EPDM, POE and Skillpack data;
 - installed-root, known-solution and bilingual README-link checks in both installation modes;
-- Windows qualification on Python 3.11–3.14, Linux compatibility on Python 3.11 and 3.14, and no macOS release Gate.
+- full Windows and Linux qualification on Python 3.11–3.14, with no macOS release Gate.
 
 A failing test must be fixed at its root cause. Assertions are not weakened and tests are not removed merely to achieve a green status. Software qualification never substitutes for scientific, engineering, HSE, customer or industrial approval.

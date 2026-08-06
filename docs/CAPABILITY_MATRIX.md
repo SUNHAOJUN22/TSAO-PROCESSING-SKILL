@@ -18,6 +18,6 @@
 | Performance regression | package-scale non-regression | batch/trajectory speed and parity | RK4 speed and terminal memory | inherited | frozen baseline, median timing, peak memory, three tenfold scale checks and fail-closed comparison |
 | Computational efficiency | validated numerics reused in balance loops | vectorized batch screening, site-family and semibatch fast paths | POE RK4, terminal-only, fitting and linear settling analysis | reusable scripts unchanged | exact/tolerance/semantic parity + timing, memory and scale Gates |
 | Source/CI efficiency | one-read canonical identity and pruned walk | inherited | inherited | inherited | Doctor scan reuse; independent audits run in parallel after coverage |
-| Supported Python | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | Windows 3.11–3.14 core; Linux 3.11 and 3.14 compatibility; macOS not a release Gate |
+| Supported Python | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | 3.11–3.14 | Windows and Linux 3.11–3.14 full qualification; macOS not a release Gate |
 
 Open-software verification is not scientific or engineering approval. Historical commercial models, physical qualification, equipment design, process-safety approval, customer acceptance and industrial performance remain `NOT_EVALUATED` until named evidence and accountable approval exist.
