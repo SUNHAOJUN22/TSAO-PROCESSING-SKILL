@@ -59,3 +59,10 @@ All historical catalyst experiments, licensed EOS/CFD, HAZOP/LOPA/SIL, equipment
 - `generated-state-definition.schema.json` and `reaction-network-v2.schema.json` are strict stable contracts integrated into project semantic validation.
 - Phase A2 never evaluates rates or integrates states; `reaction_network_rhs` fails explicitly with `A2NumericalExecutionError`.
 - Thermodynamic backends, calibrated parameters, moment RHS equations, reactor simulation and engineering approval remain future gated phases.
+
+## Software acceptance
+
+- `python -m tsao.cli epdm qualify-acceptance` is the single governed acceptance command.
+- The command starts from `CanonicalProjectSnapshot`, generates the A2 layout/network, audits all 41 A3 bindings, executes an A4 analytic activation case, checks conservation and monotonic time, and enforces canonical-loader latency and peak-memory ceilings.
+- The report is machine-readable and preserves `SYNTHETIC_REFERENCE_NOT_PROJECT_CALIBRATION` plus all external `NOT_EVALUATED` boundaries.
+- The same path is executed from the installed Wheel in both target-directory and isolated virtual-environment modes.

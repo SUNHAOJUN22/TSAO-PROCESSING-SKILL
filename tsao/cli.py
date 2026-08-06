@@ -92,6 +92,19 @@ def _parser() -> argparse.ArgumentParser:
     )
     epdm_model.add_argument("--temperature-k", type=float, default=323.15)
     epdm_model.add_argument("--residence-s", type=float, default=300.0)
+    epdm_acceptance = epdm_commands.add_parser(
+        "qualify-acceptance",
+        help="run the canonical EPDM software-acceptance qualification",
+    )
+    epdm_acceptance.add_argument(
+        "--project",
+        default="skills/epdm/fixtures/v2_phase_a1_reference_project.json",
+    )
+    epdm_acceptance.add_argument(
+        "--output",
+        default="reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json",
+    )
+    epdm_acceptance.add_argument("--load-samples", type=int, default=5)
     return parser
 
 
@@ -245,6 +258,16 @@ def main(argv: list[str] | None = None) -> int:
             if args.epdm_command == "model-suite":
                 _print(_epdm_model_suite(args.temperature_k, args.residence_s))
                 return 0
+            if args.epdm_command == "qualify-acceptance":
+                from skills.epdm.acceptance import write_acceptance_report
+
+                result = write_acceptance_report(
+                    Path(args.output),
+                    Path(args.project),
+                    load_samples=args.load_samples,
+                )
+                _print(result.as_dict())
+                return 0 if result.pass_ else 2
         if args.command == "poe":
             if args.poe_command == "status":
                 import yaml

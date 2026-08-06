@@ -82,6 +82,13 @@ jobs:
           git diff --exit-code -- docs/assets/readme README.md README.zh-CN.md
       - name: Core, specialists, Ruff and coverage qualification
         run: python scripts/run_ci.py
+      - name: EPDM canonical software-acceptance gate
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: >-
+          python scripts/qualify_acceptance.py
+          --project skills/epdm/fixtures/v2_phase_a1_reference_project.json
+          --output reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json
+          --load-samples 7
       - name: Alpha15 adaptive-integrator branch coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         run: |
@@ -99,6 +106,7 @@ jobs:
         run: |
           python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
           python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
       - name: Upload release wheel
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -220,6 +228,7 @@ jobs:
             reports/runtime/PERFORMANCE_COMPARISON_V2.json
             reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
             reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
+            reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -247,7 +256,7 @@ jobs:
       - name: Build and inspect deterministic public-source snapshot
         run: |
           python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.15.zip
-          python -c "import zipfile; p='TSAO-PROCESSING-SKILL-source-alpha.15.zip'; names=set(zipfile.ZipFile(p).namelist()); required=('skills/epdm/executable_rhs.py','skills/epdm/numerical_integration.py','skills/epdm/schemas/integration-request-a15.schema.json','skills/epdm/schemas/integration-result-a15.schema.json','skills/epdm/tests/test_epdm_phase_a4_integration.py','reports/EPDM_PHASE_A4_QUALIFICATION.json'); missing=[r for r in required if not any(n.endswith('/'+r) for n in names)]; assert not missing, missing"
+          python -c "import zipfile; p='TSAO-PROCESSING-SKILL-source-alpha.15.zip'; names=set(zipfile.ZipFile(p).namelist()); required=('skills/epdm/canonical_loader.py','skills/epdm/acceptance.py','skills/epdm/tests/test_acceptance.py','skills/epdm/docs/SOFTWARE_ACCEPTANCE.md','scripts/qualify_acceptance.py','scripts/verify_acceptance_runtime.py','skills/epdm/executable_rhs.py','skills/epdm/numerical_integration.py','skills/epdm/schemas/integration-request-a15.schema.json','skills/epdm/schemas/integration-result-a15.schema.json','skills/epdm/tests/test_epdm_phase_a4_integration.py','reports/EPDM_PHASE_A4_QUALIFICATION.json'); missing=[r for r in required if not any(n.endswith('/'+r) for n in names)]; assert not missing, missing"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tsao-source-alpha15-${{ github.sha }}

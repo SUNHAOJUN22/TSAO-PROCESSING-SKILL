@@ -13,3 +13,7 @@ Stable V2 objects reject unknown fields; experimental additions are confined to 
 
 
 The canonical loader rejects duplicate JSON object keys, non-finite values, unknown schema versions, dataclass type confusion, duplicate global IDs, local rate-law escapes and unresolved cross-registry references. It binds the complete source payload and core registry to separate SHA-256 identities so extensions remain traceable without changing the stable registry contract.
+
+## Software-acceptance path
+
+`CanonicalProjectSnapshot` → A2 generated state/network → full A3 41-binding audit → A4 adaptive analytic smoke → machine acceptance report. The acceptance route never re-indexes raw JSON after publication and is verified in source checkout, Wheel target installation and isolated virtual environment. Synthetic reference parameters remain explicitly non-calibrated.

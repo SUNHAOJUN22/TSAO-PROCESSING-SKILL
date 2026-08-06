@@ -4,7 +4,7 @@ TSAO uses layered tests rather than a single happy-path demo:
 
 - syntax and import tests;
 - schema positive and negative fixtures;
-- analytical known solutions and conservation;
+- analytical known solutions, canonical publication identity and conservation;
 - dimensional and limiting behaviour;
 - sensitivity, identifiability, uncertainty and applicability domain;
 - routing, initialization and project end-to-end tests;
@@ -14,6 +14,7 @@ TSAO uses layered tests rather than a single happy-path demo:
 - archive traversal, symlink, cache, secret and checksum attacks;
 - deterministic-build and cleanroom-extraction tests;
 - bilingual parity, XML parsing and deterministic regeneration for 29 README SVGs;
+- canonical EPDM software-acceptance latency, memory, A2/A3/A4 and approval-boundary Gates;
 - complete four-Skill Wheel-member verification;
 - target-directory installation and a clean standard virtual-environment installation;
 - import-origin checks for TSAO, EPDM, POE and Skillpack data;
