@@ -83,6 +83,7 @@ jobs:
           python scripts/harden_readme_svg_accessibility.py
           python scripts/verify_readme_visual_accessibility.py
           python scripts/sync_readme_visuals.py --check
+          python scripts/update_source_overlay.py --root . --output reports/runtime/SOURCE_ACCEPTANCE_OVERLAY.generated.tsv
           git diff --exit-code -- docs/assets/readme README.md README.zh-CN.md
       - name: Core, specialists, Ruff and coverage qualification
         run: python scripts/run_ci.py
@@ -233,6 +234,7 @@ jobs:
             reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
             reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
             reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json
+            reports/runtime/SOURCE_ACCEPTANCE_OVERLAY.generated.tsv
           if-no-files-found: warn
           retention-days: 14
 
