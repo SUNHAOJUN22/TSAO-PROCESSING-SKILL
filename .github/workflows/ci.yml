@@ -3,6 +3,8 @@ name: TSAO alpha15 qualification
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +16,7 @@ env:
   PIP_NO_INPUT: "1"
 
 concurrency:
-  group: tsao-main-${{ github.workflow }}
+  group: tsao-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -67,6 +69,8 @@ jobs:
       - name: Verify permanent repository hygiene
         run: >-
           python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name or p.startswith('.github/upgrade/')]; assert not f,f"
+      - name: Final acceptance preflight
+        run: python scripts/final_acceptance_preflight.py --root . --json
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
       - name: Verify deterministic README graphics and visual contract
@@ -268,7 +272,7 @@ jobs:
 
   qualification-ledger:
     needs: [qualification, source-snapshot]
-    if: always()
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
