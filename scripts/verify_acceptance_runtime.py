@@ -18,6 +18,7 @@ _REQUIRED = {
     "skills/epdm/docs/SOFTWARE_ACCEPTANCE.md",
     "skills/epdm/tests/test_acceptance.py",
 }
+_RUNTIME_LOAD_SAMPLES = 3
 
 
 def _choose_wheel(directory: Path) -> Path:
@@ -41,7 +42,7 @@ def _acceptance_code(extra_path: Path | None = None) -> str:
         prefix = f"import sys; sys.path.insert(0, {str(extra_path)!r}); "
     return prefix + (
         "from skills.epdm.acceptance import qualify_acceptance; "
-        "result=qualify_acceptance(load_samples=1); "
+        f"result=qualify_acceptance(load_samples={_RUNTIME_LOAD_SAMPLES}); "
         "assert result.pass_, result.as_dict(); "
         "print(__import__('json').dumps(result.as_dict(), allow_nan=False))"
     )
@@ -60,15 +61,32 @@ def verify(wheel: Path) -> dict[str, object]:
         root = Path(temporary)
         target = root / "target"
         install = _run(
-            [sys.executable, "-m", "pip", "install", "--quiet", "--no-deps", "--target", str(target), str(wheel.resolve())],
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                "--no-deps",
+                "--target",
+                str(target),
+                str(wheel.resolve()),
+            ],
             cwd=root,
         )
         if install.returncode:
-            errors.append(f"PIP_TARGET install failed: {install.stderr.strip() or install.stdout.strip()}")
+            errors.append(
+                f"PIP_TARGET install failed: {install.stderr.strip() or install.stdout.strip()}"
+            )
         else:
-            completed = _run([sys.executable, "-I", "-c", _acceptance_code(target)], cwd=root)
+            completed = _run(
+                [sys.executable, "-I", "-c", _acceptance_code(target)], cwd=root
+            )
             if completed.returncode:
-                errors.append(f"PIP_TARGET acceptance failed: {completed.stderr.strip() or completed.stdout.strip()}")
+                errors.append(
+                    "PIP_TARGET acceptance failed: "
+                    f"{completed.stderr.strip() or completed.stdout.strip()}"
+                )
             else:
                 runtimes["PIP_TARGET"] = json.loads(completed.stdout)
 
@@ -76,15 +94,30 @@ def verify(wheel: Path) -> dict[str, object]:
         venv.EnvBuilder(with_pip=True, clear=True).create(venv_root)
         python_executable = _venv_python(venv_root)
         install = _run(
-            [str(python_executable), "-m", "pip", "install", "--quiet", str(wheel.resolve())],
+            [
+                str(python_executable),
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                str(wheel.resolve()),
+            ],
             cwd=root,
         )
         if install.returncode:
-            errors.append(f"STANDARD_VENV install failed: {install.stderr.strip() or install.stdout.strip()}")
+            errors.append(
+                "STANDARD_VENV install failed: "
+                f"{install.stderr.strip() or install.stdout.strip()}"
+            )
         else:
-            completed = _run([str(python_executable), "-I", "-c", _acceptance_code()], cwd=root)
+            completed = _run(
+                [str(python_executable), "-I", "-c", _acceptance_code()], cwd=root
+            )
             if completed.returncode:
-                errors.append(f"STANDARD_VENV acceptance failed: {completed.stderr.strip() or completed.stdout.strip()}")
+                errors.append(
+                    "STANDARD_VENV acceptance failed: "
+                    f"{completed.stderr.strip() or completed.stdout.strip()}"
+                )
             else:
                 runtimes["STANDARD_VENV"] = json.loads(completed.stdout)
 
@@ -93,6 +126,7 @@ def verify(wheel: Path) -> dict[str, object]:
         "pass": not errors,
         "errors": errors,
         "required_members": sorted(_REQUIRED),
+        "runtime_load_samples": _RUNTIME_LOAD_SAMPLES,
         "runtimes": runtimes,
     }
 
