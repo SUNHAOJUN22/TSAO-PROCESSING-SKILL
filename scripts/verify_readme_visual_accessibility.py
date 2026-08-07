@@ -15,9 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.generate_acceptance_readme_assets import ASSETS as ACCEPTANCE_ASSETS
 from scripts.generate_uiux_readme_assets import (
     AMBER,
-    ASSETS,
+    ASSETS as CORE_ASSETS,
     BG,
     BLUE,
     CYAN,
@@ -36,6 +37,7 @@ from scripts.generate_uiux_readme_assets import (
 )
 from scripts.harden_readme_svg_accessibility import ROOT_ATTRIBUTES
 
+ASSETS = {**CORE_ASSETS, **ACCEPTANCE_ASSETS}
 SVG_NS = "{http://www.w3.org/2000/svg}"
 FORBIDDEN_ELEMENTS = {
     "a",
