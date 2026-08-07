@@ -18,14 +18,15 @@ def legacy_asset_names() -> set[str]:
 
 
 def declared_asset_names() -> set[str]:
-    from scripts.generate_uiux_readme_assets import ASSETS
+    from scripts.generate_acceptance_readme_assets import ASSETS as ACCEPTANCE_ASSETS
+    from scripts.generate_uiux_readme_assets import ASSETS as CORE_ASSETS
 
-    return set(ASSETS)
+    return set(CORE_ASSETS) | set(ACCEPTANCE_ASSETS)
 
 
 def test_master_generator_covers_the_complete_legacy_asset_contract() -> None:
     assert legacy_asset_names().issubset(declared_asset_names())
-    assert len(declared_asset_names()) == 29
+    assert len(declared_asset_names()) == 32
 
 
 def test_bilingual_readmes_reference_every_declared_local_svg_asset() -> None:
@@ -54,12 +55,12 @@ def test_bilingual_readmes_reference_every_declared_local_svg_asset() -> None:
             assert current_names == expected_names
 
 
-def test_readme_assets_are_deterministically_declared_by_master_generator() -> None:
-    from scripts.generate_uiux_readme_assets import ASSETS, OUT
+def test_readme_assets_are_deterministically_declared_by_generators() -> None:
+    from scripts.generate_uiux_readme_assets import OUT
 
     committed_names = {path.name for path in OUT.glob("*.svg")}
-    assert set(ASSETS) == committed_names
-    assert len(ASSETS) == 29
+    assert declared_asset_names() == committed_names
+    assert len(committed_names) == 32
 
 
 def test_visual_system_is_persisted_and_linked() -> None:
@@ -72,9 +73,18 @@ def test_visual_system_is_persisted_and_linked() -> None:
         assert "docs/README_VISUAL_SYSTEM.md" in (ROOT / readme_name).read_text(encoding="utf-8")
 
 
-
 def test_ai_native_visual_family_is_complete() -> None:
     expected = {
-        'ai-scientific-reasoning-loop.svg', 'multiscale-digital-thread.svg', 'agentic-qualification-orchestrator.svg', 'uncertainty-decision-landscape.svg', 'law-to-grade-inverse-design.svg', 'autonomous-experiment-loop.svg', 'process-knowledge-graph.svg', 'model-risk-governance.svg'
+        "ai-scientific-reasoning-loop.svg",
+        "multiscale-digital-thread.svg",
+        "agentic-qualification-orchestrator.svg",
+        "uncertainty-decision-landscape.svg",
+        "law-to-grade-inverse-design.svg",
+        "autonomous-experiment-loop.svg",
+        "process-knowledge-graph.svg",
+        "model-risk-governance.svg",
+        "epdm-canonical-publication-pipeline.svg",
+        "governed-math-stack.svg",
+        "acceptance-readiness-map.svg",
     }
     assert expected.issubset(declared_asset_names())
