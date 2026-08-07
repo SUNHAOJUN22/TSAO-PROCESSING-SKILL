@@ -11,8 +11,16 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.generate_uiux_readme_assets import ASSETS, OUT  # noqa: E402
+from scripts.generate_acceptance_readme_assets import (  # noqa: E402
+    ASSETS as ACCEPTANCE_ASSETS,
+    main as generate_acceptance_assets,
+)
+from scripts.generate_uiux_readme_assets import (  # noqa: E402
+    ASSETS as CORE_ASSETS,
+    OUT,
+)
 
+ASSETS = {**CORE_ASSETS, **ACCEPTANCE_ASSETS}
 MINIMUM_TEXT_SIZE_PX = 12.0
 ROOT_ATTRIBUTES = {
     "focusable": "false",
@@ -90,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--directory", type=Path, default=OUT)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)
+    if args.directory.resolve() == OUT.resolve() and not args.check:
+        generate_acceptance_assets()
     result = harden_assets(args.directory, check=args.check)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["pass"] else 2
