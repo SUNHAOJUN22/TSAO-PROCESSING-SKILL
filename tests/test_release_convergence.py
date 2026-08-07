@@ -23,7 +23,7 @@ def test_python_support_statement_matches_ci_matrix() -> None:
     assert 'python-version: "3.14"' in workflow
 
 
-def test_ci_and_readmes_lock_twenty_nine_deterministic_assets() -> None:
+def test_ci_and_readmes_lock_thirty_two_deterministic_assets() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     for generator in (
         "generate_readme_assets.py",
@@ -33,12 +33,14 @@ def test_ci_and_readmes_lock_twenty_nine_deterministic_assets() -> None:
         "generate_uiux_readme_assets.py",
     ):
         assert generator in workflow
+    assert "generate_acceptance_assets" in (
+        ROOT / "scripts/harden_readme_svg_accessibility.py"
+    ).read_text(encoding="utf-8")
     assert "sync_readme_visuals.py --check" in workflow
 
     for readme_name in ("README.md", "README.zh-CN.md"):
         text = (ROOT / readme_name).read_text(encoding="utf-8")
-        assert len(ASSET_PATTERN.findall(text)) == 29
-        assert "21" in text
+        assert len(ASSET_PATTERN.findall(text)) == 32
         assert "docs/README_VISUAL_SYSTEM.md" in text
 
 
@@ -50,7 +52,7 @@ def test_capability_matrix_covers_four_skills_and_real_installation() -> None:
     assert "standard virtual environment" in matrix
     assert "isolated import origin" in matrix
     assert "3.11–3.14" in matrix
-    assert "29 deterministic svg" in matrix
+    assert "32 deterministic svg" in matrix
     assert "batch screening" in matrix
     assert "performance regression" in matrix
     assert "scientific midnight bento" in matrix
@@ -71,7 +73,7 @@ def test_runtime_verifier_covers_isolated_install_schemes() -> None:
     assert "NO_SYSTEM_SITE_PACKAGES" in verifier
     assert "installed.files" in skillpacks
     assert "sysconfig.get_path" in skillpacks
-    assert "README_ASSET_MINIMUM = 29" in skillpacks
+    assert "README_ASSET_MINIMUM = 32" in skillpacks
     delivery = manifest["delivery_verification"]
     assert delivery["standard_venv_isolation"] == "NO_SYSTEM_SITE_PACKAGES"
     assert delivery["installed_import_origin"] == "VERIFIED_INSIDE_INSTALL_ROOT"
