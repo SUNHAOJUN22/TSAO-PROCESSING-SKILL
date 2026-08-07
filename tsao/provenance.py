@@ -230,9 +230,9 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
         expected_size = int(row["bytes"])
         digest, size = canonical_identity(path)
         if size != expected_size:
-            issues.append(f"manifest size mismatch: {relative}")
+            issues.append(f"manifest size mismatch: {relative}: expected={expected_size} actual={size}")
         if digest != row["sha256"].strip():
-            issues.append(f"manifest hash mismatch: {relative}")
+            issues.append(f"manifest hash mismatch: {relative}: expected={row['sha256'].strip()} actual={digest}")
 
     actual = {relative for _, relative in iter_source_files(root)}
     seen = set(records)
