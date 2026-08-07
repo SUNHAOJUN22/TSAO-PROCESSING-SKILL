@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+# ruff: noqa: E402, I001
+
 import argparse
 import json
 import re
@@ -11,11 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.generate_acceptance_readme_assets import (  # noqa: E402
+from scripts.generate_acceptance_readme_assets import (
     ASSETS as ACCEPTANCE_ASSETS,
     main as generate_acceptance_assets,
 )
-from scripts.generate_uiux_readme_assets import (  # noqa: E402
+from scripts.generate_uiux_readme_assets import (
     ASSETS as CORE_ASSETS,
     OUT,
 )
