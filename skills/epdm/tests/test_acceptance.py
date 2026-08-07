@@ -21,6 +21,7 @@ from tsao.cli import main
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / "fixtures/v2_phase_a1_reference_project.json"
+UNIT_TEST_LOAD_SAMPLES = 3
 
 
 def test_bundle_requires_canonical_snapshot() -> None:
@@ -55,7 +56,7 @@ def test_canonical_acceptance_matches_analytic_reference() -> None:
 
 
 def test_acceptance_qualification_closes_all_software_checks() -> None:
-    result = qualify_acceptance(PROJECT, load_samples=1)
+    result = qualify_acceptance(PROJECT, load_samples=UNIT_TEST_LOAD_SAMPLES)
 
     assert result.pass_ is True, result.as_dict()
     assert all(result.checks.values())
@@ -69,7 +70,7 @@ def test_acceptance_qualification_closes_all_software_checks() -> None:
 
 def test_acceptance_report_is_valid_json_and_keeps_approvals_closed(tmp_path: Path) -> None:
     output = tmp_path / "acceptance.json"
-    result = write_acceptance_report(output, PROJECT, load_samples=1)
+    result = write_acceptance_report(output, PROJECT, load_samples=UNIT_TEST_LOAD_SAMPLES)
     payload = json.loads(output.read_text(encoding="utf-8"))
 
     assert result.pass_
@@ -108,7 +109,7 @@ def test_cli_acceptance_writes_report(tmp_path: Path, capsys: pytest.CaptureFixt
             "--output",
             str(output),
             "--load-samples",
-            "1",
+            str(UNIT_TEST_LOAD_SAMPLES),
         ]
     )
     captured = capsys.readouterr()
