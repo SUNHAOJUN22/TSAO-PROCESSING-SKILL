@@ -35,6 +35,7 @@ _SELF_MANIFESTS = {
 }
 
 
+
 def _safe_manifest_relative(value: str) -> Path:
     pure = PurePosixPath(value)
     if (
@@ -47,7 +48,6 @@ def _safe_manifest_relative(value: str) -> Path:
     ):
         raise ValueError(f"unsafe manifest path: {value}")
     return Path(*pure.parts)
-
 
 def canonical_bytes(path: Path) -> bytes:
     """Return a platform-stable identity for text and exact bytes for binaries."""
@@ -230,22 +230,14 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
         expected_size = int(row["bytes"])
         digest, size = canonical_identity(path)
         if size != expected_size:
-            issues.append(
-                f"manifest size mismatch: {relative}: expected={expected_size} actual={size}"
-            )
+            issues.append(f"manifest size mismatch: {relative}")
         if digest != row["sha256"].strip():
-            issues.append(
-                f"manifest hash mismatch: {relative}: "
-                f"expected={row['sha256'].strip()} actual={digest}"
-            )
+            issues.append(f"manifest hash mismatch: {relative}")
 
     actual = {relative for _, relative in iter_source_files(root)}
     seen = set(records)
     for relative in sorted(actual - seen):
-        digest, size = canonical_identity(root / _safe_manifest_relative(relative))
-        issues.append(
-            f"unlisted source file: {relative}: actual={digest} bytes={size}"
-        )
+        issues.append(f"unlisted source file: {relative}")
     for relative in sorted(seen - actual):
         issues.append(f"manifest lists excluded or unavailable file: {relative}")
     return sorted(set(issues))
