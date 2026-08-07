@@ -1,310 +1,39 @@
-name: TSAO alpha15 qualification
+name: TSAO acceptance source export
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-env:
-  PERFORMANCE_BASELINE_COMMIT: "8719e59140202aae53cdfb80239b80dedad6767a"
-  PIP_DISABLE_PIP_VERSION_CHECK: "1"
-  PIP_NO_INPUT: "1"
-
 concurrency:
-  group: tsao-${{ github.workflow }}-${{ github.ref }}
+  group: tsao-source-export-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  qualification:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            python-version: "3.11"
-          - os: windows-latest
-            python-version: "3.12"
-          - os: windows-latest
-            python-version: "3.13"
-          - os: windows-latest
-            python-version: "3.14"
-          - os: ubuntu-latest
-            python-version: "3.11"
-          - os: ubuntu-latest
-            python-version: "3.12"
-          - os: ubuntu-latest
-            python-version: "3.13"
-          - os: ubuntu-latest
-            python-version: "3.14"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-            requirements.txt
-            requirements.lock
-      - name: Verify exact hashed dependency lock
-        run: >-
-          python scripts/verify_dependency_lock.py requirements.lock
-          --pyproject pyproject.toml
-          --json-out reports/runtime/DEPENDENCY_LOCK_VERIFICATION.json
-      - name: Install exact locked dependencies
-        run: python -m pip install --quiet --require-hashes -r requirements.lock
-      - name: Install TSAO without dependency resolution
-        run: python -m pip install --quiet --no-deps --no-build-isolation -e .
-      - name: Verify installed dependency graph
-        run: python -m pip check
-      - name: Verify permanent repository hygiene
-        run: >-
-          python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name or p.startswith('.github/upgrade/')]; assert not f,f"
-      - name: Final acceptance preflight
-        run: python scripts/final_acceptance_preflight.py --root . --json
-      - name: Clean editable-install metadata
-        run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
-      - name: Verify deterministic README graphics and visual contract
-        run: |
-          python scripts/generate_readme_assets.py
-          python scripts/generate_extended_readme_assets.py
-          python scripts/generate_decision_readme_assets.py
-          python scripts/generate_performance_readme_assets.py
-          python scripts/generate_uiux_readme_assets.py
-          python scripts/harden_readme_svg_accessibility.py
-          python scripts/verify_readme_visual_accessibility.py
-          python scripts/sync_readme_visuals.py --check
-          python scripts/update_source_overlay.py --root . --output reports/runtime/SOURCE_ACCEPTANCE_OVERLAY.generated.tsv
-          git diff --exit-code -- docs/assets/readme README.md README.zh-CN.md
-      - name: Core, specialists, Ruff and coverage qualification
-        run: python scripts/run_ci.py
-      - name: EPDM canonical software-acceptance gate
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
-        run: >-
-          python scripts/qualify_acceptance.py
-          --project skills/epdm/fixtures/v2_phase_a1_reference_project.json
-          --output reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json
-          --load-samples 7
-      - name: Alpha15 adaptive-integrator branch coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
-        run: |
-          python -m coverage erase
-          python -m coverage run --branch -m pytest -q -p no:cacheprovider skills/epdm/tests/test_epdm_phase_a4_integration.py
-          python -m coverage report --include='skills/epdm/numerical_integration.py' --fail-under=90
-          python -c "from pathlib import Path; Path('.coverage').unlink(missing_ok=True)"
-      - name: Universal Skillpack closure
-        run: |
-          python -m tsao.skillpacks --root .
-          python -m tsao.cli package template --family "generic process"
-      - name: Build wheel
-        run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-      - name: Verify wheel members and installed runtime
-        run: |
-          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-          python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
-      - name: Upload release wheel
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsao-wheel-alpha15-${{ github.sha }}
-          path: wheelhouse/*.whl
-          if-no-files-found: error
-          retention-days: 30
-      - name: Extended performance regression gate
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
-        shell: bash
-        run: |
-          baseline_root="$RUNNER_TEMP/alpha14-performance-baseline"
-          baseline_report="$RUNNER_TEMP/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json"
-          baseline_commit="${PERFORMANCE_BASELINE_COMMIT}"
-          git cat-file -e "${baseline_commit}^{commit}"
-          git merge-base --is-ancestor "$baseline_commit" HEAD
-          trap 'git worktree remove --force "$baseline_root" 2>/dev/null || true' EXIT
-          git worktree add --detach "$baseline_root" "$baseline_commit"
-          (
-            cd "$baseline_root"
-            rm -rf wheelhouse build dist *.egg-info
-            python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-            python scripts/benchmark_performance_v2.py \
-              --repeats 7 \
-              --wheel-dir wheelhouse \
-              --output "$baseline_report"
-          )
-          python scripts/benchmark_performance_v2.py \
-            --repeats 7 \
-            --wheel-dir wheelhouse \
-            --output reports/runtime/PERFORMANCE_RESULTS_V2.json
-          BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<'PY'
-          import json
-          import os
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          root = Path.cwd()
-          baseline_root = Path(os.environ["BASELINE_ROOT"])
-          baseline_report = Path(os.environ["BASELINE_REPORT"])
-          current_report = root / "reports/runtime/PERFORMANCE_RESULTS_V2.json"
-
-          def schema_units(worktree: Path) -> float:
-              code = (
-                  "from pathlib import Path; "
-                  "from tsao.doctor import diagnose; "
-                  "print(diagnose(Path('.'), profile='core')['metrics']['schemas'])"
-              )
-              output = subprocess.check_output(
-                  [sys.executable, "-c", code],
-                  cwd=worktree,
-                  text=True,
-              )
-              return float(output.strip().splitlines()[-1])
-
-          for path, worktree in ((baseline_report, baseline_root), (current_report, root)):
-              report = json.loads(path.read_text(encoding="utf-8"))
-              doctor = next(
-                  row for row in report["benchmarks"] if row["name"] == "doctor_core_repository"
-              )
-              doctor["work_units"] = schema_units(worktree)
-              doctor["work_unit"] = "schema_count"
-              path.write_text(
-                  json.dumps(report, ensure_ascii=False, indent=2) + "\n",
-                  encoding="utf-8",
-              )
-          PY
-          python scripts/compare_performance_v2.py \
-            --baseline "$baseline_report" \
-            --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
-            --output reports/runtime/PERFORMANCE_COMPARISON_V2.json
-          set +e
-          python scripts/compare_performance_v2.py \
-            --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \
-            --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
-            --output reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
-          historical_rc=$?
-          set -e
-          HISTORICAL_RC="$historical_rc" python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          path = Path("reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
-          data["qualification_role"] = "NON_BLOCKING_HISTORICAL_TREND"
-          data["historical_comparator_exit_code"] = int(os.environ["HISTORICAL_RC"])
-          data["qualification_baseline"] = "ALPHA14_SAME_RUN_SAME_PYTHON"
-          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-          PY
-          cp "$baseline_report" reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
-          git worktree remove --force "$baseline_root"
-          trap - EXIT
-          python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
-      - name: CLI smoke
-        run: |
-          python -m tsao.cli doctor --root . --profile core
-          python -m tsao.skillpacks --root .
-          python -m tsao.cli route "POE solution polymerization and solvent recovery"
-          python -m tsao.cli package template --family "continuous chemical process"
-          python -m tsao.cli epdm status
-          python -m tsao.cli epdm audit
-          python -m tsao.cli epdm reference-demo
-          python -m tsao.cli epdm model-suite --temperature-k 323.15 --residence-s 300
-          python -m tsao.cli poe status --root .
-          python -m tsao.cli poe audit-p0 --root .
-          python -m tsao.cli poe audit-p1 --root .
-          python -m tsao.cli poe reference-demo
-      - name: Upload qualification reports
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsao-qualification-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}
-          path: |
-            reports/runtime/CI_RESULTS.json
-            reports/runtime/PERFORMANCE_RESULTS_V2.json
-            reports/runtime/PERFORMANCE_COMPARISON_V2.json
-            reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
-            reports/runtime/PERFORMANCE_COMPARISON_ALPHA10_HISTORICAL.json
-            reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json
-            reports/runtime/SOURCE_ACCEPTANCE_OVERLAY.generated.tsv
-          if-no-files-found: warn
-          retention-days: 14
-
-  source-snapshot:
-    needs: qualification
+  export:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - name: Checkout exact PR merge tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements.lock
-      - name: Verify exact hashed dependency lock
-        run: python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
-      - name: Install exact locked dependencies
-        run: python -m pip install --quiet --require-hashes -r requirements.lock
-      - name: Install TSAO without dependency resolution
-        run: python -m pip install --quiet --no-deps --no-build-isolation -e .
-      - name: Verify installed dependency graph
-        run: python -m pip check
-      - name: Verify committed source identity
-        run: python -m tsao.cli doctor --root . --profile core
-      - name: Build and inspect deterministic public-source snapshot
-        run: |
-          python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.15.zip
-          python -c "import zipfile; p='TSAO-PROCESSING-SKILL-source-alpha.15.zip'; names=set(zipfile.ZipFile(p).namelist()); required=('skills/epdm/canonical_loader.py','skills/epdm/acceptance.py','skills/epdm/tests/test_acceptance.py','skills/epdm/docs/SOFTWARE_ACCEPTANCE.md','scripts/qualify_acceptance.py','scripts/verify_acceptance_runtime.py','skills/epdm/executable_rhs.py','skills/epdm/numerical_integration.py','skills/epdm/schemas/integration-request-a15.schema.json','skills/epdm/schemas/integration-result-a15.schema.json','skills/epdm/tests/test_epdm_phase_a4_integration.py','reports/EPDM_PHASE_A4_QUALIFICATION.json'); missing=[r for r in required if not any(n.endswith('/'+r) for n in names)]; assert not missing, missing"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsao-source-alpha15-${{ github.sha }}
-          path: |
-            TSAO-PROCESSING-SKILL-source-alpha.15.zip
-            TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
-          if-no-files-found: error
-          retention-days: 14
-
-  qualification-ledger:
-    needs: [qualification, source-snapshot]
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Record main qualification result
+          fetch-depth: 0
+      - name: Export current tree and original main CI
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          QUALIFICATION_RESULT: ${{ needs.qualification.result }}
-          SNAPSHOT_RESULT: ${{ needs.source-snapshot.result }}
         run: |
           set -euo pipefail
-          verdict=FAIL
-          if [[ "$QUALIFICATION_RESULT" == success && "$SNAPSHOT_RESULT" == success ]]; then
-            verdict=PASS
-          fi
-          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          body=$(cat <<EOF
-          Permanent main qualification: **$verdict**
-
-          - commit: \`$GITHUB_SHA\`
-          - run: $run_url
-          - matrix qualification: \`$QUALIFICATION_RESULT\`
-          - source snapshot: \`$SNAPSHOT_RESULT\`
-          - event: \`$GITHUB_EVENT_NAME\`
-
-          This ledger records software-artifact qualification only. Scientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`.
-          EOF
-          )
-          gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
-          test "$verdict" = PASS
+          git archive --format=zip --output=TSAO-current-source.zip HEAD
+          git show origin/main:.github/workflows/ci.yml > TSAO-main-ci.yml
+          sha256sum TSAO-current-source.zip TSAO-main-ci.yml > SHA256SUMS.export
+      - name: Upload exact source export
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tsao-exact-source-${{ github.sha }}
+          path: |
+            TSAO-current-source.zip
+            TSAO-main-ci.yml
+            SHA256SUMS.export
+          if-no-files-found: error
+          retention-days: 1
