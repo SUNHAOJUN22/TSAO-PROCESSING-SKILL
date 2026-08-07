@@ -1,0 +1,84 @@
+name: Temporary PR acceptance qualification
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tsao-pr-acceptance-${{ github.event.pull_request.number }}-${{ matrix.os }}-${{ matrix.python-version }}
+  cancel-in-progress: true
+
+jobs:
+  qualification:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python-version: '3.11'
+          - os: windows-latest
+            python-version: '3.12'
+          - os: windows-latest
+            python-version: '3.13'
+          - os: windows-latest
+            python-version: '3.14'
+          - os: ubuntu-latest
+            python-version: '3.11'
+          - os: ubuntu-latest
+            python-version: '3.12'
+          - os: ubuntu-latest
+            python-version: '3.13'
+          - os: ubuntu-latest
+            python-version: '3.14'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Remove temporary workflow from tested worktree
+        shell: bash
+        run: git rm -f .github/workflows/pr-acceptance-temporary.yml
+      - name: Verify exact hashed dependency lock
+        run: python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml --json-out reports/runtime/DEPENDENCY_LOCK_VERIFICATION.json
+      - name: Install exact locked dependencies and package
+        run: |
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Final acceptance preflight
+        run: python scripts/final_acceptance_preflight.py --root . --json
+      - name: Verify deterministic bilingual visual system
+        run: |
+          python scripts/generate_readme_assets.py
+          python scripts/generate_extended_readme_assets.py
+          python scripts/generate_decision_readme_assets.py
+          python scripts/generate_performance_readme_assets.py
+          python scripts/generate_uiux_readme_assets.py
+          python scripts/harden_readme_svg_accessibility.py
+          python scripts/verify_readme_visual_accessibility.py
+          python scripts/sync_readme_visuals.py --check
+          git diff --exit-code -- docs/assets/readme README.md README.zh-CN.md
+      - name: Core, specialist, lint and coverage qualification
+        run: python scripts/run_ci.py
+      - name: Build and verify wheel
+        run: |
+          python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
+          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
+          python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
+      - name: Source-snapshot verification
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: |
+          python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.15.zip
+          python -m tsao.cli doctor --root . --profile core
