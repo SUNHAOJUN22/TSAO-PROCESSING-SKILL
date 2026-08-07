@@ -103,6 +103,7 @@ namespaces = true
   "reports/COMPLETE_DISTRIBUTION_REFERENCE.json",
   "reports/SOURCE_CORE_MANIFEST.tsv",
   "reports/SOURCE_CORE_OVERLAY.tsv",
+  "reports/SOURCE_ACCEPTANCE_OVERLAY.tsv",
   "reports/BRANCH_CONSOLIDATION_PLAN.json",
   "reports/BRANCH_CONSOLIDATION_REPORT.json",
   "reports/ALPHA12_ZERO_FALSE_PASS_QUALIFICATION.json",

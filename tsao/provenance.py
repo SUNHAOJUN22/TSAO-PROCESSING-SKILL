@@ -27,6 +27,7 @@ _EXCLUDED_FILES = {".coverage", "coverage.xml"}
 _SELF_MANIFESTS = {
     "reports/SOURCE_CORE_MANIFEST.tsv",
     "reports/SOURCE_CORE_OVERLAY.tsv",
+    "reports/SOURCE_ACCEPTANCE_OVERLAY.tsv",
     "reports/COMPLETE_DISTRIBUTION_MANIFEST.tsv",
     "FILE_MANIFEST.tsv",
     "checksums.sha256",
@@ -213,11 +214,19 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
     if not manifest.is_file():
         return [f"missing source manifest: {manifest}"]
     records, issues = _read_manifest_records(manifest, label="manifest")
-    overlay_path = root / "reports/SOURCE_CORE_OVERLAY.tsv"
-    if manifest.name == "SOURCE_CORE_MANIFEST.tsv" and overlay_path.is_file():
-        overlay, overlay_issues = _read_manifest_records(overlay_path, label="overlay")
-        issues.extend(overlay_issues)
-        records.update(overlay)
+    overlay_paths = (
+        root / "reports/SOURCE_CORE_OVERLAY.tsv",
+        root / "reports/SOURCE_ACCEPTANCE_OVERLAY.tsv",
+    )
+    if manifest.name == "SOURCE_CORE_MANIFEST.tsv":
+        for overlay_path in overlay_paths:
+            if not overlay_path.is_file():
+                continue
+            overlay, overlay_issues = _read_manifest_records(
+                overlay_path, label=overlay_path.name
+            )
+            issues.extend(overlay_issues)
+            records.update(overlay)
     if not records:
         issues.append("source manifest contains no file records")
         return sorted(set(issues))
