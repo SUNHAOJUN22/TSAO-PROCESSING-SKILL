@@ -4,6 +4,17 @@
 
 **Fail-closed software delivery for chemical-process Skills, governed mathematics, evidence, provenance and acceptance.**
 
+<!-- LOCALIZED_VISION_EN:START -->
+## Project vision: from reaction mechanisms to grades and process windows
+
+<p align="center">
+  <img src="docs/localized-vision/process-intelligence-vision-en.svg" width="100%" alt="TSAO Process Intelligence OS English vision and mathematical architecture">
+</p>
+
+> The formulas map to the implemented process, EPDM, POE and polymer-general Skill contracts. This is not plant calibration, customer-grade certification or an HSE decision.
+
+<!-- LOCALIZED_VISION_EN:END -->
+
 ## Delivered system
 
 TSAO installs four Skills: `process-general`, `epdm`, `poe`, and `polymer-general`. The source tree and Wheel must expose the same modules, schemas, reports, CLI, tests and **32 deterministic SVG diagrams**. `PASS` qualifies software behavior only; scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.

@@ -4,6 +4,17 @@
 
 **面向化工过程 Skill、受治理数理模型、证据链、来源身份和验收交付的 fail-closed 软件系统。**
 
+<!-- LOCALIZED_VISION_ZH:START -->
+## 中文项目愿景图：从反应机理到材料牌号与工艺窗口
+
+<p align="center">
+  <img src="docs/localized-vision/process-intelligence-vision-zh.svg" width="100%" alt="TSAO 化工过程智能操作系统中文愿景与数理架构">
+</p>
+
+> 图中公式映射当前过程、EPDM、POE 与聚合物通用 Skill 的软件合同；它不是装置标定、客户牌号认证或 HSE 结论。
+
+<!-- LOCALIZED_VISION_ZH:END -->
+
 ## 已交付系统
 
 TSAO 安装四个 Skill：`process-general`、`epdm`、`poe` 与 `polymer-general`。源码树和 Wheel 必须暴露同一组模块、Schema、报告、CLI、测试和 **32 幅确定性 SVG 示意图**。`PASS` 只代表软件行为合格；科学、工程、HSE、客户和工业批准继续保持 `NOT_EVALUATED`。
