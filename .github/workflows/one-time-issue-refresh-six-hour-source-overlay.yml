@@ -83,12 +83,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
           SOURCE_SHA: ${{ steps.publish.outputs.sha }}
+          RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
           set -euo pipefail
-          body="SIX_HOUR_SOURCE_OVERLAY_REFRESH: ${JOB_STATUS}"
+          body="SIX_HOUR_SOURCE_OVERLAY_REFRESH: ${JOB_STATUS} — run ${RUN_ID}"
           if [ "$JOB_STATUS" = success ]; then
-            body="SIX_HOUR_SOURCE_OVERLAY_REFRESH: PASS — exact main ${SOURCE_SHA}; core doctor, run_ci, EPDM audit and POE P0/P1 audits passed; permanent Windows/Ubuntu matrix has been triggered."
+            body="SIX_HOUR_SOURCE_OVERLAY_REFRESH: PASS — run ${RUN_ID}; exact main ${SOURCE_SHA}; core doctor, run_ci, EPDM audit and POE P0/P1 audits passed; permanent Windows/Ubuntu matrix has been triggered."
           fi
           jq -n --arg body "$body" '{body:$body}' >/tmp/comment.json
           curl -fsSL -X POST \
