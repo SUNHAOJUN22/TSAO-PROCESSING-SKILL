@@ -1,0 +1,97 @@
+name: One-time dispatch six-hour permanent qualification
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+
+concurrency:
+  group: tsao-processing-permanent-qualification-dispatcher
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.issue.number == 68 &&
+      github.event.comment.body == '/dispatch-six-hour-permanent-qualification'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Restore clean permanent main tree
+        id: clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/one-time-dispatch-six-hour-permanent-qualification.yml
+          git diff --cached --check
+          git commit -m 'chore: remove one-time permanent qualification dispatcher'
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Dispatch permanent repository qualification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref main
+      - name: Wait for exact dispatched run
+        id: result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.clean.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=''
+          for _ in $(seq 1 60); do
+            runs=$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?event=workflow_dispatch&per_page=20")
+            run_id=$(jq -r --arg sha "$SOURCE_SHA" '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | last | .id // empty' <<<"$runs")
+            if [ -n "$run_id" ]; then break; fi
+            sleep 10
+          done
+          test -n "$run_id"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          for _ in $(seq 1 540); do
+            run=$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")
+            status=$(jq -r '.status' <<<"$run")
+            conclusion=$(jq -r '.conclusion // empty' <<<"$run")
+            if [ "$status" = completed ]; then
+              echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+              test "$conclusion" = success
+              exit 0
+            fi
+            sleep 20
+          done
+          echo 'permanent qualification did not complete inside the controller timeout' >&2
+          exit 1
+      - name: Record permanent qualification result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.clean.outputs.sha }}
+          RUN_ID: ${{ steps.result.outputs.run_id }}
+          CONCLUSION: ${{ steps.result.outputs.conclusion }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="SIX_HOUR_PERMANENT_QUALIFICATION: ${JOB_STATUS} — source ${SOURCE_SHA}; run ${RUN_ID}; conclusion ${CONCLUSION:-unknown}."
+          jq -n --arg body "$body" '{body:$body}' >/tmp/comment.json
+          curl -fsSL -X POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/68/comments" \
+            -d @/tmp/comment.json
