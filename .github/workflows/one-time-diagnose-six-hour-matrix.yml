@@ -12,7 +12,7 @@ jobs:
   apply-hardening:
     if: >-
       github.event.issue.number == 68 &&
-      github.event.comment.body == '/apply-six-hour-hardening-v1'
+      github.event.comment.body == '/apply-six-hour-hardening-v2'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -40,6 +40,7 @@ jobs:
 
           import csv
           import subprocess
+          import textwrap
           from pathlib import Path
 
           from tsao.provenance import canonical_identity, classify_path
@@ -77,9 +78,9 @@ jobs:
               timings: list[float] = []
               publications: list[str] = []
 
-              # Timing and allocation tracing are deliberately isolated.  Measuring
-              # wall-clock latency while tracemalloc is active couples the acceptance
-              # result to platform-specific tracing overhead, particularly on Windows.
+              # Timing and allocation tracing are deliberately isolated. Measuring
+              # latency while tracemalloc is active couples the Gate to platform-
+              # specific tracing overhead, particularly on Windows.
               for _ in range(samples):
                   start = time.perf_counter()
                   snapshot = load_canonical_project_file(project_path)
@@ -106,9 +107,11 @@ jobs:
                   median = (timings[middle - 1] + timings[middle]) / 2.0
               return median, peak, publications[0]
           '''
-          if old_loader not in acceptance:
+          if old_loader in acceptance:
+              acceptance = acceptance.replace(old_loader, new_loader, 1)
+              acceptance_path.write_text(acceptance, encoding="utf-8")
+          elif new_loader not in acceptance:
               raise RuntimeError("acceptance resource-metric block no longer matches expected source")
-          acceptance_path.write_text(acceptance.replace(old_loader, new_loader), encoding="utf-8")
 
           test_path = root / "skills/epdm/tests/test_acceptance.py"
           tests = test_path.read_text(encoding="utf-8")
@@ -189,8 +192,7 @@ jobs:
                   if anchor not in text:
                       raise RuntimeError(f"README insertion anchor not found: {path}")
                   block = f"\n{heading}\n\n{start_marker}\n{end_marker}\n"
-                  text = text.replace(anchor, block + anchor, 1)
-                  path.write_text(text, encoding="utf-8")
+                  path.write_text(text.replace(anchor, block + anchor, 1), encoding="utf-8")
               elif text.count(start_marker) != 1 or text.count(end_marker) != 1:
                   raise RuntimeError(f"README performance markers are inconsistent: {path}")
 
@@ -252,8 +254,7 @@ jobs:
           elif new_ledger not in ci:
               raise RuntimeError("qualification ledger block no longer matches expected source")
 
-          soak = r'''
-
+          soak = textwrap.dedent(r'''
             six-hour-soak-stage-1:
               needs: [qualification, source-snapshot]
               if: >-
@@ -265,7 +266,7 @@ jobs:
               outputs:
                 started_epoch: __EXPR__ steps.clock.outputs.started_epoch }}
                 target_epoch: __EXPR__ steps.clock.outputs.target_epoch }}
-                cycles: __EXPR__ steps.summary.outputs.cycles }}
+                cycles: __EXPR__ steps.stage.outputs.cycles }}
               steps:
                 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -279,94 +280,126 @@ jobs:
                     python -m pip install --quiet --require-hashes -r requirements.lock
                     python -m pip install --quiet --no-deps --no-build-isolation -e .
                     python -m pip check
-                - name: Start six-hour monotonic clock
+                - name: Start monotonic six-hour clock
                   id: clock
                   shell: bash
                   run: |
                     set -euo pipefail
                     started_epoch=$(date +%s)
-                    target_epoch=$((started_epoch + 21600))
                     echo "started_epoch=$started_epoch" >> "$GITHUB_OUTPUT"
-                    echo "target_epoch=$target_epoch" >> "$GITHUB_OUTPUT"
+                    echo "target_epoch=$((started_epoch + 21600))" >> "$GITHUB_OUTPUT"
                 - name: Continuous qualification stage 1
+                  id: stage
                   shell: bash
                   env:
                     STARTED_EPOCH: __EXPR__ steps.clock.outputs.started_epoch }}
                   run: |
                     set -euo pipefail
-                    mkdir -p reports/runtime/six-hour-soak
-                    evidence=reports/runtime/six-hour-soak/stage1.ndjson
-                    : > "$evidence"
-                    deadline=$((STARTED_EPOCH + 10200))
-                    cycle=0
-                    while (( $(date +%s) < deadline )); do
-                      cycle=$((cycle + 1))
-                      cycle_started=$(date +%s)
-                      set +e
-                      python scripts/run_ci.py > reports/runtime/six-hour-soak/run-ci.log 2>&1
-                      rc_ci=$?
-                      python scripts/qualify_acceptance.py \
-                        --project skills/epdm/fixtures/v2_phase_a1_reference_project.json \
-                        --output reports/runtime/six-hour-soak/acceptance.json \
-                        --load-samples 3 \
-                        > reports/runtime/six-hour-soak/acceptance.log 2>&1
-                      rc_acceptance=$?
-                      python -m tsao.cli doctor --root . --profile core \
-                        > reports/runtime/six-hour-soak/doctor.log 2>&1
-                      rc_doctor=$?
-                      set -e
-                      cycle_ended=$(date +%s)
-                      printf '{"cycle":%d,"started_epoch":%d,"ended_epoch":%d,"run_ci":%d,"acceptance":%d,"doctor":%d}\n' \
-                        "$cycle" "$cycle_started" "$cycle_ended" \
-                        "$rc_ci" "$rc_acceptance" "$rc_doctor" >> "$evidence"
-                      if (( rc_ci != 0 || rc_acceptance != 0 || rc_doctor != 0 )); then
-                        cat reports/runtime/six-hour-soak/run-ci.log
-                        cat reports/runtime/six-hour-soak/acceptance.log
-                        cat reports/runtime/six-hour-soak/doctor.log
-                        exit 1
-                      fi
-                      echo "stage1 cycle=$cycle PASS elapsed=$((cycle_ended - STARTED_EPOCH))s"
-                    done
-                - name: Summarize stage 1
-                  id: summary
-                  shell: bash
-                  env:
-                    STARTED_EPOCH: __EXPR__ steps.clock.outputs.started_epoch }}
-                    TARGET_EPOCH: __EXPR__ steps.clock.outputs.target_epoch }}
-                  run: |
-                    set -euo pipefail
-                    python - <<'PY2'
+                    export DEADLINE_EPOCH=$((STARTED_EPOCH + 10200))
+                    export STAGE_NUMBER=1
+                    export REPORT_DIR=reports/runtime/six-hour-soak
+                    python - <<'PY3'
                     import json
                     import os
+                    import subprocess
+                    import sys
                     import time
                     from pathlib import Path
 
-                    path = Path('reports/runtime/six-hour-soak/stage1.ndjson')
-                    rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line]
-                    if not rows:
-                        raise SystemExit('stage 1 produced no qualification cycles')
-                    payload = {
-                        'schema': 'TSAO-SIX-HOUR-SOAK-1',
-                        'stage': 1,
-                        'pass': all(
-                            row['run_ci'] == row['acceptance'] == row['doctor'] == 0
-                            for row in rows
+                    report_dir = Path(os.environ['REPORT_DIR'])
+                    report_dir.mkdir(parents=True, exist_ok=True)
+                    started = int(os.environ['STARTED_EPOCH'])
+                    deadline = int(os.environ['DEADLINE_EPOCH'])
+                    stage = int(os.environ['STAGE_NUMBER'])
+                    evidence = report_dir / f'stage{stage}.ndjson'
+                    evidence.write_text('', encoding='utf-8')
+                    commands = (
+                        ('run_ci', [sys.executable, 'scripts/run_ci.py']),
+                        (
+                            'acceptance',
+                            [
+                                sys.executable,
+                                'scripts/qualify_acceptance.py',
+                                '--project',
+                                'skills/epdm/fixtures/v2_phase_a1_reference_project.json',
+                                '--output',
+                                str(report_dir / 'acceptance.json'),
+                                '--load-samples',
+                                '3',
+                            ],
                         ),
-                        'started_epoch': int(os.environ['STARTED_EPOCH']),
-                        'target_epoch': int(os.environ['TARGET_EPOCH']),
-                        'ended_epoch': int(time.time()),
-                        'cycles': len(rows),
+                        (
+                            'doctor',
+                            [
+                                sys.executable,
+                                '-m',
+                                'tsao.cli',
+                                'doctor',
+                                '--root',
+                                '.',
+                                '--profile',
+                                'core',
+                            ],
+                        ),
+                    )
+                    cycle = 0
+                    while int(time.time()) < deadline:
+                        cycle += 1
+                        cycle_started = int(time.time())
+                        statuses = {}
+                        for name, command in commands:
+                            log = report_dir / f'{name}.log'
+                            with log.open('w', encoding='utf-8') as stream:
+                                completed = subprocess.run(
+                                    command,
+                                    stdout=stream,
+                                    stderr=subprocess.STDOUT,
+                                    text=True,
+                                    check=False,
+                                )
+                            statuses[name] = completed.returncode
+                        cycle_ended = int(time.time())
+                        row = {
+                            'stage': stage,
+                            'cycle': cycle,
+                            'started_epoch': cycle_started,
+                            'ended_epoch': cycle_ended,
+                            **statuses,
+                        }
+                        with evidence.open('a', encoding='utf-8') as stream:
+                            stream.write(json.dumps(row, sort_keys=True) + '\n')
+                        if any(statuses.values()):
+                            for name, _ in commands:
+                                log = report_dir / f'{name}.log'
+                                print(f'--- {log} ---')
+                                print(log.read_text(encoding='utf-8', errors='replace')[-20000:])
+                            raise SystemExit(f'continuous qualification failed in stage {stage}, cycle {cycle}')
+                        print(
+                            f'stage={stage} cycle={cycle} PASS '
+                            f'elapsed={cycle_ended - started}s',
+                            flush=True,
+                        )
+                    ended = int(time.time())
+                    summary = {
+                        'schema': 'TSAO-SIX-HOUR-SOAK-1',
+                        'stage': stage,
+                        'pass': True,
+                        'started_epoch': started,
+                        'deadline_epoch': deadline,
+                        'ended_epoch': ended,
+                        'elapsed_seconds': ended - started,
+                        'cycles': cycle,
                         'required_total_elapsed_seconds': 21600,
                     }
-                    Path('reports/runtime/six-hour-soak/stage1-summary.json').write_text(
-                        json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+                    (report_dir / f'stage{stage}-summary.json').write_text(
+                        json.dumps(summary, indent=2, sort_keys=True) + '\n',
                         encoding='utf-8',
                     )
-                    if not payload['pass']:
-                        raise SystemExit('stage 1 failed')
-                    PY2
-                    cycles=$(python -c "import json; print(json.load(open('reports/runtime/six-hour-soak/stage1-summary.json', encoding='utf-8'))['cycles'])")
-                    echo "cycles=$cycles" >> "$GITHUB_OUTPUT"
+                    if cycle < 1:
+                        raise SystemExit('stage produced no qualification cycles')
+                    with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as stream:
+                        stream.write(f'cycles={cycle}\n')
+                    PY3
                 - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
                   with:
                     name: tsao-six-hour-soak-stage1-__EXPR__ github.run_id }}
@@ -379,8 +412,8 @@ jobs:
               runs-on: ubuntu-latest
               timeout-minutes: 200
               outputs:
-                elapsed_seconds: __EXPR__ steps.summary.outputs.elapsed_seconds }}
-                cycles: __EXPR__ steps.summary.outputs.cycles }}
+                elapsed_seconds: __EXPR__ steps.stage.outputs.elapsed_seconds }}
+                cycles: __EXPR__ steps.stage.outputs.cycles }}
               steps:
                 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -394,112 +427,128 @@ jobs:
                     python -m pip install --quiet --require-hashes -r requirements.lock
                     python -m pip install --quiet --no-deps --no-build-isolation -e .
                     python -m pip check
-                - name: Continuous qualification stage 2
+                - name: Continuous qualification stage 2 and duration enforcement
+                  id: stage
                   shell: bash
                   env:
                     STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
-                    TARGET_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
-                  run: |
-                    set -euo pipefail
-                    mkdir -p reports/runtime/six-hour-soak
-                    evidence=reports/runtime/six-hour-soak/stage2.ndjson
-                    : > "$evidence"
-                    cycle=0
-                    while (( $(date +%s) < TARGET_EPOCH )); do
-                      cycle=$((cycle + 1))
-                      cycle_started=$(date +%s)
-                      set +e
-                      python scripts/run_ci.py > reports/runtime/six-hour-soak/run-ci.log 2>&1
-                      rc_ci=$?
-                      python scripts/qualify_acceptance.py \
-                        --project skills/epdm/fixtures/v2_phase_a1_reference_project.json \
-                        --output reports/runtime/six-hour-soak/acceptance.json \
-                        --load-samples 3 \
-                        > reports/runtime/six-hour-soak/acceptance.log 2>&1
-                      rc_acceptance=$?
-                      python -m tsao.cli doctor --root . --profile core \
-                        > reports/runtime/six-hour-soak/doctor.log 2>&1
-                      rc_doctor=$?
-                      set -e
-                      cycle_ended=$(date +%s)
-                      printf '{"cycle":%d,"started_epoch":%d,"ended_epoch":%d,"run_ci":%d,"acceptance":%d,"doctor":%d}\n' \
-                        "$cycle" "$cycle_started" "$cycle_ended" \
-                        "$rc_ci" "$rc_acceptance" "$rc_doctor" >> "$evidence"
-                      if (( rc_ci != 0 || rc_acceptance != 0 || rc_doctor != 0 )); then
-                        cat reports/runtime/six-hour-soak/run-ci.log
-                        cat reports/runtime/six-hour-soak/acceptance.log
-                        cat reports/runtime/six-hour-soak/doctor.log
-                        exit 1
-                      fi
-                      echo "stage2 cycle=$cycle PASS elapsed=$((cycle_ended - STARTED_EPOCH))s"
-                    done
-                - name: Enforce 21,600-second minimum
-                  id: summary
-                  shell: bash
-                  env:
-                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
-                    TARGET_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
+                    DEADLINE_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
                     STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
                   run: |
                     set -euo pipefail
-                    ended_epoch=$(date +%s)
-                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))
-                    if (( elapsed_seconds < 21600 )); then
-                      echo "six-hour gate failed: elapsed=${elapsed_seconds}s" >&2
-                      exit 1
-                    fi
-                    python - <<'PY2'
+                    export STAGE_NUMBER=2
+                    export REPORT_DIR=reports/runtime/six-hour-soak
+                    python - <<'PY3'
                     import json
                     import os
+                    import subprocess
+                    import sys
+                    import time
                     from pathlib import Path
 
-                    path = Path('reports/runtime/six-hour-soak/stage2.ndjson')
-                    rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line]
-                    if not rows:
-                        raise SystemExit('stage 2 produced no qualification cycles')
-                    payload = {
-                        'schema': 'TSAO-SIX-HOUR-SOAK-1',
-                        'stage': 2,
-                        'pass': all(
-                            row['run_ci'] == row['acceptance'] == row['doctor'] == 0
-                            for row in rows
+                    report_dir = Path(os.environ['REPORT_DIR'])
+                    report_dir.mkdir(parents=True, exist_ok=True)
+                    started = int(os.environ['STARTED_EPOCH'])
+                    deadline = int(os.environ['DEADLINE_EPOCH'])
+                    stage1_cycles = int(os.environ['STAGE1_CYCLES'])
+                    stage = int(os.environ['STAGE_NUMBER'])
+                    evidence = report_dir / f'stage{stage}.ndjson'
+                    evidence.write_text('', encoding='utf-8')
+                    commands = (
+                        ('run_ci', [sys.executable, 'scripts/run_ci.py']),
+                        (
+                            'acceptance',
+                            [
+                                sys.executable,
+                                'scripts/qualify_acceptance.py',
+                                '--project',
+                                'skills/epdm/fixtures/v2_phase_a1_reference_project.json',
+                                '--output',
+                                str(report_dir / 'acceptance.json'),
+                                '--load-samples',
+                                '3',
+                            ],
                         ),
-                        'started_epoch': int(os.environ['STARTED_EPOCH']),
-                        'target_epoch': int(os.environ['TARGET_EPOCH']),
-                        'ended_epoch': int(os.environ['ENDED_EPOCH']),
-                        'elapsed_seconds': int(os.environ['ELAPSED_SECONDS']),
-                        'stage1_cycles': int(os.environ['STAGE1_CYCLES']),
-                        'stage2_cycles': len(rows),
-                        'total_cycles': int(os.environ['STAGE1_CYCLES']) + len(rows),
+                        (
+                            'doctor',
+                            [
+                                sys.executable,
+                                '-m',
+                                'tsao.cli',
+                                'doctor',
+                                '--root',
+                                '.',
+                                '--profile',
+                                'core',
+                            ],
+                        ),
+                    )
+                    cycle = 0
+                    while int(time.time()) < deadline:
+                        cycle += 1
+                        cycle_started = int(time.time())
+                        statuses = {}
+                        for name, command in commands:
+                            log = report_dir / f'{name}.log'
+                            with log.open('w', encoding='utf-8') as stream:
+                                completed = subprocess.run(
+                                    command,
+                                    stdout=stream,
+                                    stderr=subprocess.STDOUT,
+                                    text=True,
+                                    check=False,
+                                )
+                            statuses[name] = completed.returncode
+                        cycle_ended = int(time.time())
+                        row = {
+                            'stage': stage,
+                            'cycle': cycle,
+                            'started_epoch': cycle_started,
+                            'ended_epoch': cycle_ended,
+                            **statuses,
+                        }
+                        with evidence.open('a', encoding='utf-8') as stream:
+                            stream.write(json.dumps(row, sort_keys=True) + '\n')
+                        if any(statuses.values()):
+                            for name, _ in commands:
+                                log = report_dir / f'{name}.log'
+                                print(f'--- {log} ---')
+                                print(log.read_text(encoding='utf-8', errors='replace')[-20000:])
+                            raise SystemExit(f'continuous qualification failed in stage {stage}, cycle {cycle}')
+                        print(
+                            f'stage={stage} cycle={cycle} PASS '
+                            f'elapsed={cycle_ended - started}s',
+                            flush=True,
+                        )
+                    ended = int(time.time())
+                    elapsed = ended - started
+                    if elapsed < 21600:
+                        raise SystemExit(
+                            f'six-hour Gate failed: elapsed={elapsed}s, required=21600s'
+                        )
+                    if cycle < 1:
+                        raise SystemExit('stage produced no qualification cycles')
+                    summary = {
+                        'schema': 'TSAO-SIX-HOUR-SOAK-1',
+                        'stage': stage,
+                        'pass': True,
+                        'started_epoch': started,
+                        'deadline_epoch': deadline,
+                        'ended_epoch': ended,
+                        'elapsed_seconds': elapsed,
+                        'stage1_cycles': stage1_cycles,
+                        'stage2_cycles': cycle,
+                        'total_cycles': stage1_cycles + cycle,
                         'required_total_elapsed_seconds': 21600,
                     }
-                    if not payload['pass'] or payload['elapsed_seconds'] < 21600:
-                        raise SystemExit('six-hour qualification did not close')
-                    Path('reports/runtime/six-hour-soak/final-summary.json').write_text(
-                        json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+                    (report_dir / 'final-summary.json').write_text(
+                        json.dumps(summary, indent=2, sort_keys=True) + '\n',
                         encoding='utf-8',
                     )
-                    PY2
-                  env:
-                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
-                    TARGET_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
-                    STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
-                    ENDED_EPOCH: __EXPR__ steps.summary.outputs.ended_epoch }}
-                    ELAPSED_SECONDS: __EXPR__ steps.summary.outputs.elapsed_seconds }}
-                    
-                - name: Publish stage 2 outputs
-                  id: publish
-                  shell: bash
-                  env:
-                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
-                    STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
-                  run: |
-                    set -euo pipefail
-                    ended_epoch=$(date +%s)
-                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))
-                    stage2_cycles=$(python -c "import json; print(json.load(open('reports/runtime/six-hour-soak/final-summary.json', encoding='utf-8'))['stage2_cycles'])")
-                    echo "elapsed_seconds=$elapsed_seconds" >> "$GITHUB_OUTPUT"
-                    echo "cycles=$stage2_cycles" >> "$GITHUB_OUTPUT"
+                    with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as stream:
+                        stream.write(f'elapsed_seconds={elapsed}\n')
+                        stream.write(f'cycles={cycle}\n')
+                    PY3
                 - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
                   with:
                     name: tsao-six-hour-soak-final-__EXPR__ github.run_id }}
@@ -553,42 +602,10 @@ jobs:
                     )
                     gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
                     test "$verdict" = PASS
-          '''.replace("__EXPR__", expression)
-
-          # The summary step is emitted with one env block only and publishes its
-          # outputs directly; normalize the generated YAML before writing it.
-          soak = soak.replace(
-              "              outputs:\n                elapsed_seconds: " + expression + " steps.summary.outputs.elapsed_seconds }}\n                cycles: " + expression + " steps.summary.outputs.cycles }}",
-              "              outputs:\n                elapsed_seconds: " + expression + " steps.publish.outputs.elapsed_seconds }}\n                cycles: " + expression + " steps.publish.outputs.cycles }}",
-          )
-          duplicated_env = '''                  env:
-                    STARTED_EPOCH: ''' + expression + ''' needs.six-hour-soak-stage-1.outputs.started_epoch }}
-                    TARGET_EPOCH: ''' + expression + ''' needs.six-hour-soak-stage-1.outputs.target_epoch }}
-                    STAGE1_CYCLES: ''' + expression + ''' needs.six-hour-soak-stage-1.outputs.cycles }}
-                    ENDED_EPOCH: ''' + expression + ''' steps.summary.outputs.ended_epoch }}
-                    ELAPSED_SECONDS: ''' + expression + ''' steps.summary.outputs.elapsed_seconds }}
-                    
-'''
-          soak = soak.replace(duplicated_env, "")
-          summary_env = (
-              "                  env:\n"
-              "                    STARTED_EPOCH: " + expression + " needs.six-hour-soak-stage-1.outputs.started_epoch }}\n"
-              "                    TARGET_EPOCH: " + expression + " needs.six-hour-soak-stage-1.outputs.target_epoch }}\n"
-              "                    STAGE1_CYCLES: " + expression + " needs.six-hour-soak-stage-1.outputs.cycles }}\n"
-          )
-          summary_run = "                  run: |\n                    set -euo pipefail\n                    ended_epoch=$(date +%s)\n                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))\n"
-          replacement_run = (
-              "                  run: |\n"
-              "                    set -euo pipefail\n"
-              "                    ended_epoch=$(date +%s)\n"
-              "                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))\n"
-              "                    export ENDED_EPOCH=\"$ended_epoch\"\n"
-              "                    export ELAPSED_SECONDS=\"$elapsed_seconds\"\n"
-          )
-          soak = soak.replace(summary_run, replacement_run, 1)
+          ''').replace("__EXPR__", expression)
 
           if "six-hour-soak-stage-1:" not in ci:
-              ci = ci.rstrip() + soak + "\n"
+              ci = ci.rstrip() + "\n\n" + soak.rstrip() + "\n"
           ci_path.write_text(ci, encoding="utf-8")
 
           controller = root / ".github/workflows/one-time-diagnose-six-hour-matrix.yml"
@@ -602,7 +619,6 @@ jobs:
               "skills/epdm/acceptance.py",
               "skills/epdm/tests/test_acceptance.py",
           ]
-
           fields = [
               "path",
               "sha256",
@@ -644,6 +660,29 @@ jobs:
           PY
 
           git add -A
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import yaml
+
+          path = Path('.github/workflows/ci.yml')
+          data = yaml.load(path.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)
+          jobs = data.get('jobs', {})
+          required = {
+              'qualification',
+              'source-snapshot',
+              'qualification-ledger',
+              'six-hour-soak-stage-1',
+              'six-hour-soak-stage-2',
+              'six-hour-soak-ledger',
+          }
+          missing = sorted(required - set(jobs))
+          if missing:
+              raise SystemExit(f'missing CI jobs: {missing}')
+          tracked = subprocess.check_output(['git', 'ls-files', '.github/workflows'], text=True).splitlines()
+          if tracked != ['.github/workflows/ci.yml']:
+              raise SystemExit(f'workflow hygiene failed: {tracked}')
+          PY
           python -m compileall -q skills/epdm/acceptance.py skills/epdm/tests/test_acceptance.py
           python -m pytest -q -p no:cacheprovider skills/epdm/tests/test_acceptance.py
           python scripts/update_performance_readme.py \
@@ -669,13 +708,13 @@ jobs:
           status="${{ job.status }}"
           head=$(git rev-parse HEAD 2>/dev/null || echo UNKNOWN)
           body=$(cat <<EOF
-          SIX_HOUR_HARDENING_CONTROLLER: **$status**
+          SIX_HOUR_HARDENING_CONTROLLER_V2: **$status**
 
           - run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           - branch: \`agent/six-hour-soak-hardening-20260809\`
           - head: \`$head\`
 
-          The candidate separates timing from allocation tracing, restores generated performance evidence, deletes the one-time workflow from the candidate tree and adds a fail-closed 21,600-second continuous qualification Gate.
+          The candidate separates timing from allocation tracing, restores generated performance evidence, deletes the one-time workflow from the candidate tree, validates YAML job structure and adds a fail-closed 21,600-second continuous qualification Gate.
           EOF
           )
           gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
