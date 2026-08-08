@@ -1,0 +1,79 @@
+name: One-time diagnose remaining six-hour matrix failures
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  windows-epdm:
+    if: >-
+      github.event.issue.number == 68 &&
+      github.event.comment.body == '/diagnose-six-hour-matrix'
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install locked environment
+        shell: pwsh
+        run: |
+          python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+      - name: Print exact EPDM acceptance checks
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from pathlib import Path
+          from skills.epdm.acceptance import qualify_acceptance
+          project = Path('skills/epdm/fixtures/v2_phase_a1_reference_project.json')
+          for samples in (3, 5, 7):
+              result = qualify_acceptance(project, load_samples=samples)
+              print(json.dumps({'samples': samples, **result.as_dict()}, ensure_ascii=False, indent=2))
+          '@ | python -
+
+  ubuntu-performance:
+    if: >-
+      github.event.issue.number == 68 &&
+      github.event.comment.body == '/diagnose-six-hour-matrix'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install locked environment
+        run: |
+          python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+      - name: Print exact process-intelligence performance inputs
+        run: |
+          python scripts/validate_process_intelligence_performance.py --samples 160 || true
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('scripts/validate_process_intelligence_performance.py')
+          print(path.read_text(encoding='utf-8'))
+          for candidate in Path('.').rglob('*.py'):
+              text = candidate.read_text(encoding='utf-8', errors='ignore')
+              if 'annual_duration_hours' in text:
+                  print(f'--- {candidate.as_posix()} ---')
+                  for index, line in enumerate(text.splitlines(), start=1):
+                      if 'annual_duration_hours' in line:
+                          print(index, line)
+          PY
