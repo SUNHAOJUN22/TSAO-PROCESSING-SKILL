@@ -42,7 +42,7 @@ jobs:
           python -m pip install --require-hashes -r requirements.lock
           python -m pip install --no-deps --no-build-isolation -e .
           python -m pip check
-      - name: Remove transports and refresh governed source overlay
+      - name: Remove transports and refresh governed source overlays
         shell: bash
         run: |
           set -euo pipefail
@@ -56,6 +56,41 @@ jobs:
             docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT.md \
             docs/localized-vision/process-intelligence-vision-en.svg \
             docs/localized-vision/process-intelligence-vision-zh.svg
+          python - <<'PY'
+          from __future__ import annotations
+
+          import csv
+          from pathlib import Path
+
+          from tsao.provenance import canonical_identity, classify_path
+
+          root = Path('.').resolve()
+          target = root / 'reports/SOURCE_ACCEPTANCE_OVERLAY.tsv'
+          fields = ['path', 'sha256', 'bytes', 'specialist', 'artifact_class', 'license_scope']
+          records: dict[str, dict[str, object]] = {}
+          with target.open(encoding='utf-8', newline='') as stream:
+              for row in csv.DictReader(stream, delimiter='\t'):
+                  records[str(row['path'])] = dict(row)
+          for relative in (
+              '.github/workflows/ci.yml',
+              'README.md',
+              'README.zh-CN.md',
+          ):
+              digest, size = canonical_identity(root / relative)
+              specialist, artifact_class, license_scope = classify_path(relative)
+              records[relative] = {
+                  'path': relative,
+                  'sha256': digest,
+                  'bytes': size,
+                  'specialist': specialist,
+                  'artifact_class': artifact_class,
+                  'license_scope': license_scope,
+              }
+          with target.open('w', encoding='utf-8', newline='') as stream:
+              writer = csv.DictWriter(stream, fieldnames=fields, delimiter='\t', lineterminator='\n')
+              writer.writeheader()
+              writer.writerows(records[key] for key in sorted(records))
+          PY
       - name: Qualify repaired exact tree before publication
         shell: bash
         run: |
