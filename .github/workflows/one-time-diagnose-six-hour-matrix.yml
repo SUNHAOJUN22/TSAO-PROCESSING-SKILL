@@ -12,7 +12,7 @@ jobs:
   apply-hardening:
     if: >-
       github.event.issue.number == 68 &&
-      github.event.comment.body == '/apply-six-hour-hardening-v4'
+      github.event.comment.body == '/apply-six-hour-hardening-v5'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -31,7 +31,7 @@ jobs:
           python -m pip install --quiet --require-hashes -r requirements.lock
           python -m pip install --quiet --no-deps --no-build-isolation -e .
           python -m pip check
-      - name: Reuse audited hardening patch with workflow-contract corrections
+      - name: Apply audited patch with both workflow-string contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -40,7 +40,7 @@ jobs:
           import subprocess
           import yaml
 
-          source_commit = "6ecf4859324308c473f3be6e1ac78cb3fbdee858"
+          source_commit = "912bf976ee5ea2234a1fc8dafd79f041c9a010fe"
           source_path = ".github/workflows/one-time-diagnose-six-hour-matrix.yml"
           source = subprocess.check_output(
               ["git", "show", f"{source_commit}:{source_path}"],
@@ -51,39 +51,33 @@ jobs:
           original = next(
               step["run"]
               for step in steps
-              if step.get("name") == "Apply fail-closed hardening and six-hour gate"
+              if step.get("name")
+              == "Reuse audited hardening patch with workflow-contract corrections"
           )
+          anchor = "corrected = corrected.replace(permanent_install, soak_install)"
+          addition = '''corrected = corrected.replace(permanent_install, soak_install)
 
-          nesting_needle = '''if "six-hour-soak-stage-1:" not in ci:
-              ci = ci.rstrip() + "\\n\\n" + soak.rstrip() + "\\n"
-          '''
-          nesting_replacement = '''soak = textwrap.indent(soak, "  ")
-
-          if "six-hour-soak-stage-1:" not in ci:
-              ci = ci.rstrip() + "\\n\\n" + soak.rstrip() + "\\n"
-          '''
-          if nesting_needle not in original:
-              raise SystemExit("audited controller insertion anchor was not found")
-          corrected = original.replace(nesting_needle, nesting_replacement, 1)
-
-          permanent_install = (
-              "python -m pip install --quiet --require-hashes -r requirements.lock"
+          permanent_editable = (
+              "python -m pip install --quiet --no-deps "
+              "--no-build-isolation -e ."
           )
-          soak_install = (
-              "python -m pip install --require-hashes --quiet "
-              "--requirement requirements.lock"
+          soak_editable = (
+              "python -m pip install --quiet --no-deps "
+              "--no-build-isolation --editable ."
           )
-          replacement_count = corrected.count(permanent_install)
-          if replacement_count != 2:
+          editable_count = corrected.count(permanent_editable)
+          if editable_count != 2:
               raise SystemExit(
-                  f"expected two soak install commands, found {replacement_count}"
+                  f"expected two soak editable installs, found {editable_count}"
               )
-          corrected = corrected.replace(permanent_install, soak_install)
-
-          target = Path("/tmp/apply-six-hour-hardening-v4.sh")
-          target.write_text(corrected, encoding="utf-8")
+          corrected = corrected.replace(permanent_editable, soak_editable)'''
+          if original.count(anchor) != 1:
+              raise SystemExit("V4 editable-install insertion anchor is not unique")
+          corrected_controller = original.replace(anchor, addition, 1)
+          target = Path("/tmp/apply-six-hour-hardening-v5.sh")
+          target.write_text(corrected_controller, encoding="utf-8")
           PY
-          bash /tmp/apply-six-hour-hardening-v4.sh
+          bash /tmp/apply-six-hour-hardening-v5.sh
       - name: Commit and push candidate
         shell: bash
         run: |
@@ -102,15 +96,16 @@ jobs:
           status="${{ job.status }}"
           head=$(git rev-parse HEAD 2>/dev/null || echo UNKNOWN)
           body=$(cat <<EOF
-          SIX_HOUR_HARDENING_CONTROLLER_V4: **$status**
+          SIX_HOUR_HARDENING_CONTROLLER_V5: **$status**
 
           - run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           - branch: \`agent/six-hour-soak-hardening-20260809\`
           - head: \`$head\`
-          - soak install: exact hash enforcement preserved with an equivalent pip argument form
-          - permanent release-install command count remains exactly two
+          - hash-locked installs: preserved
+          - editable installs: \`--no-deps --no-build-isolation\` preserved
+          - permanent canonical command counts: unchanged
 
-          The controller retains the fail-closed source, test, README, provenance and 21,600-second Gate. No threshold is lowered.
+          No threshold or dependency-integrity Gate is lowered.
           EOF
           )
           gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
