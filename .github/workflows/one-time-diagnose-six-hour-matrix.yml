@@ -1,110 +1,681 @@
-name: One-time diagnose remaining six-hour matrix failures
+name: One-time apply six-hour hardening
 
 on:
   issue_comment:
     types: [created]
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
-  windows-epdm:
+  apply-hardening:
     if: >-
       github.event.issue.number == 68 &&
-      github.event.comment.body == '/diagnose-six-hour-matrix-v2'
-    runs-on: windows-2025
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: main
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with:
-          python-version: '3.12'
-          cache: pip
-          cache-dependency-path: requirements.lock
-      - name: Install locked environment
-        shell: pwsh
-        run: |
-          python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
-          python -m pip install --require-hashes -r requirements.lock
-          python -m pip install --no-deps --no-build-isolation -e .
-      - name: Publish exact EPDM acceptance checks
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          @'
-          import json
-          from pathlib import Path
-          from skills.epdm.acceptance import qualify_acceptance
-          project = Path('skills/epdm/fixtures/v2_phase_a1_reference_project.json')
-          rows = []
-          for samples in (3, 5, 7):
-              result = qualify_acceptance(project, load_samples=samples)
-              rows.append({
-                  'samples': samples,
-                  'pass': result.pass_,
-                  'checks': dict(result.checks),
-                  'metrics': dict(result.metrics),
-                  'errors': list(result.errors),
-              })
-          Path('windows-diagnostic.json').write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding='utf-8')
-          '@ | python -
-          $payload = Get-Content windows-diagnostic.json -Raw
-          $body = "WINDOWS_EPDM_DIAGNOSTIC run $env:GITHUB_RUN_ID`n```json`n$payload`n```"
-          gh api --method POST "repos/$env:GITHUB_REPOSITORY/issues/68/comments" -f body="$body"
-
-  ubuntu-performance:
-    if: >-
-      github.event.issue.number == 68 &&
-      github.event.comment.body == '/diagnose-six-hour-matrix-v2'
+      github.event.comment.body == '/apply-six-hour-hardening-v1'
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+          ref: agent/six-hour-soak-hardening-20260809
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.14'
+          python-version: "3.14"
           cache: pip
           cache-dependency-path: requirements.lock
-      - name: Install locked environment
+      - name: Install exact locked environment
         run: |
           python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
-          python -m pip install --require-hashes -r requirements.lock
-          python -m pip install --no-deps --no-build-isolation -e .
-      - name: Publish exact process-intelligence performance inputs
-        env:
-          GH_TOKEN: ${{ github.token }}
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Apply fail-closed hardening and six-hour gate
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          python scripts/validate_process_intelligence_performance.py --samples 160 > /tmp/performance.out 2>&1
-          code=$?
-          set -e
-          python - <<'PY' > /tmp/source.out
+          python - <<'PY'
+          from __future__ import annotations
+
+          import csv
+          import subprocess
           from pathlib import Path
-          for candidate in Path('.').rglob('*.py'):
-              text = candidate.read_text(encoding='utf-8', errors='ignore')
-              if 'annual_duration_hours' in text:
-                  print(f'--- {candidate.as_posix()} ---')
-                  lines = text.splitlines()
-                  for index, line in enumerate(lines, start=1):
-                      if 'annual_duration_hours' in line:
-                          lower = max(1, index - 8)
-                          upper = min(len(lines), index + 8)
-                          for cursor in range(lower, upper + 1):
-                              print(f'{cursor}: {lines[cursor - 1]}')
+
+          from tsao.provenance import canonical_identity, classify_path
+
+          root = Path.cwd()
+
+          acceptance_path = root / "skills/epdm/acceptance.py"
+          acceptance = acceptance_path.read_text(encoding="utf-8")
+          old_loader = '''def _loader_resource_metrics(project_path: Path, samples: int) -> tuple[float, int, str]:
+              if isinstance(samples, bool) or not isinstance(samples, int) or samples < 1:
+                  raise ValueError("samples must be a positive integer")
+              timings: list[float] = []
+              publications: list[str] = []
+              tracemalloc.start()
+              try:
+                  for _ in range(samples):
+                      start = time.perf_counter()
+                      snapshot = load_canonical_project_file(project_path)
+                      timings.append(time.perf_counter() - start)
+                      publications.append(snapshot.publication_sha256)
+                  _, peak = tracemalloc.get_traced_memory()
+              finally:
+                  tracemalloc.stop()
+              if len(set(publications)) != 1:
+                  raise ContractValidationError(
+                      "canonical publication identity changed across repeated loads"
+                  )
+              timings.sort()
+              median = timings[len(timings) // 2]
+              return median, peak, publications[0]
+          '''
+          new_loader = '''def _loader_resource_metrics(project_path: Path, samples: int) -> tuple[float, int, str]:
+              if isinstance(samples, bool) or not isinstance(samples, int) or samples < 1:
+                  raise ValueError("samples must be a positive integer")
+              timings: list[float] = []
+              publications: list[str] = []
+
+              # Timing and allocation tracing are deliberately isolated.  Measuring
+              # wall-clock latency while tracemalloc is active couples the acceptance
+              # result to platform-specific tracing overhead, particularly on Windows.
+              for _ in range(samples):
+                  start = time.perf_counter()
+                  snapshot = load_canonical_project_file(project_path)
+                  timings.append(time.perf_counter() - start)
+                  publications.append(snapshot.publication_sha256)
+
+              tracemalloc.start()
+              try:
+                  memory_snapshot = load_canonical_project_file(project_path)
+                  publications.append(memory_snapshot.publication_sha256)
+                  _, peak = tracemalloc.get_traced_memory()
+              finally:
+                  tracemalloc.stop()
+
+              if len(set(publications)) != 1:
+                  raise ContractValidationError(
+                      "canonical publication identity changed across repeated loads"
+                  )
+              timings.sort()
+              middle = len(timings) // 2
+              if len(timings) % 2:
+                  median = timings[middle]
+              else:
+                  median = (timings[middle - 1] + timings[middle]) / 2.0
+              return median, peak, publications[0]
+          '''
+          if old_loader not in acceptance:
+              raise RuntimeError("acceptance resource-metric block no longer matches expected source")
+          acceptance_path.write_text(acceptance.replace(old_loader, new_loader), encoding="utf-8")
+
+          test_path = root / "skills/epdm/tests/test_acceptance.py"
+          tests = test_path.read_text(encoding="utf-8")
+          import_anchor = "import pytest\n\nfrom skills.epdm.acceptance import ("
+          import_replacement = (
+              "import pytest\n\n"
+              "from skills.epdm import acceptance as acceptance_module\n"
+              "from skills.epdm.acceptance import ("
+          )
+          if "from skills.epdm import acceptance as acceptance_module" not in tests:
+              if import_anchor not in tests:
+                  raise RuntimeError("test import anchor not found")
+              tests = tests.replace(import_anchor, import_replacement, 1)
+          regression = '''\n\ndef test_loader_timing_is_isolated_from_tracemalloc(
+              monkeypatch: pytest.MonkeyPatch,
+          ) -> None:
+              expected_publication = load_canonical_project_file(PROJECT).publication_sha256
+              tracing = {"active": False}
+              traced_loads: list[bool] = []
+              original_loader = acceptance_module.load_canonical_project_file
+
+              def tracked_loader(path: Path):
+                  traced_loads.append(tracing["active"])
+                  return original_loader(path)
+
+              def start_tracing() -> None:
+                  assert tracing["active"] is False
+                  tracing["active"] = True
+
+              def stop_tracing() -> None:
+                  assert tracing["active"] is True
+                  tracing["active"] = False
+
+              def traced_memory() -> tuple[int, int]:
+                  assert tracing["active"] is True
+                  return 0, 1234
+
+              monkeypatch.setattr(
+                  acceptance_module,
+                  "load_canonical_project_file",
+                  tracked_loader,
+              )
+              monkeypatch.setattr(acceptance_module.tracemalloc, "start", start_tracing)
+              monkeypatch.setattr(acceptance_module.tracemalloc, "stop", stop_tracing)
+              monkeypatch.setattr(
+                  acceptance_module.tracemalloc,
+                  "get_traced_memory",
+                  traced_memory,
+              )
+
+              median, peak, publication = acceptance_module._loader_resource_metrics(
+                  PROJECT,
+                  3,
+              )
+
+              assert traced_loads == [False, False, False, True]
+              assert tracing["active"] is False
+              assert median >= 0.0
+              assert peak == 1234
+              assert publication == expected_publication
+          '''
+          regression_anchor = "\n\ndef test_load_samples_must_be_positive() -> None:\n"
+          if "test_loader_timing_is_isolated_from_tracemalloc" not in tests:
+              if regression_anchor not in tests:
+                  raise RuntimeError("test insertion anchor not found")
+              tests = tests.replace(regression_anchor, regression + regression_anchor, 1)
+          test_path.write_text(tests, encoding="utf-8")
+
+          start_marker = "<!-- PERFORMANCE_RESULTS_START -->"
+          end_marker = "<!-- PERFORMANCE_RESULTS_END -->"
+          readme_specs = (
+              (root / "README.md", "## Accepted performance evidence", "\n## Use strategy\n"),
+              (root / "README.zh-CN.md", "## 已验收性能证据", "\n## 使用策略\n"),
+          )
+          for path, heading, anchor in readme_specs:
+              text = path.read_text(encoding="utf-8")
+              if start_marker not in text and end_marker not in text:
+                  if anchor not in text:
+                      raise RuntimeError(f"README insertion anchor not found: {path}")
+                  block = f"\n{heading}\n\n{start_marker}\n{end_marker}\n"
+                  text = text.replace(anchor, block + anchor, 1)
+                  path.write_text(text, encoding="utf-8")
+              elif text.count(start_marker) != 1 or text.count(end_marker) != 1:
+                  raise RuntimeError(f"README performance markers are inconsistent: {path}")
+
+          subprocess.run(
+              [
+                  "python",
+                  "scripts/update_performance_readme.py",
+                  "--comparison",
+                  "reports/PERFORMANCE_COMPARISON_ALPHA11.json",
+              ],
+              check=True,
+          )
+
+          ci_path = root / ".github/workflows/ci.yml"
+          ci = ci_path.read_text(encoding="utf-8")
+          old_events = "on:\n  push:\n    branches: [main]\n  workflow_dispatch:\n"
+          new_events = (
+              "on:\n"
+              "  push:\n"
+              "    branches: [main]\n"
+              "  pull_request:\n"
+              "    branches: [main]\n"
+              "  workflow_dispatch:\n"
+          )
+          if old_events in ci:
+              ci = ci.replace(old_events, new_events, 1)
+          elif new_events not in ci:
+              raise RuntimeError("CI event block no longer matches expected source")
+
+          expression = "$" + "{{"
+          old_group = "group: tsao-main-" + expression + " github.workflow }}"
+          new_group = (
+              "group: tsao-"
+              + expression
+              + " github.workflow }}-"
+              + expression
+              + " github.ref }}"
+          )
+          if old_group in ci:
+              ci = ci.replace(old_group, new_group, 1)
+          elif new_group not in ci:
+              raise RuntimeError("CI concurrency block no longer matches expected source")
+
+          old_ledger = (
+              "  qualification-ledger:\n"
+              "    needs: [qualification, source-snapshot]\n"
+              "    if: always()\n"
+          )
+          new_ledger = (
+              "  qualification-ledger:\n"
+              "    needs: [qualification, source-snapshot]\n"
+              "    if: >-\n"
+              "      always() &&\n"
+              "      github.event_name == 'push' &&\n"
+              "      github.ref == 'refs/heads/main'\n"
+          )
+          if old_ledger in ci:
+              ci = ci.replace(old_ledger, new_ledger, 1)
+          elif new_ledger not in ci:
+              raise RuntimeError("qualification ledger block no longer matches expected source")
+
+          soak = r'''
+
+            six-hour-soak-stage-1:
+              needs: [qualification, source-snapshot]
+              if: >-
+                github.event_name == 'push' &&
+                github.ref == 'refs/heads/main' &&
+                contains(github.event.head_commit.message || '', '[six-hour-soak]')
+              runs-on: ubuntu-latest
+              timeout-minutes: 180
+              outputs:
+                started_epoch: __EXPR__ steps.clock.outputs.started_epoch }}
+                target_epoch: __EXPR__ steps.clock.outputs.target_epoch }}
+                cycles: __EXPR__ steps.summary.outputs.cycles }}
+              steps:
+                - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+                  with:
+                    python-version: "3.14"
+                    cache: pip
+                    cache-dependency-path: requirements.lock
+                - name: Install exact locked environment
+                  run: |
+                    python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+                    python -m pip install --quiet --require-hashes -r requirements.lock
+                    python -m pip install --quiet --no-deps --no-build-isolation -e .
+                    python -m pip check
+                - name: Start six-hour monotonic clock
+                  id: clock
+                  shell: bash
+                  run: |
+                    set -euo pipefail
+                    started_epoch=$(date +%s)
+                    target_epoch=$((started_epoch + 21600))
+                    echo "started_epoch=$started_epoch" >> "$GITHUB_OUTPUT"
+                    echo "target_epoch=$target_epoch" >> "$GITHUB_OUTPUT"
+                - name: Continuous qualification stage 1
+                  shell: bash
+                  env:
+                    STARTED_EPOCH: __EXPR__ steps.clock.outputs.started_epoch }}
+                  run: |
+                    set -euo pipefail
+                    mkdir -p reports/runtime/six-hour-soak
+                    evidence=reports/runtime/six-hour-soak/stage1.ndjson
+                    : > "$evidence"
+                    deadline=$((STARTED_EPOCH + 10200))
+                    cycle=0
+                    while (( $(date +%s) < deadline )); do
+                      cycle=$((cycle + 1))
+                      cycle_started=$(date +%s)
+                      set +e
+                      python scripts/run_ci.py > reports/runtime/six-hour-soak/run-ci.log 2>&1
+                      rc_ci=$?
+                      python scripts/qualify_acceptance.py \
+                        --project skills/epdm/fixtures/v2_phase_a1_reference_project.json \
+                        --output reports/runtime/six-hour-soak/acceptance.json \
+                        --load-samples 3 \
+                        > reports/runtime/six-hour-soak/acceptance.log 2>&1
+                      rc_acceptance=$?
+                      python -m tsao.cli doctor --root . --profile core \
+                        > reports/runtime/six-hour-soak/doctor.log 2>&1
+                      rc_doctor=$?
+                      set -e
+                      cycle_ended=$(date +%s)
+                      printf '{"cycle":%d,"started_epoch":%d,"ended_epoch":%d,"run_ci":%d,"acceptance":%d,"doctor":%d}\n' \
+                        "$cycle" "$cycle_started" "$cycle_ended" \
+                        "$rc_ci" "$rc_acceptance" "$rc_doctor" >> "$evidence"
+                      if (( rc_ci != 0 || rc_acceptance != 0 || rc_doctor != 0 )); then
+                        cat reports/runtime/six-hour-soak/run-ci.log
+                        cat reports/runtime/six-hour-soak/acceptance.log
+                        cat reports/runtime/six-hour-soak/doctor.log
+                        exit 1
+                      fi
+                      echo "stage1 cycle=$cycle PASS elapsed=$((cycle_ended - STARTED_EPOCH))s"
+                    done
+                - name: Summarize stage 1
+                  id: summary
+                  shell: bash
+                  env:
+                    STARTED_EPOCH: __EXPR__ steps.clock.outputs.started_epoch }}
+                    TARGET_EPOCH: __EXPR__ steps.clock.outputs.target_epoch }}
+                  run: |
+                    set -euo pipefail
+                    python - <<'PY2'
+                    import json
+                    import os
+                    import time
+                    from pathlib import Path
+
+                    path = Path('reports/runtime/six-hour-soak/stage1.ndjson')
+                    rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line]
+                    if not rows:
+                        raise SystemExit('stage 1 produced no qualification cycles')
+                    payload = {
+                        'schema': 'TSAO-SIX-HOUR-SOAK-1',
+                        'stage': 1,
+                        'pass': all(
+                            row['run_ci'] == row['acceptance'] == row['doctor'] == 0
+                            for row in rows
+                        ),
+                        'started_epoch': int(os.environ['STARTED_EPOCH']),
+                        'target_epoch': int(os.environ['TARGET_EPOCH']),
+                        'ended_epoch': int(time.time()),
+                        'cycles': len(rows),
+                        'required_total_elapsed_seconds': 21600,
+                    }
+                    Path('reports/runtime/six-hour-soak/stage1-summary.json').write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+                        encoding='utf-8',
+                    )
+                    if not payload['pass']:
+                        raise SystemExit('stage 1 failed')
+                    PY2
+                    cycles=$(python -c "import json; print(json.load(open('reports/runtime/six-hour-soak/stage1-summary.json', encoding='utf-8'))['cycles'])")
+                    echo "cycles=$cycles" >> "$GITHUB_OUTPUT"
+                - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+                  with:
+                    name: tsao-six-hour-soak-stage1-__EXPR__ github.run_id }}
+                    path: reports/runtime/six-hour-soak/
+                    if-no-files-found: error
+                    retention-days: 30
+
+            six-hour-soak-stage-2:
+              needs: six-hour-soak-stage-1
+              runs-on: ubuntu-latest
+              timeout-minutes: 200
+              outputs:
+                elapsed_seconds: __EXPR__ steps.summary.outputs.elapsed_seconds }}
+                cycles: __EXPR__ steps.summary.outputs.cycles }}
+              steps:
+                - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+                  with:
+                    python-version: "3.14"
+                    cache: pip
+                    cache-dependency-path: requirements.lock
+                - name: Install exact locked environment
+                  run: |
+                    python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+                    python -m pip install --quiet --require-hashes -r requirements.lock
+                    python -m pip install --quiet --no-deps --no-build-isolation -e .
+                    python -m pip check
+                - name: Continuous qualification stage 2
+                  shell: bash
+                  env:
+                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
+                    TARGET_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
+                  run: |
+                    set -euo pipefail
+                    mkdir -p reports/runtime/six-hour-soak
+                    evidence=reports/runtime/six-hour-soak/stage2.ndjson
+                    : > "$evidence"
+                    cycle=0
+                    while (( $(date +%s) < TARGET_EPOCH )); do
+                      cycle=$((cycle + 1))
+                      cycle_started=$(date +%s)
+                      set +e
+                      python scripts/run_ci.py > reports/runtime/six-hour-soak/run-ci.log 2>&1
+                      rc_ci=$?
+                      python scripts/qualify_acceptance.py \
+                        --project skills/epdm/fixtures/v2_phase_a1_reference_project.json \
+                        --output reports/runtime/six-hour-soak/acceptance.json \
+                        --load-samples 3 \
+                        > reports/runtime/six-hour-soak/acceptance.log 2>&1
+                      rc_acceptance=$?
+                      python -m tsao.cli doctor --root . --profile core \
+                        > reports/runtime/six-hour-soak/doctor.log 2>&1
+                      rc_doctor=$?
+                      set -e
+                      cycle_ended=$(date +%s)
+                      printf '{"cycle":%d,"started_epoch":%d,"ended_epoch":%d,"run_ci":%d,"acceptance":%d,"doctor":%d}\n' \
+                        "$cycle" "$cycle_started" "$cycle_ended" \
+                        "$rc_ci" "$rc_acceptance" "$rc_doctor" >> "$evidence"
+                      if (( rc_ci != 0 || rc_acceptance != 0 || rc_doctor != 0 )); then
+                        cat reports/runtime/six-hour-soak/run-ci.log
+                        cat reports/runtime/six-hour-soak/acceptance.log
+                        cat reports/runtime/six-hour-soak/doctor.log
+                        exit 1
+                      fi
+                      echo "stage2 cycle=$cycle PASS elapsed=$((cycle_ended - STARTED_EPOCH))s"
+                    done
+                - name: Enforce 21,600-second minimum
+                  id: summary
+                  shell: bash
+                  env:
+                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
+                    TARGET_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
+                    STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
+                  run: |
+                    set -euo pipefail
+                    ended_epoch=$(date +%s)
+                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))
+                    if (( elapsed_seconds < 21600 )); then
+                      echo "six-hour gate failed: elapsed=${elapsed_seconds}s" >&2
+                      exit 1
+                    fi
+                    python - <<'PY2'
+                    import json
+                    import os
+                    from pathlib import Path
+
+                    path = Path('reports/runtime/six-hour-soak/stage2.ndjson')
+                    rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line]
+                    if not rows:
+                        raise SystemExit('stage 2 produced no qualification cycles')
+                    payload = {
+                        'schema': 'TSAO-SIX-HOUR-SOAK-1',
+                        'stage': 2,
+                        'pass': all(
+                            row['run_ci'] == row['acceptance'] == row['doctor'] == 0
+                            for row in rows
+                        ),
+                        'started_epoch': int(os.environ['STARTED_EPOCH']),
+                        'target_epoch': int(os.environ['TARGET_EPOCH']),
+                        'ended_epoch': int(os.environ['ENDED_EPOCH']),
+                        'elapsed_seconds': int(os.environ['ELAPSED_SECONDS']),
+                        'stage1_cycles': int(os.environ['STAGE1_CYCLES']),
+                        'stage2_cycles': len(rows),
+                        'total_cycles': int(os.environ['STAGE1_CYCLES']) + len(rows),
+                        'required_total_elapsed_seconds': 21600,
+                    }
+                    if not payload['pass'] or payload['elapsed_seconds'] < 21600:
+                        raise SystemExit('six-hour qualification did not close')
+                    Path('reports/runtime/six-hour-soak/final-summary.json').write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2) + '\n',
+                        encoding='utf-8',
+                    )
+                    PY2
+                  env:
+                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
+                    TARGET_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.target_epoch }}
+                    STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
+                    ENDED_EPOCH: __EXPR__ steps.summary.outputs.ended_epoch }}
+                    ELAPSED_SECONDS: __EXPR__ steps.summary.outputs.elapsed_seconds }}
+                    
+                - name: Publish stage 2 outputs
+                  id: publish
+                  shell: bash
+                  env:
+                    STARTED_EPOCH: __EXPR__ needs.six-hour-soak-stage-1.outputs.started_epoch }}
+                    STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
+                  run: |
+                    set -euo pipefail
+                    ended_epoch=$(date +%s)
+                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))
+                    stage2_cycles=$(python -c "import json; print(json.load(open('reports/runtime/six-hour-soak/final-summary.json', encoding='utf-8'))['stage2_cycles'])")
+                    echo "elapsed_seconds=$elapsed_seconds" >> "$GITHUB_OUTPUT"
+                    echo "cycles=$stage2_cycles" >> "$GITHUB_OUTPUT"
+                - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+                  with:
+                    name: tsao-six-hour-soak-final-__EXPR__ github.run_id }}
+                    path: reports/runtime/six-hour-soak/
+                    if-no-files-found: error
+                    retention-days: 30
+
+            six-hour-soak-ledger:
+              needs: [six-hour-soak-stage-1, six-hour-soak-stage-2]
+              if: >-
+                always() &&
+                github.event_name == 'push' &&
+                github.ref == 'refs/heads/main' &&
+                contains(github.event.head_commit.message || '', '[six-hour-soak]')
+              runs-on: ubuntu-latest
+              timeout-minutes: 5
+              permissions:
+                contents: read
+                issues: write
+              steps:
+                - name: Record six-hour qualification result
+                  shell: bash
+                  env:
+                    GH_TOKEN: __EXPR__ github.token }}
+                    STAGE1_RESULT: __EXPR__ needs.six-hour-soak-stage-1.result }}
+                    STAGE2_RESULT: __EXPR__ needs.six-hour-soak-stage-2.result }}
+                    ELAPSED_SECONDS: __EXPR__ needs.six-hour-soak-stage-2.outputs.elapsed_seconds }}
+                    STAGE1_CYCLES: __EXPR__ needs.six-hour-soak-stage-1.outputs.cycles }}
+                    STAGE2_CYCLES: __EXPR__ needs.six-hour-soak-stage-2.outputs.cycles }}
+                  run: |
+                    set -euo pipefail
+                    verdict=FAIL
+                    if [[ "$STAGE1_RESULT" == success && "$STAGE2_RESULT" == success ]] \
+                      && [[ "${ELAPSED_SECONDS:-0}" -ge 21600 ]]; then
+                      verdict=PASS
+                    fi
+                    run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+                    body=$(cat <<EOF
+                    Six-hour continuous qualification: **$verdict**
+
+                    - commit: \`$GITHUB_SHA\`
+                    - run: $run_url
+                    - stage 1: \`$STAGE1_RESULT\`
+                    - stage 2: \`$STAGE2_RESULT\`
+                    - measured elapsed seconds: \`${ELAPSED_SECONDS:-0}\`
+                    - required elapsed seconds: \`21600\`
+                    - qualification cycles: \`${STAGE1_CYCLES:-0} + ${STAGE2_CYCLES:-0}\`
+
+                    The duration Gate is monotonic and fail-closed: elapsed time below 21,600 seconds cannot produce PASS. Scientific, engineering, HSE, customer and industrial approvals remain \`NOT_EVALUATED\`.
+                    EOF
+                    )
+                    gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
+                    test "$verdict" = PASS
+          '''.replace("__EXPR__", expression)
+
+          # The summary step is emitted with one env block only and publishes its
+          # outputs directly; normalize the generated YAML before writing it.
+          soak = soak.replace(
+              "              outputs:\n                elapsed_seconds: " + expression + " steps.summary.outputs.elapsed_seconds }}\n                cycles: " + expression + " steps.summary.outputs.cycles }}",
+              "              outputs:\n                elapsed_seconds: " + expression + " steps.publish.outputs.elapsed_seconds }}\n                cycles: " + expression + " steps.publish.outputs.cycles }}",
+          )
+          duplicated_env = '''                  env:
+                    STARTED_EPOCH: ''' + expression + ''' needs.six-hour-soak-stage-1.outputs.started_epoch }}
+                    TARGET_EPOCH: ''' + expression + ''' needs.six-hour-soak-stage-1.outputs.target_epoch }}
+                    STAGE1_CYCLES: ''' + expression + ''' needs.six-hour-soak-stage-1.outputs.cycles }}
+                    ENDED_EPOCH: ''' + expression + ''' steps.summary.outputs.ended_epoch }}
+                    ELAPSED_SECONDS: ''' + expression + ''' steps.summary.outputs.elapsed_seconds }}
+                    
+'''
+          soak = soak.replace(duplicated_env, "")
+          summary_env = (
+              "                  env:\n"
+              "                    STARTED_EPOCH: " + expression + " needs.six-hour-soak-stage-1.outputs.started_epoch }}\n"
+              "                    TARGET_EPOCH: " + expression + " needs.six-hour-soak-stage-1.outputs.target_epoch }}\n"
+              "                    STAGE1_CYCLES: " + expression + " needs.six-hour-soak-stage-1.outputs.cycles }}\n"
+          )
+          summary_run = "                  run: |\n                    set -euo pipefail\n                    ended_epoch=$(date +%s)\n                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))\n"
+          replacement_run = (
+              "                  run: |\n"
+              "                    set -euo pipefail\n"
+              "                    ended_epoch=$(date +%s)\n"
+              "                    elapsed_seconds=$((ended_epoch - STARTED_EPOCH))\n"
+              "                    export ENDED_EPOCH=\"$ended_epoch\"\n"
+              "                    export ELAPSED_SECONDS=\"$elapsed_seconds\"\n"
+          )
+          soak = soak.replace(summary_run, replacement_run, 1)
+
+          if "six-hour-soak-stage-1:" not in ci:
+              ci = ci.rstrip() + soak + "\n"
+          ci_path.write_text(ci, encoding="utf-8")
+
+          controller = root / ".github/workflows/one-time-diagnose-six-hour-matrix.yml"
+          if controller.exists():
+              controller.unlink()
+
+          changed_paths = [
+              ".github/workflows/ci.yml",
+              "README.md",
+              "README.zh-CN.md",
+              "skills/epdm/acceptance.py",
+              "skills/epdm/tests/test_acceptance.py",
+          ]
+
+          fields = [
+              "path",
+              "sha256",
+              "bytes",
+              "specialist",
+              "artifact_class",
+              "license_scope",
+          ]
+
+          def update_overlay(target: Path) -> None:
+              records: dict[str, dict[str, object]] = {}
+              with target.open(encoding="utf-8", newline="") as stream:
+                  for row in csv.DictReader(stream, delimiter="\t"):
+                      records[str(row["path"])] = dict(row)
+              for relative in changed_paths:
+                  path = root / relative
+                  digest, size = canonical_identity(path)
+                  specialist, artifact_class, license_scope = classify_path(relative)
+                  records[relative] = {
+                      "path": relative,
+                      "sha256": digest,
+                      "bytes": size,
+                      "specialist": specialist,
+                      "artifact_class": artifact_class,
+                      "license_scope": license_scope,
+                  }
+              with target.open("w", encoding="utf-8", newline="") as stream:
+                  writer = csv.DictWriter(
+                      stream,
+                      fieldnames=fields,
+                      delimiter="\t",
+                      lineterminator="\n",
+                  )
+                  writer.writeheader()
+                  writer.writerows(records[key] for key in sorted(records))
+
+          update_overlay(root / "reports/SOURCE_CORE_OVERLAY.tsv")
+          update_overlay(root / "reports/SOURCE_ACCEPTANCE_OVERLAY.tsv")
           PY
-          output=$(tail -c 12000 /tmp/performance.out)
-          source=$(tail -c 18000 /tmp/source.out)
-          body=$(printf 'UBUNTU314_PERFORMANCE_DIAGNOSTIC run %s exit %s\n```text\n%s\n%s\n```' "$GITHUB_RUN_ID" "$code" "$output" "$source")
-          jq -n --arg body "$body" '{body:$body}' >/tmp/comment.json
-          curl -fsSL -X POST \
-            -H 'Accept: application/vnd.github+json' \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/68/comments" \
-            -d @/tmp/comment.json
+
+          git add -A
+          python -m compileall -q skills/epdm/acceptance.py skills/epdm/tests/test_acceptance.py
+          python -m pytest -q -p no:cacheprovider skills/epdm/tests/test_acceptance.py
+          python scripts/update_performance_readme.py \
+            --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
+          python -m tsao.cli doctor --root . --profile core
+          python scripts/run_ci.py
+          git diff --cached --check
+      - name: Commit and push candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: isolate acceptance metrics and add six-hour soak gate"
+          git push origin HEAD:agent/six-hour-soak-hardening-20260809
+      - name: Record controller result
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status="${{ job.status }}"
+          head=$(git rev-parse HEAD 2>/dev/null || echo UNKNOWN)
+          body=$(cat <<EOF
+          SIX_HOUR_HARDENING_CONTROLLER: **$status**
+
+          - run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          - branch: \`agent/six-hour-soak-hardening-20260809\`
+          - head: \`$head\`
+
+          The candidate separates timing from allocation tracing, restores generated performance evidence, deletes the one-time workflow from the candidate tree and adds a fail-closed 21,600-second continuous qualification Gate.
+          EOF
+          )
+          gh issue comment 68 --repo "$GITHUB_REPOSITORY" --body "$body"
