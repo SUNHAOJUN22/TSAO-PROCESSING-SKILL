@@ -262,22 +262,34 @@ def _loader_resource_metrics(project_path: Path, samples: int) -> tuple[float, i
         raise ValueError("samples must be a positive integer")
     timings: list[float] = []
     publications: list[str] = []
+
+    # Keep wall-clock latency independent of allocation-tracing overhead.
+    # This closes a platform-sensitive acceptance artifact on Windows while
+    # retaining the original latency and peak-memory limits unchanged.
+    for _ in range(samples):
+        start = time.perf_counter()
+        snapshot = load_canonical_project_file(project_path)
+        timings.append(time.perf_counter() - start)
+        publications.append(snapshot.publication_sha256)
+
     tracemalloc.start()
     try:
-        for _ in range(samples):
-            start = time.perf_counter()
-            snapshot = load_canonical_project_file(project_path)
-            timings.append(time.perf_counter() - start)
-            publications.append(snapshot.publication_sha256)
+        memory_snapshot = load_canonical_project_file(project_path)
+        publications.append(memory_snapshot.publication_sha256)
         _, peak = tracemalloc.get_traced_memory()
     finally:
         tracemalloc.stop()
+
     if len(set(publications)) != 1:
         raise ContractValidationError(
             "canonical publication identity changed across repeated loads"
         )
     timings.sort()
-    median = timings[len(timings) // 2]
+    middle = len(timings) // 2
+    if len(timings) % 2:
+        median = timings[middle]
+    else:
+        median = (timings[middle - 1] + timings[middle]) / 2.0
     return median, peak, publications[0]
 
 

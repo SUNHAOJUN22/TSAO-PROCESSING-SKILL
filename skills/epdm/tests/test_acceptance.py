@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from skills.epdm import acceptance as acceptance_module
 from skills.epdm.acceptance import (
     ACCEPTANCE_SCHEMA,
     MAX_ANALYTIC_ABSOLUTE_ERROR,
@@ -117,6 +118,55 @@ def test_cli_acceptance_writes_report(tmp_path: Path, capsys: pytest.CaptureFixt
     assert rc == 0
     assert output.is_file()
     assert json.loads(captured.out)["pass"] is True
+
+
+def test_loader_timing_is_isolated_from_tracemalloc(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected_publication = load_canonical_project_file(PROJECT).publication_sha256
+    tracing = {"active": False}
+    traced_loads: list[bool] = []
+    original_loader = acceptance_module.load_canonical_project_file
+
+    def tracked_loader(path: Path):
+        traced_loads.append(tracing["active"])
+        return original_loader(path)
+
+    def start_tracing() -> None:
+        assert tracing["active"] is False
+        tracing["active"] = True
+
+    def stop_tracing() -> None:
+        assert tracing["active"] is True
+        tracing["active"] = False
+
+    def traced_memory() -> tuple[int, int]:
+        assert tracing["active"] is True
+        return 0, 1234
+
+    monkeypatch.setattr(
+        acceptance_module,
+        "load_canonical_project_file",
+        tracked_loader,
+    )
+    monkeypatch.setattr(acceptance_module.tracemalloc, "start", start_tracing)
+    monkeypatch.setattr(acceptance_module.tracemalloc, "stop", stop_tracing)
+    monkeypatch.setattr(
+        acceptance_module.tracemalloc,
+        "get_traced_memory",
+        traced_memory,
+    )
+
+    median, peak, publication = acceptance_module._loader_resource_metrics(
+        PROJECT,
+        3,
+    )
+
+    assert traced_loads == [False, False, False, True]
+    assert tracing["active"] is False
+    assert median >= 0.0
+    assert peak == 1234
+    assert publication == expected_publication
 
 
 def test_load_samples_must_be_positive() -> None:
