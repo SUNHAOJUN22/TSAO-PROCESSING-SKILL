@@ -173,3 +173,36 @@ CI 对 Windows 与 Ubuntu 的 Python 3.11–3.14 完整矩阵进行资格验证�
 ## 责任边界
 
 `main` 是唯一权威分支。TSAO 不替代实验数据、商业物性包、设备与泄放设计、HAZOP/LOPA/SIL、法律与环保审查、客户试验或生产运行批准。
+
+<!-- CURRENT_MAIN_ACCEPTANCE_V2:START -->
+## 当前 `main`：代码—数学—证据闭环
+
+<p align="center"><img src="docs/current-main/tsao-processing-current-main-zh.svg" width="100%" alt="当前 `main`：代码—数学—证据闭环"></p>
+
+> 该图由当前代码合同生成，是文档概念设计，不是实验、装置或工业性能数据。
+
+### 核心数理合同
+
+$$
+dN/dt = F_in z − F_out x + V νᵀ r
+$$
+
+$$
+e = ‖y₅ − y₄‖ / (atol + rtol max(‖yₙ‖, ‖y₅‖))
+$$
+
+$$
+I(θ) = J(θ)ᵀ W J(θ)
+$$
+
+### 使用策略
+
+1. 从 Schema、单位与证据等级开始，不从漂亮图表反推实现。
+2. 动力学、链矩和积分器只接受有限且量纲一致的输入。
+3. 先跑 canonical publication 和完整 CI，再执行精确 SHA 的六小时活动测试。
+4. 新提交会使旧 SHA 的长期测试回执自动失效。
+
+> **责任边界：** 当前交付是软件参考数值与工艺研发框架；科学、工程、HSE、客户与工业性能批准均保持 NOT_EVALUATED。
+
+执行提示词: [SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md](docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md)
+<!-- CURRENT_MAIN_ACCEPTANCE_V2:END -->

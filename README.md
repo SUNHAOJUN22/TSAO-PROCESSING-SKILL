@@ -173,3 +173,36 @@ The visual system extends the 21-asset historical core to a governed 32-asset ac
 ## Responsibility boundary
 
 `main` is the sole authoritative branch. TSAO does not replace qualified process engineering, laboratory evidence, commercial property packages, equipment or relief design, HAZOP/LOPA/SIL, legal/environmental review, customer trials or operating approval.
+
+<!-- CURRENT_MAIN_ACCEPTANCE_V2:START -->
+## Current `main`: code–mathematics–evidence loop
+
+<p align="center"><img src="docs/current-main/tsao-processing-current-main-en.svg" width="100%" alt="Current `main`: code–mathematics–evidence loop"></p>
+
+> The figure is generated from current code contracts and is conceptual documentation, not experimental, plant or industrial-performance data.
+
+### Core mathematical contracts
+
+$$
+dN/dt = F_in z − F_out x + V νᵀ r
+$$
+
+$$
+e = ‖y₅ − y₄‖ / (atol + rtol max(‖yₙ‖, ‖y₅‖))
+$$
+
+$$
+I(θ) = J(θ)ᵀ W J(θ)
+$$
+
+### Usage strategy
+
+1. Start from Schema, units and evidence classes rather than inferring implementation from visuals.
+2. Kinetics, chain moments and integrators accept only finite dimensionally compatible inputs.
+3. Run canonical publication and full CI before six-hour active testing of an exact SHA.
+4. Any new commit invalidates long-duration evidence bound to an older SHA.
+
+> **Responsibility boundary：** The deliverable is a software-reference numerical and process-development framework; scientific, engineering, HSE, customer and industrial-performance approvals remain NOT_EVALUATED.
+
+Execution prompt: [SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md](docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md)
+<!-- CURRENT_MAIN_ACCEPTANCE_V2:END -->
