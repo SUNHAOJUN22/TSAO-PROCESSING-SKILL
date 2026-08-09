@@ -17,7 +17,7 @@ jobs:
     if: >-
       github.event.issue.pull_request == null &&
       github.event.comment.user.login == github.repository_owner &&
-      contains(github.event.comment.body, '/v4-fail-closed-hardening-v2')
+      contains(github.event.comment.body, '/v4-fail-closed-hardening-v3')
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
@@ -138,7 +138,32 @@ jobs:
           PY
           git diff --exit-code
           git diff --check
-      - name: Publish exact qualified candidate
+      - name: Package exact qualified candidate
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/processing-v4-candidate"
+          rm -rf "$bundle"
+          mkdir -p "$bundle/.github/workflows" "$bundle/reports"
+          cp .github/workflows/ci.yml "$bundle/.github/workflows/ci.yml"
+          cp reports/SOURCE_CORE_MANIFEST.tsv "$bundle/reports/SOURCE_CORE_MANIFEST.tsv"
+          cp reports/SOURCE_CORE_OVERLAY.tsv "$bundle/reports/SOURCE_CORE_OVERLAY.tsv"
+          cp reports/SOURCE_ACCEPTANCE_OVERLAY.tsv "$bundle/reports/SOURCE_ACCEPTANCE_OVERLAY.tsv"
+          printf '%s\n' '.github/workflows/v4-fail-closed-hardening-once.yml' > "$bundle/DELETIONS.txt"
+          git rev-parse HEAD^ > "$bundle/PARENT_SHA.txt"
+          git rev-parse HEAD > "$bundle/CANDIDATE_SHA.txt"
+          git diff-tree --no-commit-id --name-status -r HEAD > "$bundle/CHANGES.tsv"
+          echo "path=$bundle" >> "$GITHUB_OUTPUT"
+      - name: Upload exact qualified candidate bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: processing-v4-exact-candidate-${{ steps.candidate.outputs.sha }}
+          path: ${{ steps.bundle.outputs.path }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+      - name: Attempt native exact-parent publication
         run: |
           set -euo pipefail
           git fetch origin main
@@ -157,4 +182,4 @@ jobs:
           OUTCOME: ${{ job.status }}
           CANDIDATE: ${{ steps.candidate.outputs.sha }}
         run: |
-          gh issue comment "$ISSUE" --body "V4_FAIL_CLOSED_HARDENING_V2 outcome=${OUTCOME} candidate=${CANDIDATE:-UNPUBLISHED} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} controller=self_removed performance=blocking provenance=core+acceptance+manifest"
+          gh issue comment "$ISSUE" --body "V4_FAIL_CLOSED_HARDENING_V3 outcome=${OUTCOME} candidate=${CANDIDATE:-UNPUBLISHED} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} bundle=uploaded controller=self_removed performance=blocking provenance=core+acceptance+manifest"
