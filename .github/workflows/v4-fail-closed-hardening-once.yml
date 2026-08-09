@@ -1,0 +1,137 @@
+name: V4 fail-closed hardening once
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: v4-fail-closed-hardening-once
+  cancel-in-progress: false
+
+jobs:
+  harden:
+    if: >-
+      github.event.issue.pull_request == null &&
+      github.event.comment.user.login == github.repository_owner &&
+      contains(github.event.comment.body, '/v4-fail-closed-hardening')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install exact locked environment
+        run: |
+          set -euo pipefail
+          python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Make performance comparisons and cleanup fail closed
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/ci.yml')
+          text = path.read_text(encoding='utf-8')
+          old_trap = '          trap \'git worktree remove --force "$baseline_root" 2>/dev/null || true\' EXIT\n'
+          new_trap = (
+              '          cleanup_baseline_worktree() {\n'
+              '            if git worktree list --porcelain | grep -Fqx "worktree $baseline_root"; then\n'
+              '              git worktree remove --force "$baseline_root"\n'
+              '            fi\n'
+              '          }\n'
+              '          trap cleanup_baseline_worktree EXIT\n'
+          )
+          if text.count(old_trap) != 1:
+              raise SystemExit(f'expected exactly one masked worktree cleanup, found {text.count(old_trap)}')
+          text = text.replace(old_trap, new_trap, 1)
+          old_start = (
+              '          set +e\n'
+              '          python scripts/compare_performance_v2.py \\\n'
+              '            --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \\\n'
+          )
+          new_start = (
+              '          python scripts/compare_performance_v2.py \\\n'
+              '            --baseline reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json \\\n'
+          )
+          if text.count(old_start) != 1:
+              raise SystemExit(f'expected exactly one non-blocking historical comparison start, found {text.count(old_start)}')
+          text = text.replace(old_start, new_start, 1)
+          old_capture = (
+              '          historical_rc=$?\n'
+              '          set -e\n'
+              '          HISTORICAL_RC="$historical_rc" python - <<\'PY\'\n'
+          )
+          if text.count(old_capture) != 1:
+              raise SystemExit(f'expected exactly one historical exit-code capture, found {text.count(old_capture)}')
+          text = text.replace(old_capture, "          python - <<'PY'\n", 1)
+          text = text.replace('NON_BLOCKING_HISTORICAL_TREND', 'BLOCKING_HISTORICAL_TREND', 1)
+          text = text.replace(
+              'data["historical_comparator_exit_code"] = int(os.environ["HISTORICAL_RC"])',
+              'data["historical_comparator_exit_code"] = 0',
+              1,
+          )
+          for forbidden in ('|| true', 'set +e', 'NON_BLOCKING_HISTORICAL_TREND', 'HISTORICAL_RC'):
+              if forbidden in text:
+                  raise SystemExit(f'forbidden non-fail-closed construct remains: {forbidden}')
+          path.write_text(text, encoding='utf-8', newline='\n')
+          PY
+          rm .github/workflows/v4-fail-closed-hardening-once.yml
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          git diff --check
+      - name: Create exact controller-free candidate
+        id: candidate
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A \
+            .github/workflows/ci.yml \
+            .github/workflows/v4-fail-closed-hardening-once.yml \
+            reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m 'ci: make performance qualification fail closed'
+          echo 'sha='"$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Qualify exact candidate
+        run: |
+          set -euo pipefail
+          node scripts/refresh-current-main-readme.mjs --check
+          python scripts/run_ci.py
+          python -m tsao.cli doctor --root . --profile core
+          git diff --exit-code
+          git diff --check
+      - name: Publish exact qualified candidate
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          expected_parent="$(git rev-parse HEAD^)"
+          remote_main="$(git rev-parse origin/main)"
+          if [[ "$expected_parent" != "$remote_main" ]]; then
+            echo "STALE_MAIN expected_parent=$expected_parent remote_main=$remote_main" >&2
+            exit 3
+          fi
+          git push origin HEAD:main
+      - name: Publish machine result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          OUTCOME: ${{ job.status }}
+          CANDIDATE: ${{ steps.candidate.outputs.sha }}
+        run: |
+          gh issue comment "$ISSUE" --body "V4_FAIL_CLOSED_HARDENING outcome=${OUTCOME} candidate=${CANDIDATE:-UNPUBLISHED} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} controller=self_removed performance=blocking provenance=refreshed"
