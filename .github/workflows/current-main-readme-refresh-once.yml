@@ -44,51 +44,48 @@ jobs:
         run: |
           node scripts/refresh-current-main-readme.mjs --write
           node scripts/refresh-current-main-readme.mjs --check
-      - name: Update canonical source overlay
+      - name: Restore single-workflow contract and rebuild exact source identity
         run: |
-          python scripts/update_source_overlay.py --root . \
-            scripts/refresh-current-main-readme.mjs \
-            docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md \
-            docs/CURRENT_MAIN_ACCEPTANCE.md \
-            docs/current-main/tsao-processing-current-main-zh.svg \
-            docs/current-main/tsao-processing-current-main-en.svg \
+          set -euo pipefail
+          rm .github/workflows/current-main-readme-refresh-once.yml
+          python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
+          node scripts/refresh-current-main-readme.mjs --check
+          git diff --check
+      - name: Create exact-tree candidate before qualification
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A \
+            .github/workflows/current-main-readme-refresh-once.yml \
             README.md \
-            README.zh-CN.md
-      - name: Run software, numerical and publication gates
+            README.zh-CN.md \
+            docs/CURRENT_MAIN_ACCEPTANCE.md \
+            docs/current-main \
+            reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m 'docs: publish current-main bilingual acceptance design'
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+      - name: Run software, numerical and publication gates on candidate
         run: |
           set -euo pipefail
           node scripts/refresh-current-main-readme.mjs --check
           python scripts/run_ci.py
           python -m tsao.cli doctor --root . --profile core
           git diff --check
-      - name: Commit and rebase generated delivery assets
-        id: commit
-        shell: bash
+      - name: Rebase and publish qualified candidate
         run: |
           set -euo pipefail
-          git add \
-            README.md \
-            README.zh-CN.md \
-            docs/CURRENT_MAIN_ACCEPTANCE.md \
-            docs/current-main \
-            reports/SOURCE_CORE_OVERLAY.tsv
-          if git diff --cached --quiet; then
-            echo 'changed=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'docs: refresh current-main bilingual acceptance design'
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
-          echo 'changed=true' >> "$GITHUB_OUTPUT"
       - name: Publish machine result
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.issue.number }}
           OUTCOME: ${{ job.status }}
-          CHANGED: ${{ steps.commit.outputs.changed }}
+          CHANGED: ${{ steps.candidate.outputs.changed }}
         run: |
-          gh issue comment "$ISSUE" --body "CURRENT_MAIN_README_REFRESH_V2 outcome=${OUTCOME} changed=${CHANGED:-unknown} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} source=${GITHUB_SHA}"
+          gh issue comment "$ISSUE" --body "CURRENT_MAIN_README_REFRESH_V2 outcome=${OUTCOME} changed=${CHANGED:-unknown} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} source=${GITHUB_SHA} controller=self_removed"
