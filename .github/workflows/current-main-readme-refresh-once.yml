@@ -44,10 +44,13 @@ jobs:
         run: |
           node scripts/refresh-current-main-readme.mjs --write
           node scripts/refresh-current-main-readme.mjs --check
-      - name: Restore single-workflow contract and rebuild exact source identity
+      - name: Restore single-workflow contract and rebuild both identity layers
         run: |
           set -euo pipefail
           rm .github/workflows/current-main-readme-refresh-once.yml
+          python scripts/update_source_overlay.py --root . \
+            README.md \
+            README.zh-CN.md
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
           node scripts/refresh-current-main-readme.mjs --check
           git diff --check
@@ -64,7 +67,8 @@ jobs:
             README.zh-CN.md \
             docs/CURRENT_MAIN_ACCEPTANCE.md \
             docs/current-main \
-            reports/SOURCE_CORE_MANIFEST.tsv
+            reports/SOURCE_CORE_MANIFEST.tsv \
+            reports/SOURCE_CORE_OVERLAY.tsv
           git commit -m 'docs: publish current-main bilingual acceptance design'
           echo 'changed=true' >> "$GITHUB_OUTPUT"
       - name: Run software, numerical and publication gates on candidate
@@ -88,4 +92,4 @@ jobs:
           OUTCOME: ${{ job.status }}
           CHANGED: ${{ steps.candidate.outputs.changed }}
         run: |
-          gh issue comment "$ISSUE" --body "CURRENT_MAIN_README_REFRESH_V2 outcome=${OUTCOME} changed=${CHANGED:-unknown} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} source=${GITHUB_SHA} controller=self_removed"
+          gh issue comment "$ISSUE" --body "CURRENT_MAIN_README_REFRESH_V2 outcome=${OUTCOME} changed=${CHANGED:-unknown} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} source=${GITHUB_SHA} controller=self_removed identity_layers=manifest+overlay"
