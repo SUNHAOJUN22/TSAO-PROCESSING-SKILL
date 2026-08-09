@@ -17,9 +17,9 @@ jobs:
     if: >-
       github.event.issue.pull_request == null &&
       github.event.comment.user.login == github.repository_owner &&
-      contains(github.event.comment.body, '/v4-fail-closed-hardening')
+      contains(github.event.comment.body, '/v4-fail-closed-hardening-v2')
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -41,7 +41,7 @@ jobs:
           python -m pip install --quiet --require-hashes -r requirements.lock
           python -m pip install --quiet --no-deps --no-build-isolation -e .
           python -m pip check
-      - name: Make performance comparisons and cleanup fail closed
+      - name: Build controller-free fail-closed worktree
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -93,9 +93,15 @@ jobs:
           path.write_text(text, encoding='utf-8', newline='\n')
           PY
           rm .github/workflows/v4-fail-closed-hardening-once.yml
+          python scripts/update_source_overlay.py --root . \
+            --target reports/SOURCE_CORE_OVERLAY.tsv \
+            .github/workflows/ci.yml
+          python scripts/update_source_overlay.py --root . \
+            --target reports/SOURCE_ACCEPTANCE_OVERLAY.tsv \
+            .github/workflows/ci.yml
           python -m tsao.cli doctor --root . --profile core --refresh-source-manifest
           git diff --check
-      - name: Create exact controller-free candidate
+      - name: Create exact controller-free provenance candidate
         id: candidate
         run: |
           set -euo pipefail
@@ -104,15 +110,32 @@ jobs:
           git add -A \
             .github/workflows/ci.yml \
             .github/workflows/v4-fail-closed-hardening-once.yml \
-            reports/SOURCE_CORE_MANIFEST.tsv
+            reports/SOURCE_CORE_MANIFEST.tsv \
+            reports/SOURCE_CORE_OVERLAY.tsv \
+            reports/SOURCE_ACCEPTANCE_OVERLAY.tsv
           git commit -m 'ci: make performance qualification fail closed'
           echo 'sha='"$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Qualify exact candidate
+      - name: Qualify immutable candidate
         run: |
           set -euo pipefail
           node scripts/refresh-current-main-readme.mjs --check
           python scripts/run_ci.py
           python -m tsao.cli doctor --root . --profile core
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('.github/workflows/ci.yml').read_text(encoding='utf-8')
+          forbidden = ('continue-on-error:', '|| true', 'set +e', 'NON_BLOCKING_HISTORICAL_TREND')
+          found = [token for token in forbidden if token in text]
+          if found:
+              raise SystemExit(f'forbidden fail-open workflow constructs remain: {found}')
+          PY
+          git ls-remote --heads origin > /tmp/processing-v4-branches.txt
+          python - <<'PY'
+          from pathlib import Path
+          refs = [line.split()[1] for line in Path('/tmp/processing-v4-branches.txt').read_text().splitlines() if line.strip()]
+          if refs != ['refs/heads/main']:
+              raise SystemExit(f'unexpected remote branches: {refs}')
+          PY
           git diff --exit-code
           git diff --check
       - name: Publish exact qualified candidate
@@ -134,4 +157,4 @@ jobs:
           OUTCOME: ${{ job.status }}
           CANDIDATE: ${{ steps.candidate.outputs.sha }}
         run: |
-          gh issue comment "$ISSUE" --body "V4_FAIL_CLOSED_HARDENING outcome=${OUTCOME} candidate=${CANDIDATE:-UNPUBLISHED} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} controller=self_removed performance=blocking provenance=refreshed"
+          gh issue comment "$ISSUE" --body "V4_FAIL_CLOSED_HARDENING_V2 outcome=${OUTCOME} candidate=${CANDIDATE:-UNPUBLISHED} run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} controller=self_removed performance=blocking provenance=core+acceptance+manifest"
