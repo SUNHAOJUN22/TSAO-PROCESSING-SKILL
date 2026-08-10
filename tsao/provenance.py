@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 _EXCLUDED_PARTS = {
@@ -36,19 +36,23 @@ _SELF_MANIFESTS = {
 }
 
 
-
 def _safe_manifest_relative(value: str) -> Path:
-    pure = PurePosixPath(value)
-    if (
-        not value
-        or "\\" in value
-        or value.startswith("/")
-        or pure.is_absolute()
-        or ".." in pure.parts
-        or (pure.parts and pure.parts[0].endswith(":"))
-    ):
+    """Return a validated repository-relative path without filesystem access.
+
+    The manifest format is POSIX-style on every platform.  Avoid constructing a
+    ``PurePosixPath`` for each record because verification can process thousands
+    of paths and this helper sits directly on that hot path.
+    """
+    if not value or "\\" in value or value.startswith("/"):
         raise ValueError(f"unsafe manifest path: {value}")
-    return Path(*pure.parts)
+
+    # Match PurePosixPath normalization for redundant separators and ``.``
+    # components while rejecting traversal and Windows-drive-like prefixes.
+    parts = tuple(part for part in value.split("/") if part not in {"", "."})
+    if ".." in parts or (parts and parts[0].endswith(":")):
+        raise ValueError(f"unsafe manifest path: {value}")
+    return Path(*parts)
+
 
 def canonical_bytes(path: Path) -> bytes:
     """Return a platform-stable identity for text and exact bytes for binaries."""
@@ -139,7 +143,9 @@ def iter_source_files(root: Path):
                 yield Path(path_string), relative
 
 
-def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None = None) -> int:
+def build_manifest(
+    root: Path, target: Path, *, allowed_paths: set[str] | None = None
+) -> int:
     root = Path(root)
     target = Path(target)
     rows: list[dict[str, Any]] = []
@@ -178,7 +184,9 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
     return len(rows)
 
 
-def _read_manifest_records(path: Path, *, label: str) -> tuple[dict[str, dict[str, str]], list[str]]:
+def _read_manifest_records(
+    path: Path, *, label: str
+) -> tuple[dict[str, dict[str, str]], list[str]]:
     records: dict[str, dict[str, str]] = {}
     issues: list[str] = []
     with path.open(encoding="utf-8", newline="") as stream:
@@ -231,8 +239,11 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
         issues.append("source manifest contains no file records")
         return sorted(set(issues))
 
+    # Every key in ``records`` already passed _safe_manifest_relative while the
+    # manifest (and any overlays) were parsed. Re-validating each key here used
+    # to double the path-normalization work in large-manifest verification.
     for relative, row in records.items():
-        path = root / _safe_manifest_relative(relative)
+        path = root / relative
         if not path.is_file():
             issues.append(f"manifest lists missing file: {relative}")
             continue
