@@ -25,7 +25,9 @@ COMMON_MINIMUM_RATIO = {
 }
 
 PARITY_POLICIES = {
-    "doctor_core_repository": "repository semantic contract: PASS and approval boundaries",
+    "doctor_core_repository": (
+        "repository semantic contract: PASS and approval boundaries"
+    ),
     "process_package_500_equipment": (
         "process-package semantic contract: fail-closed topology, component, "
         "mass and energy gates"
@@ -38,8 +40,12 @@ PARITY_POLICIES = {
         "skillpack semantic contract: four Skills, 14/6/6 inventory, "
         "README assets and approval boundaries"
     ),
-    "wheel_content_verification": "wheel semantic contract: identity and required-member tests",
-    "poe_dynamic_response_10000_points": "analytical response and metric tolerance contract",
+    "wheel_content_verification": (
+        "wheel semantic contract: identity and required-member tests"
+    ),
+    "poe_dynamic_response_10000_points": (
+        "analytical response and metric tolerance contract"
+    ),
     "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
 }
 
@@ -160,7 +166,12 @@ def _work_unit_ratio(
         return raw_ratio, baseline_units, current_units, (
             f"{name}: work_unit identity mismatch for {work_unit} normalization"
         )
-    return raw_ratio * current_units / baseline_units, baseline_units, current_units, None
+    return (
+        raw_ratio * current_units / baseline_units,
+        baseline_units,
+        current_units,
+        None,
+    )
 
 
 def _common_comparisons(
@@ -261,7 +272,13 @@ def _special_comparisons(
     minimum_benefit_retention = 0.90
     minimum_path_ratio = 0.90
 
-    for optimized_name, reference_name, target_speedup, memory_limit, parity_policy in SPECIAL_SPECS:
+    for (
+        optimized_name,
+        reference_name,
+        target_speedup,
+        memory_limit,
+        parity_policy,
+    ) in SPECIAL_SPECS:
         baseline_reference = baseline_rows.get(reference_name)
         baseline_optimized = baseline_rows.get(optimized_name)
         current_reference = current_rows.get(reference_name)
@@ -274,7 +291,9 @@ def _special_comparisons(
         )
         missing = [label for label, row in labelled_rows if row is None]
         if missing:
-            historical_only = historical and all(label.startswith("baseline:") for label in missing)
+            historical_only = historical and all(
+                label.startswith("baseline:") for label in missing
+            )
             if historical_only:
                 reason = "optimized workload did not exist in the legacy baseline"
                 not_applicable.append(f"{optimized_name}: {reason}")
@@ -345,7 +364,8 @@ def _special_comparisons(
         )
         if digest_match is False:
             errors.append(
-                f"{optimized_name}: structured digest differs from current scalar reference"
+                f"{optimized_name}: structured digest differs from current "
+                "scalar reference"
             )
         if speedup < effective_minimum:
             errors.append(
@@ -454,12 +474,14 @@ def compare_reports(
             continue
         if check["missing_workloads"]:
             errors.append(
-                f"scale check {check['small']} -> {check['large']} is missing workloads: "
+                f"scale check {check['small']} -> {check['large']} is missing "
+                "workloads: "
                 f"{check['missing_workloads']}"
             )
         else:
             errors.append(
-                f"scale check {check['small']} -> {check['large']} exceeded normalized limit"
+                f"scale check {check['small']} -> {check['large']} exceeded "
+                "normalized limit"
             )
 
     passed = not errors
