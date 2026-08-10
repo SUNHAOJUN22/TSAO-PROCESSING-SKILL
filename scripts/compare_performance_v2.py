@@ -47,6 +47,35 @@ WORK_UNIT_NORMALIZED = {
     "doctor_core_repository": "schema_count",
 }
 
+# Alpha10 predates the optimized-path workloads and work-unit metadata introduced
+# later. It remains a useful historical trend baseline, but only for rows whose
+# numerical workload identity is still provably the same.
+LEGACY_HISTORICAL_BASELINES = {"0.1.0-alpha.10"}
+
+SPECIAL_SPECS = (
+    (
+        "epdm_parameter_scan_1000_batch",
+        "epdm_parameter_scan_1000_scalar",
+        3.0,
+        None,
+        "scalar-vs-batch elementwise tolerance contract",
+    ),
+    (
+        "epdm_semibatch_10000_steps_compiled",
+        "epdm_semibatch_10000_steps",
+        1.5,
+        1.0,
+        "exact structured digest",
+    ),
+    (
+        "poe_rk4_10000_steps_terminal",
+        "poe_rk4_10000_steps",
+        1.5,
+        0.25,
+        "terminal/full final-state and metrics exact contract",
+    ),
+)
+
 
 def _load(path: Path) -> dict[str, object]:
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -90,9 +119,11 @@ def _scale_check(
             "normalized_time_ratio": None,
             "maximum_normalized_time_ratio": limit,
             "missing_workloads": missing,
+            "status": "FAIL",
             "pass": False,
         }
     normalized_ratio = (_time(rows[large]) / _time(rows[small])) / size_ratio
+    passed = normalized_ratio <= limit
     return {
         "small": small,
         "large": large,
@@ -100,66 +131,99 @@ def _scale_check(
         "normalized_time_ratio": normalized_ratio,
         "maximum_normalized_time_ratio": limit,
         "missing_workloads": [],
-        "pass": normalized_ratio <= limit,
+        "status": "PASS" if passed else "FAIL",
+        "pass": passed,
     }
 
 
-def compare_reports(
-    baseline: dict[str, object], current: dict[str, object]
-) -> dict[str, object]:
-    baseline_rows = _rows(baseline)
-    current_rows = _rows(current)
-    errors: list[str] = []
-    comparisons: list[dict[str, object]] = []
+def _work_unit_ratio(
+    name: str,
+    before: dict[str, object],
+    after: dict[str, object],
+    raw_ratio: float,
+) -> tuple[float, float | None, float | None, str | None]:
+    work_unit = WORK_UNIT_NORMALIZED.get(name)
+    if work_unit is None:
+        return raw_ratio, None, None, None
+    try:
+        baseline_units = float(before["work_units"])
+        current_units = float(after["work_units"])
+    except (KeyError, TypeError, ValueError):
+        return raw_ratio, None, None, (
+            f"{name}: missing numeric work_units for {work_unit} normalization"
+        )
+    if baseline_units <= 0 or current_units <= 0:
+        return raw_ratio, baseline_units, current_units, (
+            f"{name}: work_units must be positive for {work_unit} normalization"
+        )
+    if before.get("work_unit") != work_unit or after.get("work_unit") != work_unit:
+        return raw_ratio, baseline_units, current_units, (
+            f"{name}: work_unit identity mismatch for {work_unit} normalization"
+        )
+    return raw_ratio * current_units / baseline_units, baseline_units, current_units, None
 
+
+def _common_comparisons(
+    baseline_rows: dict[str, dict[str, object]],
+    current_rows: dict[str, dict[str, object]],
+    *,
+    historical: bool,
+    errors: list[str],
+    not_applicable: list[str],
+) -> list[dict[str, object]]:
+    comparisons: list[dict[str, object]] = []
     missing = sorted(set(baseline_rows) - set(current_rows))
     if missing:
         errors.append(f"current report is missing baseline workloads: {missing}")
+
     for name, before in sorted(baseline_rows.items()):
         after = current_rows.get(name)
         if after is None:
             continue
+
         raw_ratio = _time(before) / _time(after) if _time(after) > 0 else float("inf")
         minimum = COMMON_MINIMUM_RATIO.get(name, 0.85)
         digest_match = before.get("result_sha256") == after.get("result_sha256")
         parity_policy = PARITY_POLICIES.get(name, "exact structured SHA-256")
-        parity_pass = True if name in PARITY_POLICIES else digest_match
-        timing_ratio = raw_ratio
+        semantic_parity = name in PARITY_POLICIES
+        timing_ratio, baseline_units, current_units, unit_error = _work_unit_ratio(
+            name, before, after, raw_ratio
+        )
         work_unit = WORK_UNIT_NORMALIZED.get(name)
-        baseline_work_units: float | None = None
-        optimized_work_units: float | None = None
-        work_unit_error: str | None = None
-        if work_unit is not None:
-            try:
-                baseline_work_units = float(before["work_units"])
-                optimized_work_units = float(after["work_units"])
-            except (KeyError, TypeError, ValueError):
-                work_unit_error = (
-                    f"{name}: missing numeric work_units for {work_unit} normalization"
-                )
-            else:
-                if baseline_work_units <= 0 or optimized_work_units <= 0:
-                    work_unit_error = (
-                        f"{name}: work_units must be positive for {work_unit} normalization"
-                    )
-                elif before.get("work_unit") != work_unit or after.get("work_unit") != work_unit:
-                    work_unit_error = (
-                        f"{name}: work_unit identity mismatch for {work_unit} normalization"
-                    )
-                else:
-                    timing_ratio = raw_ratio * optimized_work_units / baseline_work_units
-        if work_unit_error is not None:
-            errors.append(work_unit_error)
-        timing_pass = work_unit_error is None and timing_ratio >= minimum
-        passed = parity_pass and timing_pass
-        if not parity_pass:
-            errors.append(f"{name}: numerical result digest changed")
-        if work_unit_error is None and timing_ratio < minimum:
-            qualifier = "work-unit-normalized " if work_unit is not None else ""
-            errors.append(
-                f"{name}: {qualifier}performance ratio {timing_ratio:.3f}x "
-                f"is below {minimum:.3f}x"
+
+        status = "PASS"
+        reason: str | None = None
+        passed: bool | None = True
+
+        if historical and unit_error is not None:
+            status = "NOT_APPLICABLE"
+            passed = None
+            reason = f"legacy baseline lacks comparable {work_unit} work-unit metadata"
+            not_applicable.append(f"{name}: {reason}")
+        elif historical and semantic_parity and not digest_match and work_unit is None:
+            status = "NOT_APPLICABLE"
+            passed = None
+            reason = (
+                "structured result identity changed under an expanded semantic "
+                "contract; raw historical timing is not like-for-like"
             )
+            not_applicable.append(f"{name}: {reason}")
+        else:
+            if unit_error is not None:
+                errors.append(unit_error)
+            parity_pass = semantic_parity or digest_match
+            timing_pass = unit_error is None and timing_ratio >= minimum
+            passed = parity_pass and timing_pass
+            status = "PASS" if passed else "FAIL"
+            if not parity_pass:
+                errors.append(f"{name}: numerical result digest changed")
+            if unit_error is None and timing_ratio < minimum:
+                qualifier = "work-unit-normalized " if work_unit is not None else ""
+                errors.append(
+                    f"{name}: {qualifier}performance ratio {timing_ratio:.3f}x "
+                    f"is below {minimum:.3f}x"
+                )
+
         comparisons.append(
             {
                 "name": name,
@@ -170,91 +234,96 @@ def compare_reports(
                 "minimum_ratio": minimum,
                 "work_unit_normalized": work_unit is not None,
                 "work_unit": work_unit,
-                "baseline_work_units": baseline_work_units,
-                "optimized_work_units": optimized_work_units,
+                "baseline_work_units": baseline_units,
+                "optimized_work_units": current_units,
                 "baseline_peak_memory_bytes": _memory(before),
                 "optimized_peak_memory_bytes": _memory(after),
                 "result_digest_match": digest_match,
                 "parity_policy": parity_policy,
-                "parity_verified_by_tests": name in PARITY_POLICIES,
+                "parity_verified_by_tests": semantic_parity,
+                "historical_status": status,
+                "not_applicable_reason": reason,
                 "pass": passed,
             }
         )
+    return comparisons
 
-    special_specs = (
-        (
-            "epdm_parameter_scan_1000_batch",
-            "epdm_parameter_scan_1000_scalar",
-            3.0,
-            None,
-            "scalar-vs-batch elementwise tolerance contract",
-        ),
-        (
-            "epdm_semibatch_10000_steps_compiled",
-            "epdm_semibatch_10000_steps",
-            1.5,
-            1.0,
-            "exact structured digest",
-        ),
-        (
-            "poe_rk4_10000_steps_terminal",
-            "poe_rk4_10000_steps",
-            1.5,
-            0.25,
-            "terminal/full final-state and metrics exact contract",
-        ),
-    )
+
+def _special_comparisons(
+    baseline_rows: dict[str, dict[str, object]],
+    current_rows: dict[str, dict[str, object]],
+    *,
+    historical: bool,
+    errors: list[str],
+    not_applicable: list[str],
+) -> list[dict[str, object]]:
     special: list[dict[str, object]] = []
     minimum_benefit_retention = 0.90
     minimum_path_ratio = 0.90
-    for optimized_name, reference_name, target_speedup, memory_limit, parity_policy in special_specs:
+
+    for optimized_name, reference_name, target_speedup, memory_limit, parity_policy in SPECIAL_SPECS:
         baseline_reference = baseline_rows.get(reference_name)
         baseline_optimized = baseline_rows.get(optimized_name)
         current_reference = current_rows.get(reference_name)
         current_optimized = current_rows.get(optimized_name)
-        rows = (
+        labelled_rows = (
             (f"baseline:{reference_name}", baseline_reference),
             (f"baseline:{optimized_name}", baseline_optimized),
             (f"current:{reference_name}", current_reference),
             (f"current:{optimized_name}", current_optimized),
         )
-        missing_special = [label for label, row in rows if row is None]
-        if missing_special:
-            errors.append(f"missing special performance workload(s): {missing_special}")
+        missing = [label for label, row in labelled_rows if row is None]
+        if missing:
+            historical_only = historical and all(label.startswith("baseline:") for label in missing)
+            if historical_only:
+                reason = "optimized workload did not exist in the legacy baseline"
+                not_applicable.append(f"{optimized_name}: {reason}")
+                special.append(
+                    {
+                        "name": optimized_name,
+                        "reference": reference_name,
+                        "missing_workloads": missing,
+                        "parity_policy": parity_policy,
+                        "historical_status": "NOT_APPLICABLE",
+                        "not_applicable_reason": reason,
+                        "pass": None,
+                    }
+                )
+                continue
+            errors.append(f"missing special performance workload(s): {missing}")
             special.append(
                 {
                     "name": optimized_name,
                     "reference": reference_name,
-                    "missing_workloads": missing_special,
+                    "missing_workloads": missing,
                     "parity_policy": parity_policy,
+                    "historical_status": "FAIL",
+                    "not_applicable_reason": None,
                     "pass": False,
                 }
             )
             continue
+
         assert baseline_reference is not None
         assert baseline_optimized is not None
         assert current_reference is not None
         assert current_optimized is not None
+
         baseline_speedup = (
             _time(baseline_reference) / _time(baseline_optimized)
             if _time(baseline_optimized) > 0
             else float("inf")
         )
-        current_speedup = (
+        speedup = (
             _time(current_reference) / _time(current_optimized)
             if _time(current_optimized) > 0
             else float("inf")
         )
-        effective_minimum_speedup = min(
-            target_speedup,
-            baseline_speedup * minimum_benefit_retention,
+        effective_minimum = min(
+            target_speedup, baseline_speedup * minimum_benefit_retention
         )
-        benefit_retention = (
-            current_speedup / baseline_speedup
-            if baseline_speedup > 0
-            else float("inf")
-        )
-        optimized_path_ratio = (
+        retention = speedup / baseline_speedup if baseline_speedup > 0 else float("inf")
+        same_path_ratio = (
             _time(baseline_optimized) / _time(current_optimized)
             if _time(current_optimized) > 0
             else float("inf")
@@ -266,37 +335,41 @@ def compare_reports(
                 current_reference.get("result_sha256")
                 == current_optimized.get("result_sha256")
             )
+
         passed = (
-            current_speedup >= effective_minimum_speedup
-            and benefit_retention >= minimum_benefit_retention
-            and optimized_path_ratio >= minimum_path_ratio
+            speedup >= effective_minimum
+            and retention >= minimum_benefit_retention
+            and same_path_ratio >= minimum_path_ratio
             and (memory_limit is None or memory_ratio <= memory_limit)
+            and digest_match is not False
         )
         if digest_match is False:
-            passed = False
-            errors.append(f"{optimized_name}: structured digest differs from current scalar reference")
-        if current_speedup < effective_minimum_speedup:
             errors.append(
-                f"{optimized_name}: speedup {current_speedup:.3f}x is below "
-                f"effective {effective_minimum_speedup:.3f}x "
+                f"{optimized_name}: structured digest differs from current scalar reference"
+            )
+        if speedup < effective_minimum:
+            errors.append(
+                f"{optimized_name}: speedup {speedup:.3f}x is below "
+                f"effective {effective_minimum:.3f}x "
                 f"(configured target {target_speedup:.3f}x; "
                 f"parent baseline {baseline_speedup:.3f}x)"
             )
-        if benefit_retention < minimum_benefit_retention:
+        if retention < minimum_benefit_retention:
             errors.append(
-                f"{optimized_name}: speedup retention {benefit_retention:.3f}x is below "
+                f"{optimized_name}: speedup retention {retention:.3f}x is below "
                 f"{minimum_benefit_retention:.3f}x"
             )
-        if optimized_path_ratio < minimum_path_ratio:
+        if same_path_ratio < minimum_path_ratio:
             errors.append(
                 f"{optimized_name}: same-path performance ratio "
-                f"{optimized_path_ratio:.3f}x is below {minimum_path_ratio:.3f}x"
+                f"{same_path_ratio:.3f}x is below {minimum_path_ratio:.3f}x"
             )
         if memory_limit is not None and memory_ratio > memory_limit:
             errors.append(
                 f"{optimized_name}: peak-memory ratio {memory_ratio:.3f} exceeds "
                 f"{memory_limit:.3f}"
             )
+
         special.append(
             {
                 "name": optimized_name,
@@ -306,12 +379,12 @@ def compare_reports(
                 "current_reference_median_s": _time(current_reference),
                 "current_optimized_median_s": _time(current_optimized),
                 "baseline_speedup": baseline_speedup,
-                "speedup": current_speedup,
+                "speedup": speedup,
                 "configured_minimum_speedup": target_speedup,
-                "effective_minimum_speedup": effective_minimum_speedup,
-                "speedup_retention": benefit_retention,
+                "effective_minimum_speedup": effective_minimum,
+                "speedup_retention": retention,
                 "minimum_speedup_retention": minimum_benefit_retention,
-                "same_path_performance_ratio": optimized_path_ratio,
+                "same_path_performance_ratio": same_path_ratio,
                 "minimum_same_path_performance_ratio": minimum_path_ratio,
                 "current_reference_peak_memory_bytes": _memory(current_reference),
                 "current_optimized_peak_memory_bytes": _memory(current_optimized),
@@ -321,9 +394,37 @@ def compare_reports(
                 "parity_policy": parity_policy,
                 "parity_verified_by_tests": digest_match is True
                 or optimized_name != "epdm_semibatch_10000_steps_compiled",
+                "historical_status": "PASS" if passed else "FAIL",
+                "not_applicable_reason": None,
                 "pass": passed,
             }
         )
+    return special
+
+
+def compare_reports(
+    baseline: dict[str, object], current: dict[str, object]
+) -> dict[str, object]:
+    historical = str(baseline.get("version", "")) in LEGACY_HISTORICAL_BASELINES
+    errors: list[str] = []
+    not_applicable: list[str] = []
+    baseline_rows = _rows(baseline)
+    current_rows = _rows(current)
+
+    comparisons = _common_comparisons(
+        baseline_rows,
+        current_rows,
+        historical=historical,
+        errors=errors,
+        not_applicable=not_applicable,
+    )
+    special = _special_comparisons(
+        baseline_rows,
+        current_rows,
+        historical=historical,
+        errors=errors,
+        not_applicable=not_applicable,
+    )
 
     scale_checks = [
         _scale_check(
@@ -361,12 +462,23 @@ def compare_reports(
                 f"scale check {check['small']} -> {check['large']} exceeded normalized limit"
             )
 
+    passed = not errors
+    if not passed:
+        verdict = "FAIL"
+    elif not_applicable:
+        verdict = "PASS_WITH_NOT_APPLICABLE"
+    else:
+        verdict = "PASS"
+
     return {
         "schema": "TSAO-PERFORMANCE-COMPARISON-2",
         "baseline_version": baseline.get("version"),
         "optimized_version": current.get("version"),
-        "pass": not errors,
+        "comparison_mode": "HISTORICAL_TREND" if historical else "QUALIFICATION",
+        "verdict": verdict,
+        "pass": passed,
         "errors": errors,
+        "not_applicable": not_applicable,
         "common_workload_comparisons": comparisons,
         "optimized_path_comparisons": special,
         "scale_checks": scale_checks,
