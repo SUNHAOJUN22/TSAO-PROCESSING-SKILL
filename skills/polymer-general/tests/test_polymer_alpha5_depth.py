@@ -63,7 +63,7 @@ def test_balance_known_solution_and_duplicate_rejection(tmp_path: Path):
         + "A,mass,kg,h,1,1,0,0,0,1e-12,0,1\n",
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="unique"):
+    with pytest.raises(ValueError, match="duplicate component"):
         module.check(path)
 
 
