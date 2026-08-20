@@ -30,6 +30,12 @@ jobs:
           python-version: '3.14'
       - name: Apply verified V18 scientific-core payload
         run: python scripts/apply_tsao_skill_native_v18.py
+      - name: Repair and syntax-check the exact material-balance payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .tsao-skill-native-v18/repair_material_balance.py
+          python -m py_compile skills/poe/material_balance.py
       - name: Capture exact applied V18 surfaces for deterministic repair audit
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -44,9 +50,8 @@ jobs:
             skills/poe/tests/test_numeric_contracts_v2.py
             skills/poe/tests/test_polymer_metrics_v5.py
             skills/polymer-general/scripts/check_balance.py
-            tests
-            tsao
-          if-no-files-found: warn
+            scripts/check_public_distribution_policy.py
+          if-no-files-found: error
           retention-days: 3
       - name: Remove one-shot and obsolete workflow surfaces before validation
         shell: bash
