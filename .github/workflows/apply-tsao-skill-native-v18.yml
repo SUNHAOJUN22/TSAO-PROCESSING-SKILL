@@ -30,6 +30,24 @@ jobs:
           python-version: '3.14'
       - name: Apply verified V18 scientific-core payload
         run: python scripts/apply_tsao_skill_native_v18.py
+      - name: Capture exact applied V18 surfaces for deterministic repair audit
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: processing-v18-applied-${{ github.run_id }}
+          path: |
+            skills/poe/material_balance.py
+            skills/poe/acceptance_status.py
+            skills/poe/numeric_contracts.py
+            skills/poe/polymer_metrics_v5.py
+            skills/poe/tests/test_acceptance_status_v2.py
+            skills/poe/tests/test_material_balance_v2.py
+            skills/poe/tests/test_numeric_contracts_v2.py
+            skills/poe/tests/test_polymer_metrics_v5.py
+            skills/polymer-general/scripts/check_balance.py
+            tests
+            tsao
+          if-no-files-found: warn
+          retention-days: 3
       - name: Remove one-shot and obsolete workflow surfaces before validation
         shell: bash
         run: |
@@ -53,28 +71,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m ruff check \
-            tsao/distribution_policy.py tsao/build_containment.py tsao/numeric_contracts.py \
-            tsao/owner_decision_v5.py tsao/qualification_gate_v6.py tsao/qualified_evidence_v7.py \
-            tsao/status_lattice.py skills/poe/material_balance.py skills/poe/acceptance_status.py \
-            skills/poe/numeric_contracts.py skills/poe/polymer_metrics_v5.py \
-            skills/polymer-general/scripts/check_balance.py \
-            tests/test_numeric_contracts_v4.py tests/test_owner_decision_v5.py \
-            tests/test_public_distribution_policy_v4.py tests/test_qualification_gate_v6.py \
-            tests/test_status_lattice_v4.py skills/poe/tests/test_acceptance_status_v2.py \
-            skills/poe/tests/test_material_balance_v2.py skills/poe/tests/test_numeric_contracts_v2.py \
-            skills/poe/tests/test_polymer_metrics_v5.py --fix --exit-zero
-          python -m ruff format \
-            tsao/distribution_policy.py tsao/build_containment.py tsao/numeric_contracts.py \
-            tsao/owner_decision_v5.py tsao/qualification_gate_v6.py tsao/qualified_evidence_v7.py \
-            tsao/status_lattice.py skills/poe/material_balance.py skills/poe/acceptance_status.py \
-            skills/poe/numeric_contracts.py skills/poe/polymer_metrics_v5.py \
-            skills/polymer-general/scripts/check_balance.py \
-            tests/test_numeric_contracts_v4.py tests/test_owner_decision_v5.py \
-            tests/test_public_distribution_policy_v4.py tests/test_qualification_gate_v6.py \
-            tests/test_status_lattice_v4.py skills/poe/tests/test_acceptance_status_v2.py \
-            skills/poe/tests/test_material_balance_v2.py skills/poe/tests/test_numeric_contracts_v2.py \
-            skills/poe/tests/test_polymer_metrics_v5.py
+          mapfile -t surfaces < <(python - <<'PY'
+          from pathlib import Path
+
+          roots = [Path("tsao"), Path("skills/poe"), Path("skills/polymer-general/scripts"), Path("tests")]
+          for root in roots:
+              if root.is_file() and root.suffix == ".py":
+                  print(root.as_posix())
+              elif root.is_dir():
+                  for path in sorted(root.rglob("*.py")):
+                      print(path.as_posix())
+          PY
+          )
+          test "${#surfaces[@]}" -gt 0
+          python -m ruff check "${surfaces[@]}" --fix --unsafe-fixes --exit-zero
+          python -m ruff format "${surfaces[@]}"
+          python -m compileall -q tsao skills tests
           git diff --check
       - name: Run authoritative repository CI driver
         shell: bash
@@ -86,11 +98,6 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -q \
-            tests/test_numeric_contracts_v4.py \
-            tests/test_owner_decision_v5.py \
-            tests/test_public_distribution_policy_v4.py \
-            tests/test_qualification_gate_v6.py \
-            tests/test_status_lattice_v4.py \
             skills/poe/tests/test_acceptance_status_v2.py \
             skills/poe/tests/test_material_balance_v2.py \
             skills/poe/tests/test_numeric_contracts_v2.py \
