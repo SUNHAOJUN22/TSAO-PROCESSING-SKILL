@@ -35,6 +35,43 @@ jobs:
         run: |
           set -euo pipefail
           python .tsao-skill-native-v18/repair_material_balance.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("skills/poe/material_balance.py")
+          text = path.read_text(encoding="utf-8")
+          old = "def term(name: str, *, non_negative: bool) -> float:"
+          new = (
+              "def term(\n"
+              "                name: str,\n"
+              "                *,\n"
+              "                non_negative: bool,\n"
+              "                current_row: Mapping[str, object] = row,\n"
+              "                row_number: int = index,\n"
+              "                unit_factor: float = factor,\n"
+              "            ) -> float:"
+          )
+          if old not in text:
+              raise SystemExit("expected nested term helper was not found")
+          text = text.replace(old, new, 1)
+          text = text.replace(
+              'row.get(name), f"row {index} {name}", allow_string=True',
+              'current_row.get(name), f"row {row_number} {name}", allow_string=True',
+              1,
+          )
+          text = text.replace(
+              'f"row {index} {name} must be non-negative"',
+              'f"row {row_number} {name} must be non-negative"',
+              1,
+          )
+          text = text.replace("converted = value * factor", "converted = value * unit_factor", 1)
+          text = text.replace(
+              'f"row {index} {name} conversion is non-finite"',
+              'f"row {row_number} {name} conversion is non-finite"',
+              1,
+          )
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
           python -m py_compile skills/poe/material_balance.py
       - name: Capture exact applied V18 surfaces for deterministic repair audit
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -59,11 +96,15 @@ jobs:
           set -euo pipefail
           rm -rf .tsao-skill-native-v18
           rm -f scripts/apply_tsao_skill_native_v18.py
+          rm -f scripts/apply_skill_native_v15_fix2.py
           rm -f .github/workflows/apply-tsao-skill-native-v18.yml
           rm -f .github/workflows/contracts-v17.yml
           rm -f .github/workflows/branch-hygiene-v15.yml
           rm -f .github/workflows/apply-skill-native-v15-fix1.yml
           rm -f .github/workflows/apply-skill-native-v15-fix2.yml
+          rm -f .github/V15_FINAL_QUALIFICATION.md
+          rm -f .github/V17_FINAL_QUALIFICATION_2026-08-19.md
+          rm -f V15_RELEASE_NOTES.md
       - name: Install exact locked dependencies
         shell: bash
         run: |
@@ -79,7 +120,7 @@ jobs:
           mapfile -t surfaces < <(python - <<'PY'
           from pathlib import Path
 
-          roots = [Path("tsao"), Path("skills/poe"), Path("skills/polymer-general/scripts"), Path("tests")]
+          roots = [Path("tsao"), Path("skills/poe"), Path("skills/polymer-general"), Path("tests")]
           for root in roots:
               if root.is_file() and root.suffix == ".py":
                   print(root.as_posix())
@@ -92,6 +133,18 @@ jobs:
           python -m ruff check "${surfaces[@]}" --fix --unsafe-fixes --exit-zero
           python -m ruff format "${surfaces[@]}"
           python -m compileall -q tsao skills tests
+          git diff --check
+      - name: Rebuild exact-tree provenance before native qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          header=$'path\tsha256\tbytes\tspecialist\tartifact_class\tlicense_scope\n'
+          printf '%s' "$header" > reports/SOURCE_CORE_OVERLAY.tsv
+          printf '%s' "$header" > reports/SOURCE_ACCEPTANCE_OVERLAY.tsv
+          python scripts/build_source_asset_manifest.py \
+            --root . \
+            --out reports/SOURCE_CORE_MANIFEST.tsv
+          python -m tsao.cli doctor --root . --profile core
           git diff --check
       - name: Run authoritative repository CI driver
         shell: bash
