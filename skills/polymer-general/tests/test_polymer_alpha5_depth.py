@@ -8,6 +8,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+BALANCE_HEADER = (
+    "component,quantity_basis,quantity_unit,time_unit,in,out,generation,"
+    "consumption,accumulation,absolute_tolerance,relative_tolerance,reference_scale\n"
+)
 
 
 def load(name: str):
@@ -49,16 +53,18 @@ def test_balance_known_solution_and_duplicate_rejection(tmp_path: Path):
     module = load("check_balance")
     path = tmp_path / "balance.csv"
     path.write_text(
-        "component,in,out,generation,consumption\nA,10,8,0,2\n",
+        BALANCE_HEADER + "A,mass,kg,h,10,8,0,2,0,1e-12,0,10\n",
         encoding="utf-8",
     )
-    assert module.check(path, 1e-12)["pass"] is True
+    assert module.check(path)["pass"] is True
     path.write_text(
-        "component,in,out,generation,consumption\nA,10,8,0,2\nA,1,1,0,0\n",
+        BALANCE_HEADER
+        + "A,mass,kg,h,10,8,0,2,0,1e-12,0,10\n"
+        + "A,mass,kg,h,1,1,0,0,0,1e-12,0,1\n",
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="unique"):
-        module.check(path, 1e-12)
+        module.check(path)
 
 
 def test_master_plan_is_full_g0_g18(tmp_path: Path):
@@ -95,12 +101,12 @@ def test_balance_rejects_cross_component_cancellation(tmp_path: Path):
     module = load("check_balance")
     path = tmp_path / "cancel.csv"
     path.write_text(
-        "component,in,out,generation,consumption\n"
-        "A,10,0,0,0\n"
-        "B,0,10,0,0\n",
+        BALANCE_HEADER
+        + "A,mass,kg,h,10,0,0,0,0,1e-12,0,10\n"
+        + "B,mass,kg,h,0,10,0,0,0,1e-12,0,10\n",
         encoding="utf-8",
     )
-    result = module.check(path, 1e-12)
+    result = module.check(path)
     assert result["total_balance_pass"] is True
     assert result["component_balances_pass"] is False
     assert result["pass"] is False
