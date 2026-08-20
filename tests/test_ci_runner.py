@@ -272,7 +272,6 @@ def test_ci_runner_windows_job_assignment_denial_fails_closed_and_falls_back(
     assert result["process_control"] == "WINDOWS_TOOLHELP_FALLBACK"
     assert result["job_object_bound"] is False
     assert any(
-        "cannot bind PID" in issue and "winerror 5" in issue
-        for issue in result["cleanup_issues"]
+        "cannot bind PID" in issue and "winerror 5" in issue for issue in result["cleanup_issues"]
     )
     assert not child_pid_file.exists(), "uncontained command executed after binding denial"

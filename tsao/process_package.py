@@ -142,16 +142,12 @@ def validate_process_package(package: object) -> dict[str, Any]:
         errors.append("tolerances must be an object")
         tolerances = {}
     try:
-        composition_tol = _finite(
-            tolerances.get("composition_abs", 1e-6), "composition tolerance"
-        )
+        composition_tol = _finite(tolerances.get("composition_abs", 1e-6), "composition tolerance")
         mass_tol = _finite(tolerances.get("mass_relative", 1e-4), "mass tolerance")
         component_tol = _finite(
             tolerances.get("component_relative", mass_tol), "component tolerance"
         )
-        energy_tol = _finite(
-            tolerances.get("energy_relative", 1e-3), "energy tolerance"
-        )
+        energy_tol = _finite(tolerances.get("energy_relative", 1e-3), "energy tolerance")
         if min(composition_tol, mass_tol, component_tol, energy_tol) < 0:
             raise ValueError("tolerances must be non-negative")
     except ValueError as exc:
@@ -389,9 +385,7 @@ def validate_process_package(package: object) -> dict[str, Any]:
             if not isinstance(reaction_basis, dict) or not reaction_basis:
                 holds.append(f"equipment {identifier} reaction basis is incomplete")
                 reason_codes.add("REACTION_BASIS_INCOMPLETE")
-            elif not reaction_basis.get("stoichiometry") and not reaction_basis.get(
-                "description"
-            ):
+            elif not reaction_basis.get("stoichiometry") and not reaction_basis.get("description"):
                 holds.append(
                     f"equipment {identifier} reaction basis lacks stoichiometry or description"
                 )

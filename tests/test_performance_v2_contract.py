@@ -128,9 +128,7 @@ def test_semibatch_trajectory_matches_repeated_public_steps() -> None:
         assert isinstance(inventory_data, dict)
         inventory = SemibatchInventory(**inventory_data)
         total_polymer += float(step["polymer_increment_mol"])
-        maximum_closure = max(
-            maximum_closure, abs(float(step["molar_closure_residual"]))
-        )
+        maximum_closure = max(maximum_closure, abs(float(step["molar_closure_residual"])))
         expected_history.append({"step": index + 1, **inventory_data})
     actual = semibatch_trajectory(
         initial,
@@ -188,9 +186,7 @@ def test_poe_fixed_state_rk4_preserves_alpha10_result_identity() -> None:
 def test_poe_terminal_execution_matches_full_history_result() -> None:
     initial, parameters = _poe_case()
     full = simulate_kinetics(initial, parameters, duration_s=20.0, step_s=0.05)
-    terminal = simulate_kinetics_terminal(
-        initial, parameters, duration_s=20.0, step_s=0.05
-    )
+    terminal = simulate_kinetics_terminal(initial, parameters, duration_s=20.0, step_s=0.05)
     assert terminal["final"] == full["final"]
     assert terminal["metrics"] == full["metrics"]
     assert terminal["history_stored"] is False

@@ -33,9 +33,7 @@ def _row(
 
 def test_extended_alpha10_baseline_has_required_scale_and_memory_fields() -> None:
     report = json.loads(
-        (ROOT / "reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json").read_text(
-            encoding="utf-8"
-        )
+        (ROOT / "reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json").read_text(encoding="utf-8")
     )
     assert report["schema"] == "TSAO-PERFORMANCE-2"
     assert report["version"] == "0.1.0-alpha.10"
@@ -268,7 +266,6 @@ def test_doctor_normalization_fails_closed_without_work_units() -> None:
     assert any("missing numeric work_units" in error for error in result["errors"])
 
 
-
 def test_special_path_preserves_parent_benefit_when_target_was_not_met() -> None:
     baseline = {
         "schema": "TSAO-PERFORMANCE-2",
@@ -295,9 +292,7 @@ def test_special_path_preserves_parent_benefit_when_target_was_not_met() -> None
     assert row["baseline_speedup"] < row["configured_minimum_speedup"]
     assert row["speedup"] >= row["effective_minimum_speedup"]
     assert row["speedup_retention"] >= row["minimum_speedup_retention"]
-    assert row["same_path_performance_ratio"] >= (
-        row["minimum_same_path_performance_ratio"]
-    )
+    assert row["same_path_performance_ratio"] >= (row["minimum_same_path_performance_ratio"])
     assert row["pass"] is True
 
 
@@ -347,9 +342,7 @@ def test_process_package_semantic_parity_still_enforces_timing() -> None:
 
 def test_process_package_baseline_records_justified_semantic_rebase() -> None:
     report = json.loads(
-        (ROOT / "reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json").read_text(
-            encoding="utf-8"
-        )
+        (ROOT / "reports/PERFORMANCE_BASELINE_ALPHA10_EXTENDED.json").read_text(encoding="utf-8")
     )
     rows = {row["name"]: row for row in report["benchmarks"]}
     for name in ("process_package_500_equipment", "process_package_5000_equipment"):

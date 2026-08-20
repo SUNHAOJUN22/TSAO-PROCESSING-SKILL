@@ -50,9 +50,7 @@ def generate_runs(
         design_type = "RANDOMIZED_FULL_FACTORIAL" if selected == full_size else "RANDOM_SUBSAMPLE"
     else:
         if selected > _MATERIALIZATION_LIMIT:
-            raise ValueError(
-                f"selected run count exceeds safety limit {_MATERIALIZATION_LIMIT}"
-            )
+            raise ValueError(f"selected run count exceeds safety limit {_MATERIALIZATION_LIMIT}")
         indices = generator.sample(range(full_size), selected)
         runs = [_row_from_index(index, levels) for index in indices]
         design_type = "INDEX_SAMPLED_FACTORIAL_SPACE"

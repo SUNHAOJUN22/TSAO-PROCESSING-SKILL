@@ -179,12 +179,7 @@ def test_version_metadata_is_consistent() -> None:
         (ROOT / "reports/COMPLETE_DISTRIBUTION_REFERENCE.json").read_text(encoding="utf-8")
     )
     assert tsao.__version__ == manifest["version"]
-    pep440 = (
-        tsao.__version__
-        .replace("-alpha.", "a")
-        .replace("-beta.", "b")
-        .replace("-rc.", "rc")
-    )
+    pep440 = tsao.__version__.replace("-alpha.", "a").replace("-beta.", "b").replace("-rc.", "rc")
     assert pyproject["project"]["version"] == pep440
     assert manifest["version"] == tsao.__version__
     assert citation["version"] == tsao.__version__

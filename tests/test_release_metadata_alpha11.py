@@ -49,7 +49,9 @@ def test_project_metadata_and_requirements_are_in_lockstep() -> None:
 
 
 def test_historical_performance_evidence_remains_passing() -> None:
-    comparison = json.loads((ROOT / "reports/PERFORMANCE_COMPARISON_ALPHA11.json").read_text(encoding="utf-8"))
+    comparison = json.loads(
+        (ROOT / "reports/PERFORMANCE_COMPARISON_ALPHA11.json").read_text(encoding="utf-8")
+    )
     assert comparison["pass"] is True
     assert comparison["errors"] == []
     assert all(row["pass"] for row in comparison["common_workload_comparisons"])

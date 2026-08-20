@@ -116,13 +116,9 @@ def test_project_modes_allow_progress_but_initialization_does_not(tmp_path: Path
     root = tmp_path / "project"
     bootstrap_project(brief, root)
     assert audit_project(root, mode="initialization") == []
-    packages = json.loads(
-        (root / "00_governance/work_packages.json").read_text(encoding="utf-8")
-    )
+    packages = json.loads((root / "00_governance/work_packages.json").read_text(encoding="utf-8"))
     packages[0]["approval_status"] = "APPROVED"
-    (root / "00_governance/work_packages.json").write_text(
-        json.dumps(packages), encoding="utf-8"
-    )
+    (root / "00_governance/work_packages.json").write_text(json.dumps(packages), encoding="utf-8")
     assert any("initialization" in issue for issue in audit_project(root, mode="initialization"))
     assert audit_project(root, mode="project") == []
 

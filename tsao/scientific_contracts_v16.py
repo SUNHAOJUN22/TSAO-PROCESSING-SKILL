@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from math import expm1, isfinite
-from typing import Iterable, Mapping
 
 
 class ContractError(ValueError):
@@ -115,13 +115,13 @@ def regression_metrics(observed: list[float], predicted: list[float]) -> dict[st
     predicted_values = [_real(value, "predicted") for value in predicted]
     errors = [
         predicted_value - observed_value
-        for observed_value, predicted_value in zip(observed_values, predicted_values)
+        for observed_value, predicted_value in zip(observed_values, predicted_values, strict=False)
     ]
     mae = sum(abs(error) for error in errors) / len(errors)
     rmse = (sum(error * error for error in errors) / len(errors)) ** 0.5
     eligible = [
         abs(error / observed_value)
-        for observed_value, error in zip(observed_values, errors)
+        for observed_value, error in zip(observed_values, errors, strict=False)
         if observed_value != 0.0
     ]
     return {
@@ -136,8 +136,7 @@ def regression_metrics(observed: list[float], predicted: list[float]) -> dict[st
 def public_distribution_status(records: list[Mapping[str, object]]) -> str:
     for record in records:
         if (
-            record.get("confidentiality")
-            in {"CONTROLLED_INTERNAL", "INTERNAL", "RESTRICTED"}
+            record.get("confidentiality") in {"CONTROLLED_INTERNAL", "INTERNAL", "RESTRICTED"}
             or record.get("license_scope") == "PROJECT_CONTROLLED"
             or record.get("public_fixture_eligible") is not True
         ):

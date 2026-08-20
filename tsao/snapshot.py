@@ -23,9 +23,7 @@ _SOURCE_OVERLAYS = (
 _SOURCE_SNAPSHOT_SUPPORT_FILES = (Path("reports/runtime/README.md"),)
 
 
-def _manifest_paths(
-    manifest: Path, overlays: tuple[Path, ...] = ()
-) -> list[str]:
+def _manifest_paths(manifest: Path, overlays: tuple[Path, ...] = ()) -> list[str]:
     lines = manifest.read_text(encoding="utf-8").splitlines()
     if not lines or lines[0].split("\t")[:3] != ["path", "sha256", "bytes"]:
         raise ValueError("source manifest header mismatch")
@@ -94,9 +92,7 @@ def build_source_snapshot(root: Path, output: Path) -> dict[str, Any]:
             "version": __version__,
             "files_from_manifest": len(paths),
             "source_manifest_sha256": sha256_file(manifest),
-            "source_overlay_sha256": included_overlays.get(
-                "reports/SOURCE_CORE_OVERLAY.tsv"
-            ),
+            "source_overlay_sha256": included_overlays.get("reports/SOURCE_CORE_OVERLAY.tsv"),
             "overlay_included": "reports/SOURCE_CORE_OVERLAY.tsv" in included_overlays,
             "source_overlays": included_overlays,
             "snapshot_support_files": support_files,

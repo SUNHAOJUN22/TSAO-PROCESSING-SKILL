@@ -141,9 +141,7 @@ def _kinetic_derivative_vector(state: StateVector, params: KineticParameters) ->
     )
 
 
-def _kinetic_derivative_validated(
-    state: KineticState, params: KineticParameters
-) -> KineticState:
+def _kinetic_derivative_validated(state: KineticState, params: KineticParameters) -> KineticState:
     return _state_from_vector(_kinetic_derivative_vector(_state_vector(state), params))
 
 
@@ -250,9 +248,7 @@ def simulate_kinetics_terminal(
     step_s: float,
 ) -> dict[str, Any]:
     """Run the same RK4 reference model without allocating a time-history list."""
-    state_values, _ = _integrate_vectors(
-        initial, params, duration_s, step_s, store_history=False
-    )
+    state_values, _ = _integrate_vectors(initial, params, duration_s, step_s, store_history=False)
     final = _state_from_vector(state_values)
     return {
         "status": "CALCULATED_REFERENCE_ONLY",

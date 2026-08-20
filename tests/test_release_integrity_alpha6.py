@@ -75,9 +75,7 @@ def test_source_snapshot_fails_closed_without_required_support_file(tmp_path: Pa
 def test_source_snapshot_includes_overlay_only_files(tmp_path: Path) -> None:
     root = tmp_path / "source-overlay"
     (root / "reports/runtime").mkdir(parents=True)
-    (root / "reports/runtime/README.md").write_text(
-        "# Runtime reports\n", encoding="utf-8"
-    )
+    (root / "reports/runtime/README.md").write_text("# Runtime reports\n", encoding="utf-8")
     (root / "base.txt").write_text("base\n", encoding="utf-8")
     build_manifest(
         root,
@@ -97,7 +95,6 @@ def test_source_snapshot_includes_overlay_only_files(tmp_path: Path) -> None:
         names = archive.namelist()
         assert any(name.endswith("overlay-only.txt") for name in names)
         assert any(name.endswith("reports/SOURCE_CORE_OVERLAY.tsv") for name in names)
-
 
 
 def test_full_doctor_verifies_distribution_metadata(tmp_path: Path) -> None:

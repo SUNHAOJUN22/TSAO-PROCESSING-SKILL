@@ -72,6 +72,7 @@ def test_lock_rejects_credentials_and_non_pinned_rows(tmp_path: Path) -> None:
     assert any("must not contain credentials" in error for error in report["errors"])
     assert any("not exactly pinned" in error for error in report["errors"])
 
+
 def test_committed_lock_covers_windows_pytest_dependency() -> None:
     root = Path(__file__).resolve().parents[1]
     report = verify_lock(root / "requirements.lock", root / "pyproject.toml")

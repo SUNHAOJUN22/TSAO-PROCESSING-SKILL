@@ -70,7 +70,11 @@ def heat_transfer_margin(
         status = "PASS" if capacity > 0 else "HOLD"
     else:
         margin = (capacity - duty) / duty
-        reason_code = "MARGIN_ACCEPTABLE" if capacity >= duty and margin >= minimum_margin_fraction else "MARGIN_INSUFFICIENT"
+        reason_code = (
+            "MARGIN_ACCEPTABLE"
+            if capacity >= duty and margin >= minimum_margin_fraction
+            else "MARGIN_INSUFFICIENT"
+        )
         status = "PASS" if reason_code == "MARGIN_ACCEPTABLE" else "HOLD"
     return {
         "status": status,

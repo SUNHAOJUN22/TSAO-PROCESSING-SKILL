@@ -63,6 +63,7 @@ def test_ci_installs_the_verified_lock_without_dependency_resolution() -> None:
     assert "--allow-missing" not in text
     assert "pip install --quiet -e .[dev]" not in text
 
+
 def test_ci_records_the_exact_main_sha_and_run_result() -> None:
     text = _workflow_text()
     assert "qualification-ledger:" in text
@@ -70,4 +71,3 @@ def test_ci_records_the_exact_main_sha_and_run_result() -> None:
     assert "issues: write" in text
     assert 'gh issue comment 68 --repo "$GITHUB_REPOSITORY"' in text
     assert 'test "$verdict" = PASS' in text
-

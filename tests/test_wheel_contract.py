@@ -157,6 +157,7 @@ def test_runtime_payload_rejects_host_skillpack_data(tmp_path: Path) -> None:
     errors = _evaluate_payload(payload, "TEST", expected_root=install_root)
     assert "TEST resolved Skillpack data outside the installed root" in errors
 
+
 def test_runtime_payload_rejects_incomplete_a2_and_a3_install_contract(tmp_path: Path) -> None:
     install_root = tmp_path / "installed"
     payload = _valid_runtime_payload(install_root)

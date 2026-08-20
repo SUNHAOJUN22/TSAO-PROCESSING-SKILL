@@ -136,16 +136,12 @@ def iter_source_files(root: Path):
             path_string = os.path.join(directory, file_name)
             if os.path.islink(path_string):
                 continue
-            relative = (
-                f"{relative_directory}/{file_name}" if relative_directory else file_name
-            )
+            relative = f"{relative_directory}/{file_name}" if relative_directory else file_name
             if not _excluded_relative(relative):
                 yield Path(path_string), relative
 
 
-def build_manifest(
-    root: Path, target: Path, *, allowed_paths: set[str] | None = None
-) -> int:
+def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None = None) -> int:
     root = Path(root)
     target = Path(target)
     rows: list[dict[str, Any]] = []
@@ -230,9 +226,7 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
         for overlay_path in overlay_paths:
             if not overlay_path.is_file():
                 continue
-            overlay, overlay_issues = _read_manifest_records(
-                overlay_path, label=overlay_path.name
-            )
+            overlay, overlay_issues = _read_manifest_records(overlay_path, label=overlay_path.name)
             issues.extend(overlay_issues)
             records.update(overlay)
     if not records:

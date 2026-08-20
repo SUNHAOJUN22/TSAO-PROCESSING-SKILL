@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import expm1, fsum, isfinite
-from typing import Mapping
 
 STATUS_RANK: dict[str, int] = {
     "PASS": 0,
@@ -57,7 +57,10 @@ def component_balance(
     absolute_tolerance: float,
     relative_tolerance: float,
 ) -> BalanceDecision:
-    for name, raw in (("absolute_tolerance", absolute_tolerance), ("relative_tolerance", relative_tolerance)):
+    for name, raw in (
+        ("absolute_tolerance", absolute_tolerance),
+        ("relative_tolerance", relative_tolerance),
+    ):
         if isinstance(raw, bool) or not isinstance(raw, (int, float)):
             raise TypeError(f"{name} must be a non-boolean real number")
         if not isfinite(float(raw)) or float(raw) < 0.0:

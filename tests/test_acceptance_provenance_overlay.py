@@ -38,9 +38,7 @@ def test_snapshot_manifest_paths_include_acceptance_delta(tmp_path: Path) -> Non
     acceptance = tmp_path / "acceptance.tsv"
     manifest.write_text(HEADER + _row("base.txt", b"base"), encoding="utf-8")
     core.write_text(HEADER + _row("core.txt", b"core"), encoding="utf-8")
-    acceptance.write_text(
-        HEADER + _row("acceptance.txt", b"acceptance"), encoding="utf-8"
-    )
+    acceptance.write_text(HEADER + _row("acceptance.txt", b"acceptance"), encoding="utf-8")
 
     assert _manifest_paths(manifest, (core, acceptance)) == [
         "base.txt",

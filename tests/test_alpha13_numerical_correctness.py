@@ -42,9 +42,7 @@ def test_epdm_detailed_chain_moments_use_weighted_rates() -> None:
     detailed = result["detailed_heterogeneous_site_reference"]
     propagation_rates = detailed["weighted_propagation_rates_mol_L_s"]
     mean_multiplier = 0.2 * 0.1 + 0.8 * 3.0
-    expected_propagation = (
-        (2.0 * 1.2 + 1.6 * 1.0 + 0.5 * 0.04) * 0.001 * mean_multiplier
-    )
+    expected_propagation = (2.0 * 1.2 + 1.6 * 1.0 + 0.5 * 0.04) * 0.001 * mean_multiplier
     expected_loss = (0.08 + 0.02 + 10.0e-6) * 0.001
     assert sum(propagation_rates.values()) == pytest.approx(expected_propagation)
     assert detailed["chain_moments"]["number_average_degree_of_polymerization"] == pytest.approx(

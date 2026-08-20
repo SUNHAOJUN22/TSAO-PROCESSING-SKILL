@@ -57,20 +57,16 @@ def delivery_report(
     readme_assets = tuple(sorted((root / "docs/assets/readme").glob("*.svg")))
 
     approval_boundary = {
-        field: release_identity.get(field, _NOT_EVALUATED)
-        for field in _EXTERNAL_APPROVAL_FIELDS
+        field: release_identity.get(field, _NOT_EVALUATED) for field in _EXTERNAL_APPROVAL_FIELDS
     }
-    approval_boundary_ok = all(
-        value == _NOT_EVALUATED for value in approval_boundary.values()
-    )
+    approval_boundary_ok = all(value == _NOT_EVALUATED for value in approval_boundary.values())
     release_software_ok = release_identity.get("artifact_software_qualification") == "PASS"
     checks = {
         "doctor": bool(doctor.get("pass")),
         "skillpack_inventory": bool(skillpacks.get("pass")),
         "release_software_identity": release_software_ok,
         "external_approval_boundary": approval_boundary_ok,
-        "four_skill_inventory": subskills
-        == ("epdm", "poe", "polymer-general", "process-general"),
+        "four_skill_inventory": subskills == ("epdm", "poe", "polymer-general", "process-general"),
         "readme_visual_inventory": len(readme_assets) >= 32,
     }
     passed = all(checks.values())
@@ -97,9 +93,7 @@ def delivery_report(
         },
         "approval_boundary": approval_boundary,
         "external_holds": [
-            field
-            for field, value in approval_boundary.items()
-            if value == _NOT_EVALUATED
+            field for field, value in approval_boundary.items() if value == _NOT_EVALUATED
         ],
         "statement": (
             "PASS qualifies the repository software artifact only; scientific, engineering, "
