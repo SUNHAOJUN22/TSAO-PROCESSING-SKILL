@@ -43,7 +43,11 @@ def main() -> int:
     parts = sorted(STAGE.glob("payload.b64.part-*"))
     if not parts:
         raise RuntimeError("V18 payload parts are missing")
-    encoded = "".join(path.read_text(encoding="ascii") for path in parts)
+    # Git stores each chunk as a text file and may preserve a trailing newline.
+    # Strict Base64 validation is retained after removing ASCII whitespace only.
+    encoded = "".join(
+        "".join(path.read_text(encoding="ascii").split()) for path in parts
+    )
     archive_bytes = base64.b64decode(encoded, validate=True)
     copied = 0
     transformed = 0
@@ -67,7 +71,9 @@ def main() -> int:
             for index, transform in enumerate(sorted(transforms.glob("*.py")), start=1):
                 result = load_transform(transform, index)(ROOT)
                 if result is not None and not isinstance(result, list):
-                    raise RuntimeError(f"unexpected transform result from {transform.name}: {type(result)!r}")
+                    raise RuntimeError(
+                        f"unexpected transform result from {transform.name}: {type(result)!r}"
+                    )
                 transformed += 1
     print({"copied_files": copied, "transforms_applied": transformed})
     return 0
