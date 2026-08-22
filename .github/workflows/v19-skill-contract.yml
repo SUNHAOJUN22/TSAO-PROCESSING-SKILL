@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest discover -s tests -p 'test_skill_interoperability_v19.py' -v
+          python -m unittest discover -s tests -p 'test_skill_contract_v19.py' -v
       - name: Publish exact-SHA status
         if: always() && github.event_name == 'push'
         env:
