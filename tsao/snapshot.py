@@ -8,6 +8,7 @@ from typing import Any
 
 from . import __version__
 from .archive import deterministic_zip
+from .distribution_policy import assert_public_distribution_allowed
 from .integrity import (
     build_release_metadata,
     sha256_file,
@@ -47,6 +48,7 @@ def _manifest_paths(manifest: Path, overlays: tuple[Path, ...] = ()) -> list[str
 def build_source_snapshot(root: Path, output: Path) -> dict[str, Any]:
     root = Path(root).resolve()
     output = Path(output).resolve(strict=False)
+    distribution = assert_public_distribution_allowed(root, artifact_kind="public source snapshot")
     manifest = root / _SOURCE_MANIFEST
     overlays = tuple(root / relative for relative in _SOURCE_OVERLAYS)
     issues = verify_manifest(root, manifest)
@@ -97,6 +99,7 @@ def build_source_snapshot(root: Path, output: Path) -> dict[str, Any]:
             "source_overlays": included_overlays,
             "snapshot_support_files": support_files,
             "snapshot_file_count_before_metadata": len(copied_paths),
+            "distribution_policy": distribution.as_dict(),
             "scientific_technical_approval": "NOT_EVALUATED",
             "engineering_design_approval": "NOT_EVALUATED",
             "industrial_performance_guarantee": "NOT_EVALUATED",
