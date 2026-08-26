@@ -12,7 +12,6 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any
 
 _REGISTRY = Path("skills/poe/data/source_asset_registry.json")
 _CONTROLLED_CONFIDENTIALITY = {"CONTROLLED_INTERNAL", "INTERNAL", "RESTRICTED"}

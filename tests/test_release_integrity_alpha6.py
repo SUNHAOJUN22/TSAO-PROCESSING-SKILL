@@ -15,6 +15,36 @@ from tsao.snapshot import build_source_snapshot
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _write_public_distribution_registry(root: Path) -> None:
+    directory = root / "skills/poe/data"
+    directory.mkdir(parents=True, exist_ok=True)
+    part_name = "source_asset_registry.part01.json"
+    (directory / part_name).write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "confidentiality": "PUBLIC",
+                        "evidence_class": "SYNTHETIC_PUBLIC_FIXTURE",
+                        "license_scope": "PUBLIC_SYNTHETIC",
+                        "public_fixture_eligible": True,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (directory / "source_asset_registry.json").write_text(
+        json.dumps(
+            {
+                "expected_asset_count": 1,
+                "asset_files": [part_name],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_release_metadata_detects_tampering(tmp_path: Path) -> None:
     root = tmp_path / "release"
     root.mkdir()
@@ -33,6 +63,7 @@ def test_source_snapshot_is_deterministic_and_self_describing(tmp_path: Path) ->
     runtime_marker = root / "reports/runtime/README.md"
     runtime_marker.parent.mkdir(parents=True)
     runtime_marker.write_text("# Runtime reports\n", encoding="utf-8")
+    _write_public_distribution_registry(root)
     build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
     first = tmp_path / "first.zip"
     second = tmp_path / "second.zip"
@@ -63,6 +94,7 @@ def test_source_snapshot_fails_closed_without_required_support_file(tmp_path: Pa
     root = tmp_path / "source-missing-support"
     (root / "reports").mkdir(parents=True)
     (root / "README.md").write_text("# demo\n", encoding="utf-8")
+    _write_public_distribution_registry(root)
     build_manifest(root, root / "reports/SOURCE_CORE_MANIFEST.tsv")
     try:
         build_source_snapshot(root, tmp_path / "missing-support.zip")
@@ -77,10 +109,15 @@ def test_source_snapshot_includes_overlay_only_files(tmp_path: Path) -> None:
     (root / "reports/runtime").mkdir(parents=True)
     (root / "reports/runtime/README.md").write_text("# Runtime reports\n", encoding="utf-8")
     (root / "base.txt").write_text("base\n", encoding="utf-8")
+    _write_public_distribution_registry(root)
     build_manifest(
         root,
         root / "reports/SOURCE_CORE_MANIFEST.tsv",
-        allowed_paths={"base.txt"},
+        allowed_paths={
+            "base.txt",
+            "skills/poe/data/source_asset_registry.json",
+            "skills/poe/data/source_asset_registry.part01.json",
+        },
     )
     (root / "overlay-only.txt").write_text("overlay\n", encoding="utf-8")
     build_manifest(
