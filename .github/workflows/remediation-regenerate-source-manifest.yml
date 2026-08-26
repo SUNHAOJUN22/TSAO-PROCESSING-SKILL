@@ -43,8 +43,14 @@ jobs:
         run: |
           set -euo pipefail
           rm .github/workflows/remediation-regenerate-source-manifest.yml
-          python -m ruff check --fix setup.py
-          python -m ruff format setup.py
+          python -m ruff check --fix \
+            setup.py \
+            tsao/distribution_policy.py \
+            tests/test_release_integrity_alpha6.py
+          python -m ruff format \
+            setup.py \
+            tsao/distribution_policy.py \
+            tests/test_release_integrity_alpha6.py
           python scripts/build_source_asset_manifest.py \
             --root . \
             --out reports/SOURCE_CORE_MANIFEST.tsv
@@ -73,15 +79,19 @@ jobs:
           python - <<'PY'
           import subprocess
 
-          expected = {
+          required = {
               '.github/workflows/remediation-regenerate-source-manifest.yml',
               'reports/SOURCE_CORE_MANIFEST.tsv',
               'setup.py',
+              'tsao/distribution_policy.py',
           }
+          allowed = required | {'tests/test_release_integrity_alpha6.py'}
           actual = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
-          if actual != expected:
+          missing = required - actual
+          unexpected = actual - allowed
+          if missing or unexpected:
               raise SystemExit(
-                  f'unexpected generated diff: expected={sorted(expected)!r} actual={sorted(actual)!r}'
+                  f'unexpected generated diff: missing={sorted(missing)!r} unexpected={sorted(unexpected)!r} actual={sorted(actual)!r}'
               )
           PY
           git config user.name "github-actions[bot]"
