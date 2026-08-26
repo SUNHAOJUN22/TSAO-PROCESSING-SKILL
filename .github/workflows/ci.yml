@@ -2,7 +2,7 @@ name: TSAO alpha15 qualification
 
 on:
   push:
-    branches: [main]
+    branches: [main, remediation/pep517-setup-bootstrap]
   workflow_dispatch:
 
 permissions:
@@ -269,7 +269,7 @@ jobs:
 
   qualification-ledger:
     needs: [qualification, source-snapshot]
-    if: always()
+    if: always() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
