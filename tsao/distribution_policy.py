@@ -147,11 +147,7 @@ def audit_public_distribution(root: Path) -> DistributionAudit:
     if record_count != expected:
         raise ValueError("source registry record count does not match its index")
     owner_decision_status = "PENDING_OWNER_LEGAL_IP_SECURITY_DECISION"
-    status = (
-        "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION"
-        if controlled_count > 0
-        else "PASS"
-    )
+    status = "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION" if controlled_count > 0 else "PASS"
     part_set_sha256 = hashlib.sha256("\n".join(sorted(part_digests)).encode("ascii")).hexdigest()
     return DistributionAudit(
         status=status,
