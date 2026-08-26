@@ -38,15 +38,21 @@ jobs:
           python -m pip install --quiet --no-deps --no-build-isolation -e .
           python -m pip check
 
-      - name: Regenerate the deterministic source manifest
+      - name: Repair formatting and regenerate the deterministic source manifest
         shell: bash
         run: |
           set -euo pipefail
           rm .github/workflows/remediation-regenerate-source-manifest.yml
+          python -m ruff check --fix setup.py
+          python -m ruff format setup.py
           python scripts/build_source_asset_manifest.py \
             --root . \
             --out reports/SOURCE_CORE_MANIFEST.tsv
           python -m ruff check \
+            setup.py \
+            tsao/distribution_policy.py \
+            tests/test_release_integrity_alpha6.py
+          python -m ruff format --check \
             setup.py \
             tsao/distribution_policy.py \
             tests/test_release_integrity_alpha6.py
@@ -70,6 +76,7 @@ jobs:
           expected = {
               '.github/workflows/remediation-regenerate-source-manifest.yml',
               'reports/SOURCE_CORE_MANIFEST.tsv',
+              'setup.py',
           }
           actual = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
           if actual != expected:
@@ -80,5 +87,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore(provenance): regenerate source manifest"
+          git commit -m "chore(provenance): format bootstrap and regenerate source manifest"
           git push origin HEAD:remediation/pep517-setup-bootstrap
