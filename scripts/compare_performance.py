@@ -45,9 +45,7 @@ def compare_reports(baseline: dict[str, object], current: dict[str, object]) -> 
         if not result_match:
             errors.append(f"{name}: numerical result digest changed")
         if speedup < threshold:
-            errors.append(
-                f"{name}: speedup {speedup:.3f}x is below required {threshold:.3f}x"
-            )
+            errors.append(f"{name}: speedup {speedup:.3f}x is below required {threshold:.3f}x")
         comparisons.append(
             {
                 "name": name,

@@ -84,7 +84,6 @@ def _json_digest(value: object) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-
 def _process_package_digest_projection(result: object) -> object:
     """Return stable fail-closed semantics without zero-detail allocation noise."""
     if not isinstance(result, dict):
@@ -99,6 +98,7 @@ def _process_package_digest_projection(result: object) -> object:
         "failed_component_balances": result.get("failed_component_balances"),
         "metrics": result.get("metrics"),
     }
+
 
 def _source_commit() -> str | None:
     try:
@@ -168,8 +168,7 @@ def _measure(case: BenchmarkCase, *, repeats: int) -> dict[str, object]:
     result = case.function()
     timer = timeit.Timer(case.function)
     samples = [
-        elapsed / case.number
-        for elapsed in timer.repeat(number=case.number, repeat=active_repeats)
+        elapsed / case.number for elapsed in timer.repeat(number=case.number, repeat=active_repeats)
     ]
     return {
         "name": case.name,
@@ -482,9 +481,15 @@ def run_benchmarks(*, repeats: int, wheel_dir: Path | None = None) -> dict[str, 
         provenance_300 = _prepare_provenance_fixture(temporary_root / "p300", 300)
         provenance_3000 = _prepare_provenance_fixture(temporary_root / "p3000", 3_000)
         cases: list[BenchmarkCase] = [
-            BenchmarkCase("epdm_three_level_64_site_families", lambda: _epdm_suite_case(64), 100, 20),
-            BenchmarkCase("epdm_three_level_512_site_families", lambda: _epdm_suite_case(512), 10, 2),
-            BenchmarkCase("epdm_semibatch_material_energy_step", _epdm_semibatch_step_case, 500, 50),
+            BenchmarkCase(
+                "epdm_three_level_64_site_families", lambda: _epdm_suite_case(64), 100, 20
+            ),
+            BenchmarkCase(
+                "epdm_three_level_512_site_families", lambda: _epdm_suite_case(512), 10, 2
+            ),
+            BenchmarkCase(
+                "epdm_semibatch_material_energy_step", _epdm_semibatch_step_case, 500, 50
+            ),
             BenchmarkCase(
                 "epdm_semibatch_10000_steps",
                 _epdm_semibatch_trajectory_scalar,
@@ -550,7 +555,9 @@ def run_benchmarks(*, repeats: int, wheel_dir: Path | None = None) -> dict[str, 
         ]
         wheels = sorted(wheel_dir.glob("*.whl")) if wheel_dir and wheel_dir.is_dir() else []
         if len(wheels) == 1:
-            cases.append(BenchmarkCase("wheel_content_verification", lambda: verify_wheel(wheels[0]), 3, 1))
+            cases.append(
+                BenchmarkCase("wheel_content_verification", lambda: verify_wheel(wheels[0]), 3, 1)
+            )
         results = [_measure(case, repeats=repeats) for case in cases]
     return {
         "schema": "TSAO-PERFORMANCE-2",
@@ -571,7 +578,9 @@ def run_benchmarks(*, repeats: int, wheel_dir: Path | None = None) -> dict[str, 
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Benchmark TSAO computational and verification hot paths")
+    parser = argparse.ArgumentParser(
+        description="Benchmark TSAO computational and verification hot paths"
+    )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--wheel-dir", type=Path)

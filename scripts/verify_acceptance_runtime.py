@@ -79,9 +79,7 @@ def verify(wheel: Path) -> dict[str, object]:
                 f"PIP_TARGET install failed: {install.stderr.strip() or install.stdout.strip()}"
             )
         else:
-            completed = _run(
-                [sys.executable, "-I", "-c", _acceptance_code(target)], cwd=root
-            )
+            completed = _run([sys.executable, "-I", "-c", _acceptance_code(target)], cwd=root)
             if completed.returncode:
                 errors.append(
                     "PIP_TARGET acceptance failed: "
@@ -106,13 +104,10 @@ def verify(wheel: Path) -> dict[str, object]:
         )
         if install.returncode:
             errors.append(
-                "STANDARD_VENV install failed: "
-                f"{install.stderr.strip() or install.stdout.strip()}"
+                f"STANDARD_VENV install failed: {install.stderr.strip() or install.stdout.strip()}"
             )
         else:
-            completed = _run(
-                [str(python_executable), "-I", "-c", _acceptance_code()], cwd=root
-            )
+            completed = _run([str(python_executable), "-I", "-c", _acceptance_code()], cwd=root)
             if completed.returncode:
                 errors.append(
                     "STANDARD_VENV acceptance failed: "

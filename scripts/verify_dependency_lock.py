@@ -92,7 +92,9 @@ def verify_lock(lock_path: Path, pyproject_path: Path) -> dict[str, Any]:
             continue
         lowered = line.casefold()
         if lowered.startswith(("-e ", "git+", "hg+", "svn+", "bzr+", "file:", "http:", "https:")):
-            errors.append(f"row {row_number}: editable, VCS, file and direct URL requirements are forbidden")
+            errors.append(
+                f"row {row_number}: editable, VCS, file and direct URL requirements are forbidden"
+            )
             continue
         match = _PIN.match(line)
         if match is None:

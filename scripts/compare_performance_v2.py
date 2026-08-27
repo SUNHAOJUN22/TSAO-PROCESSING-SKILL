@@ -25,27 +25,19 @@ COMMON_MINIMUM_RATIO = {
 }
 
 PARITY_POLICIES = {
-    "doctor_core_repository": (
-        "repository semantic contract: PASS and approval boundaries"
-    ),
+    "doctor_core_repository": ("repository semantic contract: PASS and approval boundaries"),
     "process_package_500_equipment": (
-        "process-package semantic contract: fail-closed topology, component, "
-        "mass and energy gates"
+        "process-package semantic contract: fail-closed topology, component, mass and energy gates"
     ),
     "process_package_5000_equipment": (
-        "process-package semantic contract: fail-closed topology, component, "
-        "mass and energy gates"
+        "process-package semantic contract: fail-closed topology, component, mass and energy gates"
     ),
     "skillpack_inventory": (
         "skillpack semantic contract: four Skills, 14/6/6 inventory, "
         "README assets and approval boundaries"
     ),
-    "wheel_content_verification": (
-        "wheel semantic contract: identity and required-member tests"
-    ),
-    "poe_dynamic_response_10000_points": (
-        "analytical response and metric tolerance contract"
-    ),
+    "wheel_content_verification": ("wheel semantic contract: identity and required-member tests"),
+    "poe_dynamic_response_10000_points": ("analytical response and metric tolerance contract"),
     "poe_finite_difference_jacobian_8x200": "analytical Jacobian tolerance contract",
 }
 
@@ -155,16 +147,25 @@ def _work_unit_ratio(
         baseline_units = float(before["work_units"])
         current_units = float(after["work_units"])
     except (KeyError, TypeError, ValueError):
-        return raw_ratio, None, None, (
-            f"{name}: missing numeric work_units for {work_unit} normalization"
+        return (
+            raw_ratio,
+            None,
+            None,
+            (f"{name}: missing numeric work_units for {work_unit} normalization"),
         )
     if baseline_units <= 0 or current_units <= 0:
-        return raw_ratio, baseline_units, current_units, (
-            f"{name}: work_units must be positive for {work_unit} normalization"
+        return (
+            raw_ratio,
+            baseline_units,
+            current_units,
+            (f"{name}: work_units must be positive for {work_unit} normalization"),
         )
     if before.get("work_unit") != work_unit or after.get("work_unit") != work_unit:
-        return raw_ratio, baseline_units, current_units, (
-            f"{name}: work_unit identity mismatch for {work_unit} normalization"
+        return (
+            raw_ratio,
+            baseline_units,
+            current_units,
+            (f"{name}: work_unit identity mismatch for {work_unit} normalization"),
         )
     return (
         raw_ratio * current_units / baseline_units,
@@ -291,9 +292,7 @@ def _special_comparisons(
         )
         missing = [label for label, row in labelled_rows if row is None]
         if missing:
-            historical_only = historical and all(
-                label.startswith("baseline:") for label in missing
-            )
+            historical_only = historical and all(label.startswith("baseline:") for label in missing)
             if historical_only:
                 reason = "optimized workload did not exist in the legacy baseline"
                 not_applicable.append(f"{optimized_name}: {reason}")
@@ -338,9 +337,7 @@ def _special_comparisons(
             if _time(current_optimized) > 0
             else float("inf")
         )
-        effective_minimum = min(
-            target_speedup, baseline_speedup * minimum_benefit_retention
-        )
+        effective_minimum = min(target_speedup, baseline_speedup * minimum_benefit_retention)
         retention = speedup / baseline_speedup if baseline_speedup > 0 else float("inf")
         same_path_ratio = (
             _time(baseline_optimized) / _time(current_optimized)
@@ -350,9 +347,8 @@ def _special_comparisons(
         memory_ratio = _memory(current_optimized) / max(_memory(current_reference), 1)
         digest_match: bool | None = None
         if optimized_name == "epdm_semibatch_10000_steps_compiled":
-            digest_match = (
-                current_reference.get("result_sha256")
-                == current_optimized.get("result_sha256")
+            digest_match = current_reference.get("result_sha256") == current_optimized.get(
+                "result_sha256"
             )
 
         passed = (
@@ -364,8 +360,7 @@ def _special_comparisons(
         )
         if digest_match is False:
             errors.append(
-                f"{optimized_name}: structured digest differs from current "
-                "scalar reference"
+                f"{optimized_name}: structured digest differs from current scalar reference"
             )
         if speedup < effective_minimum:
             errors.append(
@@ -386,8 +381,7 @@ def _special_comparisons(
             )
         if memory_limit is not None and memory_ratio > memory_limit:
             errors.append(
-                f"{optimized_name}: peak-memory ratio {memory_ratio:.3f} exceeds "
-                f"{memory_limit:.3f}"
+                f"{optimized_name}: peak-memory ratio {memory_ratio:.3f} exceeds {memory_limit:.3f}"
             )
 
         special.append(
@@ -422,9 +416,7 @@ def _special_comparisons(
     return special
 
 
-def compare_reports(
-    baseline: dict[str, object], current: dict[str, object]
-) -> dict[str, object]:
+def compare_reports(baseline: dict[str, object], current: dict[str, object]) -> dict[str, object]:
     historical = str(baseline.get("version", "")) in LEGACY_HISTORICAL_BASELINES
     errors: list[str] = []
     not_applicable: list[str] = []
@@ -480,8 +472,7 @@ def compare_reports(
             )
         else:
             errors.append(
-                f"scale check {check['small']} -> {check['large']} exceeded "
-                "normalized limit"
+                f"scale check {check['small']} -> {check['large']} exceeded normalized limit"
             )
 
     passed = not errors

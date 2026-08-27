@@ -120,8 +120,7 @@ def multiline(
     lines: list[str] = []
     for raw in value.split("\n"):
         lines.extend(
-            wrap(raw, width=width_chars, break_long_words=False, break_on_hyphens=False)
-            or [""]
+            wrap(raw, width=width_chars, break_long_words=False, break_on_hyphens=False) or [""]
         )
     height = line_height or int(size * 1.45)
     cls = "mono" if mono else "sans"
@@ -172,16 +171,12 @@ def line(
     dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
     marker = ""
     if arrow:
-        marker = (
-            ' marker-end="url(#arrowBlue)"'
-            if blue_arrow
-            else ' marker-end="url(#arrow)"'
-        )
+        marker = ' marker-end="url(#arrowBlue)"' if blue_arrow else ' marker-end="url(#arrow)"'
     return (
         f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" '
         f'stroke-width="{width}" stroke-linecap="round" opacity="{opacity}"'
         f"{dash_attr}{marker}/>"
-    ).replace('/>"', '/>')
+    ).replace('/>"', "/>")
 
 
 def path(
@@ -226,28 +221,25 @@ def pill(
     mono: bool = False,
 ) -> str:
     resolved_width = width or max(72, len(label) * (7.2 if mono else 7.8) + 28)
-    return (
-        rect(
-            x,
-            y,
-            resolved_width,
-            height,
-            fill=f"{color}18",
-            stroke=f"{color}88",
-            radius=int(height / 2),
-            stroke_width=1,
-        )
-        + text(
-            x + resolved_width / 2,
-            y + height / 2 + 5,
-            label,
-            size=12,
-            fill=color,
-            weight=700,
-            anchor="middle",
-            mono=mono,
-            letter=0.2,
-        )
+    return rect(
+        x,
+        y,
+        resolved_width,
+        height,
+        fill=f"{color}18",
+        stroke=f"{color}88",
+        radius=int(height / 2),
+        stroke_width=1,
+    ) + text(
+        x + resolved_width / 2,
+        y + height / 2 + 5,
+        label,
+        size=12,
+        fill=color,
+        weight=700,
+        anchor="middle",
+        mono=mono,
+        letter=0.2,
     )
 
 
@@ -270,9 +262,7 @@ def header(
 
 
 def small_icon(parts: list[str], center_x: float, center_y: float, kind: str, color: str) -> None:
-    parts.append(
-        circle(center_x, center_y, 22, fill=f"{color}18", stroke=f"{color}AA", width=1.2)
-    )
+    parts.append(circle(center_x, center_y, 22, fill=f"{color}18", stroke=f"{color}AA", width=1.2))
     if kind == "flow":
         parts.extend(
             [
@@ -293,9 +283,9 @@ def small_icon(parts: list[str], center_x: float, center_y: float, kind: str, co
     elif kind == "shield":
         parts.append(
             path(
-                f"M {center_x} {center_y-11} L {center_x+10} {center_y-7} "
-                f"L {center_x+8} {center_y+5} Q {center_x} {center_y+13} "
-                f"{center_x-8} {center_y+5} L {center_x-10} {center_y-7} Z",
+                f"M {center_x} {center_y - 11} L {center_x + 10} {center_y - 7} "
+                f"L {center_x + 8} {center_y + 5} Q {center_x} {center_y + 13} "
+                f"{center_x - 8} {center_y + 5} L {center_x - 10} {center_y - 7} Z",
                 stroke=color,
                 width=2,
             )
@@ -315,10 +305,24 @@ def small_icon(parts: list[str], center_x: float, center_y: float, kind: str, co
         )
         for offset in (-10, 10):
             parts.append(
-                line(center_x + offset, center_y - 5, center_x + offset, center_y + 5, stroke=color, width=1.6)
+                line(
+                    center_x + offset,
+                    center_y - 5,
+                    center_x + offset,
+                    center_y + 5,
+                    stroke=color,
+                    width=1.6,
+                )
             )
             parts.append(
-                line(center_x - 5, center_y + offset, center_x + 5, center_y + offset, stroke=color, width=1.6)
+                line(
+                    center_x - 5,
+                    center_y + offset,
+                    center_x + 5,
+                    center_y + offset,
+                    stroke=color,
+                    width=1.6,
+                )
             )
     elif kind == "chart":
         parts.extend(
@@ -331,16 +335,16 @@ def small_icon(parts: list[str], center_x: float, center_y: float, kind: str, co
     elif kind == "database":
         parts.extend(
             [
-                f'<ellipse cx="{center_x}" cy="{center_y-7}" rx="10" ry="4" fill="none" stroke="{color}" stroke-width="2"/>',
+                f'<ellipse cx="{center_x}" cy="{center_y - 7}" rx="10" ry="4" fill="none" stroke="{color}" stroke-width="2"/>',
                 path(
-                    f"M {center_x-10} {center_y-7} V {center_y+7} C {center_x-10} {center_y+12} "
-                    f"{center_x+10} {center_y+12} {center_x+10} {center_y+7} V {center_y-7}",
+                    f"M {center_x - 10} {center_y - 7} V {center_y + 7} C {center_x - 10} {center_y + 12} "
+                    f"{center_x + 10} {center_y + 12} {center_x + 10} {center_y + 7} V {center_y - 7}",
                     stroke=color,
                     width=2,
                 ),
                 path(
-                    f"M {center_x-10} {center_y} C {center_x-10} {center_y+5} "
-                    f"{center_x+10} {center_y+5} {center_x+10} {center_y}",
+                    f"M {center_x - 10} {center_y} C {center_x - 10} {center_y + 5} "
+                    f"{center_x + 10} {center_y + 5} {center_x + 10} {center_y}",
                     stroke=color,
                     width=1.5,
                 ),
@@ -429,7 +433,14 @@ def render_platform() -> str:
     cards = [
         (72, 215, "process-general", "14 modules\n6 workflows\nuniversal package", BLUE, "flow"),
         (72, 425, "polymer-general", "DoE · balance\nscale-up · evidence", TEAL, "chart"),
-        (880, 215, "EPDM flagship", "active sites · kinetics\nreactor · finishing", CYAN, "molecule"),
+        (
+            880,
+            215,
+            "EPDM flagship",
+            "active sites · kinetics\nreactor · finishing",
+            CYAN,
+            "molecule",
+        ),
         (880, 425, "POE specialist", "P0/P1 kernels\n139-asset lineage", PURPLE, "database"),
     ]
     for x, y, title_value, detail, color, icon in cards:
@@ -493,7 +504,7 @@ def render_linear(
             detail,
             color,
             icon=icon,
-            tag=f"{index+1:02d}",
+            tag=f"{index + 1:02d}",
         )
         if index < count - 1:
             parts.append(
@@ -523,10 +534,26 @@ def render_layers() -> str:
         eyebrow="SYSTEM ARCHITECTURE",
     )
     layers = [
-        ("Decision & acceptance", "targets · CQAs · trade-offs · Gate state · named approval", BLUE),
-        ("Process & equipment", "streams · balances · reactors · separation · utilities · controls", CYAN),
-        ("Models & computation", "kinetics · thermo · transport · estimation · uncertainty · simulation", PURPLE),
-        ("Evidence & identity", "sources · assumptions · conflicts · manifests · provenance · audit trail", GREEN),
+        (
+            "Decision & acceptance",
+            "targets · CQAs · trade-offs · Gate state · named approval",
+            BLUE,
+        ),
+        (
+            "Process & equipment",
+            "streams · balances · reactors · separation · utilities · controls",
+            CYAN,
+        ),
+        (
+            "Models & computation",
+            "kinetics · thermo · transport · estimation · uncertainty · simulation",
+            PURPLE,
+        ),
+        (
+            "Evidence & identity",
+            "sources · assumptions · conflicts · manifests · provenance · audit trail",
+            GREEN,
+        ),
     ]
     y = 210
     widths = [1040, 980, 920, 860]
@@ -534,12 +561,16 @@ def render_layers() -> str:
         width = widths[index]
         x = (W - width) / 2
         height = 90
-        parts.append(rect(x, y, width, height, fill=SURFACE, stroke=f"{color}77", radius=18, shadow=True))
+        parts.append(
+            rect(x, y, width, height, fill=SURFACE, stroke=f"{color}77", radius=18, shadow=True)
+        )
         parts.append(rect(x, y, 7, height, fill=color, stroke=color, radius=3))
         parts.append(text(x + 30, y + 38, layer_title, size=20, weight=780))
         parts.append(text(x + 30, y + 65, detail, size=13, fill=MUTED, mono=True))
         if index < len(layers) - 1:
-            parts.append(line(600, y + height, 600, y + height + 25, stroke=DIM, width=2, arrow=True))
+            parts.append(
+                line(600, y + height, 600, y + height + 25, stroke=DIM, width=2, arrow=True)
+            )
         y += 110
     footer_gate(parts)
     return finish(parts)
@@ -559,7 +590,9 @@ def render_data_model() -> str:
     center_x, center_y = 600, 392
     parts.append(circle(center_x, center_y, 86, fill="#0E223B", stroke=BLUE, width=2))
     small_icon(parts, center_x, center_y - 26, "database", BLUE)
-    parts.append(text(center_x, center_y + 18, "DESIGN BASIS", size=19, weight=800, anchor="middle"))
+    parts.append(
+        text(center_x, center_y + 18, "DESIGN BASIS", size=19, weight=800, anchor="middle")
+    )
     parts.append(
         text(
             center_x,
@@ -729,7 +762,9 @@ def render_reactor_map() -> str:
         eyebrow="REACTOR SYNTHESIS",
     )
     parts.append(rect(430, 195, 340, 78, fill=SURFACE_2, stroke=BLUE, radius=20, shadow=True))
-    parts.append(text(600, 230, "What must the reactor preserve?", size=20, weight=800, anchor="middle"))
+    parts.append(
+        text(600, 230, "What must the reactor preserve?", size=20, weight=800, anchor="middle")
+    )
     parts.append(
         text(
             600,
@@ -742,9 +777,30 @@ def render_reactor_map() -> str:
         )
     )
     branches = [
-        (75, 355, "Semibatch", "flexible feed policy\nstrong grade agility\nexplicit inventory history", CYAN, "screening / lab / specialty"),
-        (450, 355, "Continuous", "steady throughput\nresidence distribution\nrecycle closure", BLUE, "industrial steady state"),
-        (825, 355, "Multi-reactor", "sequence shaping\nsplit heat load\nbroader architecture control", PURPLE, "advanced product envelope"),
+        (
+            75,
+            355,
+            "Semibatch",
+            "flexible feed policy\nstrong grade agility\nexplicit inventory history",
+            CYAN,
+            "screening / lab / specialty",
+        ),
+        (
+            450,
+            355,
+            "Continuous",
+            "steady throughput\nresidence distribution\nrecycle closure",
+            BLUE,
+            "industrial steady state",
+        ),
+        (
+            825,
+            355,
+            "Multi-reactor",
+            "sequence shaping\nsplit heat load\nbroader architecture control",
+            PURPLE,
+            "advanced product envelope",
+        ),
     ]
     for x, y, label, detail, color, tag in branches:
         node_card(parts, x, y, 300, 220, label, detail, color, icon="flow", tag=tag.upper())
@@ -800,7 +856,7 @@ def render_recycle() -> str:
         x2, y2 = destination[0], destination[1]
         parts.append(
             path(
-                f"M {x1} {y1} Q {(x1+x2)/2} {(y1+y2)/2-20} {x2} {y2}",
+                f"M {x1} {y1} Q {(x1 + x2) / 2} {(y1 + y2) / 2 - 20} {x2} {y2}",
                 stroke=DIM,
                 width=2,
                 arrow=True,
@@ -808,7 +864,9 @@ def render_recycle() -> str:
         )
     parts.append(circle(center_x, center_y, 92, fill="#0D2038", stroke=RED, width=2))
     small_icon(parts, center_x, center_y - 22, "shield", RED)
-    parts.append(text(center_x, center_y + 15, "POISON MEMORY", size=18, weight=800, anchor="middle"))
+    parts.append(
+        text(center_x, center_y + 15, "POISON MEMORY", size=18, weight=800, anchor="middle")
+    )
     parts.append(
         text(
             center_x,
@@ -848,14 +906,41 @@ def render_evidence() -> str:
     width, height, gap = 138, 230, 18
     for index, (state, detail, color) in enumerate(states):
         x = x0 + index * (width + gap)
-        parts.append(rect(x, y0, width, height, fill=SURFACE, stroke=f"{color}77", radius=18, shadow=True))
-        parts.append(text(x + 18, y0 + 40, f"{index+1:02d}", size=12, fill=color, mono=True, weight=700))
+        parts.append(
+            rect(x, y0, width, height, fill=SURFACE, stroke=f"{color}77", radius=18, shadow=True)
+        )
+        parts.append(
+            text(x + 18, y0 + 40, f"{index + 1:02d}", size=12, fill=color, mono=True, weight=700)
+        )
         parts.append(text(x + 18, y0 + 80, state, size=16, fill=TEXT, mono=True, weight=800))
-        parts.append(multiline(x + 18, y0 + 116, detail, width_chars=15, size=13, fill=MUTED, line_height=19))
+        parts.append(
+            multiline(x + 18, y0 + 116, detail, width_chars=15, size=13, fill=MUTED, line_height=19)
+        )
         if index < len(states) - 1:
-            parts.append(line(x + width, y0 + height / 2, x + width + gap - 2, y0 + height / 2, stroke=DIM, width=1.7, arrow=True))
+            parts.append(
+                line(
+                    x + width,
+                    y0 + height / 2,
+                    x + width + gap - 2,
+                    y0 + height / 2,
+                    stroke=DIM,
+                    width=1.7,
+                    arrow=True,
+                )
+            )
     parts.append(rect(155, 515, 890, 78, fill="#0A1627", stroke=BORDER, radius=18))
-    parts.append(text(600, 546, "Required metadata", size=14, fill=BLUE, weight=800, anchor="middle", mono=True))
+    parts.append(
+        text(
+            600,
+            546,
+            "Required metadata",
+            size=14,
+            fill=BLUE,
+            weight=800,
+            anchor="middle",
+            mono=True,
+        )
+    )
     parts.append(
         text(
             600,
@@ -874,7 +959,12 @@ def render_verification() -> str:
     stages = [
         ("Source identity", "manifest\nversion anchors\nrepository doctor", GREEN, "database"),
         ("Static checks", "compile · Ruff\nschemas · links\n18 SVG rebuild", BLUE, "shield"),
-        ("Scientific tests", "pytest · coverage\nknown solutions\nadversarial cases", CYAN, "chart"),
+        (
+            "Scientific tests",
+            "pytest · coverage\nknown solutions\nadversarial cases",
+            CYAN,
+            "chart",
+        ),
         ("Wheel content", "four-Skill tree\nreports · scripts\nMETADATA", PURPLE, "database"),
         ("Real install", "pip --target\nclean venv\norigin checks", TEAL, "cpu"),
         ("Release Gate", "performance\nsnapshot\nimmutable status", AMBER, "shield"),
@@ -901,10 +991,34 @@ def render_batch_scan() -> str:
         accent=TEAL,
     )
     columns = [
-        (52, "Scenario arrays", "temperature\nresidence time\nactive-site basis\nactivity multiplier", BLUE, "database"),
-        (300, "Shape contract", "broadcast-compatible\nfinite values\npositive domains", CYAN, "shield"),
-        (548, "Vectorized kernel", "Arrhenius arrays\nufunc conversions\nno numpy.vectorize", TEAL, "cpu"),
-        (796, "Decision outputs", "E/P/diene conversion\nshape metadata\nscenario count", GREEN, "chart"),
+        (
+            52,
+            "Scenario arrays",
+            "temperature\nresidence time\nactive-site basis\nactivity multiplier",
+            BLUE,
+            "database",
+        ),
+        (
+            300,
+            "Shape contract",
+            "broadcast-compatible\nfinite values\npositive domains",
+            CYAN,
+            "shield",
+        ),
+        (
+            548,
+            "Vectorized kernel",
+            "Arrhenius arrays\nufunc conversions\nno numpy.vectorize",
+            TEAL,
+            "cpu",
+        ),
+        (
+            796,
+            "Decision outputs",
+            "E/P/diene conversion\nshape metadata\nscenario count",
+            GREEN,
+            "chart",
+        ),
     ]
     tags = ["INPUT", "VALIDATE", "COMPUTE", "OUTPUT"]
     for index, (x, label, detail, color, icon) in enumerate(columns):
@@ -912,7 +1026,9 @@ def render_batch_scan() -> str:
         if index < 3:
             parts.append(line(x + 215, 375, x + 245, 375, stroke=DIM, width=2, arrow=True))
     parts.append(rect(1030, 225, 118, 300, fill="#0D2038", stroke=AMBER, radius=20, shadow=True))
-    parts.append(text(1089, 265, "GATE", size=13, fill=AMBER, mono=True, weight=800, anchor="middle"))
+    parts.append(
+        text(1089, 265, "GATE", size=13, fill=AMBER, mono=True, weight=800, anchor="middle")
+    )
     parts.append(text(1089, 335, "≥3× gate", size=22, fill=TEXT, weight=850, anchor="middle"))
     parts.append(text(1089, 364, "1,000 cases", size=11, fill=MUTED, mono=True, anchor="middle"))
     parts.append(pill(1045, 405, "PARITY", GREEN, width=88))
@@ -933,9 +1049,42 @@ def render_perf_gate() -> str:
         eyebrow="PERFORMANCE EVIDENCE",
         accent=AMBER,
     )
-    node_card(parts, 52, 225, 210, 300, "Frozen baseline", "same runner\nsame inputs\nsame repeats\nversioned JSON", BLUE, icon="database", tag="ALPHA.10")
-    node_card(parts, 300, 225, 210, 300, "Candidate run", "warm-ups\nmedian timing\npeak memory\ncProfile", CYAN, icon="chart", tag="ALPHA.11")
-    node_card(parts, 548, 225, 260, 300, "Parity policy", "exact digest\nanalytical tolerance\nsemantic contract\nscale normalization", PURPLE, icon="shield", tag="FAIL-CLOSED")
+    node_card(
+        parts,
+        52,
+        225,
+        210,
+        300,
+        "Frozen baseline",
+        "same runner\nsame inputs\nsame repeats\nversioned JSON",
+        BLUE,
+        icon="database",
+        tag="ALPHA.10",
+    )
+    node_card(
+        parts,
+        300,
+        225,
+        210,
+        300,
+        "Candidate run",
+        "warm-ups\nmedian timing\npeak memory\ncProfile",
+        CYAN,
+        icon="chart",
+        tag="ALPHA.11",
+    )
+    node_card(
+        parts,
+        548,
+        225,
+        260,
+        300,
+        "Parity policy",
+        "exact digest\nanalytical tolerance\nsemantic contract\nscale normalization",
+        PURPLE,
+        icon="shield",
+        tag="FAIL-CLOSED",
+    )
     parts.append(line(262, 375, 300, 375, stroke=DIM, width=2, arrow=True))
     parts.append(line(510, 375, 548, 375, stroke=DIM, width=2, arrow=True))
     outcomes = [
@@ -944,7 +1093,9 @@ def render_perf_gate() -> str:
         (845, 438, "FAIL", "drift / regression", RED),
     ]
     for x, y, label, detail, color in outcomes:
-        parts.append(rect(x, y, 303, 75, fill=f"{color}12", stroke=f"{color}88", radius=18, shadow=True))
+        parts.append(
+            rect(x, y, 303, 75, fill=f"{color}12", stroke=f"{color}88", radius=18, shadow=True)
+        )
         small_icon(parts, x + 38, y + 38, "shield", color)
         parts.append(text(x + 72, y + 34, label, size=16, fill=color, weight=850, mono=True))
         parts.append(text(x + 72, y + 56, detail, size=12, fill=MUTED))
@@ -965,13 +1116,46 @@ def render_three_levels() -> str:
         eyebrow="MULTIFIDELITY MODELING",
     )
     cards = [
-        (70, 225, "Level 1 · Screening", "active-site normalization\nE/P/diene insertion\nrapid conversions\ninput boundary checks", BLUE, "fast ranking"),
-        (450, 225, "Level 2 · Engineering", "Arrhenius correction\nsemibatch balances\nheat & mixing\nrecycle / devolatilization", CYAN, "flowsheet studies"),
-        (830, 225, "Level 3 · Detailed", "site families\nchain moments\nbranching / gel\nphase & entropy references", PURPLE, "high-fidelity decision"),
+        (
+            70,
+            225,
+            "Level 1 · Screening",
+            "active-site normalization\nE/P/diene insertion\nrapid conversions\ninput boundary checks",
+            BLUE,
+            "fast ranking",
+        ),
+        (
+            450,
+            225,
+            "Level 2 · Engineering",
+            "Arrhenius correction\nsemibatch balances\nheat & mixing\nrecycle / devolatilization",
+            CYAN,
+            "flowsheet studies",
+        ),
+        (
+            830,
+            225,
+            "Level 3 · Detailed",
+            "site families\nchain moments\nbranching / gel\nphase & entropy references",
+            PURPLE,
+            "high-fidelity decision",
+        ),
     ]
     icons = ["chart", "cpu", "molecule"]
     for index, (x, y, label, detail, color, tag) in enumerate(cards):
-        node_card(parts, x, y, 300, 330, label, detail, color, icon=icons[index], tag=tag.upper(), title_size=19)
+        node_card(
+            parts,
+            x,
+            y,
+            300,
+            330,
+            label,
+            detail,
+            color,
+            icon=icons[index],
+            tag=tag.upper(),
+            title_size=19,
+        )
         if index < 2:
             parts.append(line(x + 300, y + 165, x + 380, y + 165, stroke=DIM, width=2, arrow=True))
     footer_gate(parts, "ALL LEVELS RETURN CALCULATED_REFERENCE_ONLY")
@@ -1085,7 +1269,6 @@ def render_main_only_delivery() -> str:
     )
 
 
-
 def render_ai_scientific_reasoning_loop() -> str:
     parts = svg_start(
         "Scientific AI reasoning loop",
@@ -1100,7 +1283,14 @@ def render_ai_scientific_reasoning_loop() -> str:
     )
     nodes = [
         (70, 245, "OBSERVE", "plant, laboratory and literature evidence", BLUE, "database"),
-        (292, 205, "HYPOTHESIZE", "mechanisms, hidden states and closure terms", PURPLE, "molecule"),
+        (
+            292,
+            205,
+            "HYPOTHESIZE",
+            "mechanisms, hidden states and closure terms",
+            PURPLE,
+            "molecule",
+        ),
         (706, 205, "SIMULATE", "reference kernels and scale bridges", CYAN, "cpu"),
         (928, 245, "FALSIFY", "balances, residuals and conflicting evidence", RED, "shield"),
         (706, 475, "QUALIFY", "uncertainty, applicability and named Gates", AMBER, "chart"),
@@ -1108,17 +1298,41 @@ def render_ai_scientific_reasoning_loop() -> str:
     ]
     centers: list[tuple[float, float]] = []
     for x, y, title_value, detail, color, icon in nodes:
-        node_card(parts, x, y, 202, 122, title_value, detail, color, icon=icon, tag="TRACEABLE", title_size=15)
+        node_card(
+            parts,
+            x,
+            y,
+            202,
+            122,
+            title_value,
+            detail,
+            color,
+            icon=icon,
+            tag="TRACEABLE",
+            title_size=15,
+        )
         centers.append((x + 101, y + 61))
     sequence = centers + [centers[0]]
     for (x1, y1), (x2, y2) in pairwise(sequence):
         parts.append(line(x1, y1, x2, y2, stroke=DIM, width=2.2, arrow=True, opacity=0.92))
-    parts.extend([
-        circle(600, 388, 90, fill="#0C1A2C", stroke=CYAN, width=2),
-        text(600, 372, "TSAO", size=27, weight=850, anchor="middle"),
-        text(600, 402, "reasoning core", size=15, fill=CYAN, weight=750, anchor="middle"),
-        multiline(600, 431, "No silent promotion\nHOLD is a valid result", width_chars=22, size=13, fill=MUTED, weight=650, anchor="middle", line_height=19),
-    ])
+    parts.extend(
+        [
+            circle(600, 388, 90, fill="#0C1A2C", stroke=CYAN, width=2),
+            text(600, 372, "TSAO", size=27, weight=850, anchor="middle"),
+            text(600, 402, "reasoning core", size=15, fill=CYAN, weight=750, anchor="middle"),
+            multiline(
+                600,
+                431,
+                "No silent promotion\nHOLD is a valid result",
+                width_chars=22,
+                size=13,
+                fill=MUTED,
+                weight=650,
+                anchor="middle",
+                line_height=19,
+            ),
+        ]
+    )
     footer_gate(parts, "EVIDENCE -> MODEL -> TEST -> DECISION; EVERY TRANSITION IS RECORDED")
     return finish(parts)
 
@@ -1128,7 +1342,13 @@ def render_multiscale_digital_thread() -> str:
         "Multiscale digital thread",
         "A governed model and data thread from molecular evidence through reactors to process-package decisions.",
     )
-    header(parts, "Multiscale digital thread", "Every scale carries units, provenance, assumptions and uncertainty", eyebrow="MECHANISM TO PROCESS PACKAGE", accent=PURPLE)
+    header(
+        parts,
+        "Multiscale digital thread",
+        "Every scale carries units, provenance, assumptions and uncertainty",
+        eyebrow="MECHANISM TO PROCESS PACKAGE",
+        accent=PURPLE,
+    )
     stages = [
         (54, "MOLECULE", "electronic structure\nand active sites", PURPLE, "molecule"),
         (278, "CHAIN", "kinetics, sequence\nand distributions", BLUE, "flow"),
@@ -1137,11 +1357,35 @@ def render_multiscale_digital_thread() -> str:
         (950, "PACKAGE", "controls, HSE\nand acceptance", GREEN, "shield"),
     ]
     for index, (x, title_value, detail, color, icon) in enumerate(stages):
-        node_card(parts, x, 250, 196, 172, title_value, detail, color, icon=icon, tag=f"L{index}", title_size=16)
+        node_card(
+            parts,
+            x,
+            250,
+            196,
+            172,
+            title_value,
+            detail,
+            color,
+            icon=icon,
+            tag=f"L{index}",
+            title_size=16,
+        )
         if index < len(stages) - 1:
-            parts.append(line(x + 196, 336, stages[index + 1][0] - 12, 336, stroke=color, width=2.5, arrow=True))
+            parts.append(
+                line(
+                    x + 196,
+                    336,
+                    stages[index + 1][0] - 12,
+                    336,
+                    stroke=color,
+                    width=2.5,
+                    arrow=True,
+                )
+            )
     parts.append(rect(84, 482, 1032, 126, fill="#0B182A", stroke=TEAL, radius=24))
-    parts.append(text(112, 522, "DIGITAL THREAD CONTRACT", size=15, fill=TEAL, weight=800, letter=0.8))
+    parts.append(
+        text(112, 522, "DIGITAL THREAD CONTRACT", size=15, fill=TEAL, weight=800, letter=0.8)
+    )
     rows = [
         (112, "STATE", "named variables"),
         (275, "UNITS", "dimensional closure"),
@@ -1162,7 +1406,13 @@ def render_agentic_qualification_orchestrator() -> str:
         "Agentic qualification orchestrator",
         "An AI agent coordinates evidence, scientific kernels and verification without overriding independent Gates.",
     )
-    header(parts, "Agentic qualification orchestrator", "Automation executes the protocol; independent Gates retain authority", eyebrow="AGENT CONTROL PLANE", accent=BLUE)
+    header(
+        parts,
+        "Agentic qualification orchestrator",
+        "Automation executes the protocol; independent Gates retain authority",
+        eyebrow="AGENT CONTROL PLANE",
+        accent=BLUE,
+    )
     sources = [
         (58, 222, "EVIDENCE", "sources, conflicts, conditions and units", TEAL, "database"),
         (58, 374, "MODELS", "contracts, kernels, solvers and simulators", PURPLE, "cpu"),
@@ -1171,13 +1421,34 @@ def render_agentic_qualification_orchestrator() -> str:
     for x, y, title_value, detail, color, icon in sources:
         node_card(parts, x, y, 238, 112, title_value, detail, color, icon=icon, title_size=16)
         parts.append(line(296, y + 56, 458, 390, stroke=color, width=2.2, arrow=True))
-    parts.extend([
-        circle(605, 390, 126, fill="#0C1B30", stroke=BLUE, width=2.2),
-        circle(605, 390, 96, fill="#10243D", stroke=CYAN, width=1.4),
-        text(605, 360, "AI", size=42, weight=900, anchor="middle"),
-        text(605, 394, "ORCHESTRATOR", size=15, fill=CYAN, weight=800, anchor="middle", letter=1.0),
-        multiline(605, 426, "route - execute - compare\nrecord - explain", width_chars=26, size=13, fill=MUTED, weight=650, anchor="middle", line_height=20),
-    ])
+    parts.extend(
+        [
+            circle(605, 390, 126, fill="#0C1B30", stroke=BLUE, width=2.2),
+            circle(605, 390, 96, fill="#10243D", stroke=CYAN, width=1.4),
+            text(605, 360, "AI", size=42, weight=900, anchor="middle"),
+            text(
+                605,
+                394,
+                "ORCHESTRATOR",
+                size=15,
+                fill=CYAN,
+                weight=800,
+                anchor="middle",
+                letter=1.0,
+            ),
+            multiline(
+                605,
+                426,
+                "route - execute - compare\nrecord - explain",
+                width_chars=26,
+                size=13,
+                fill=MUTED,
+                weight=650,
+                anchor="middle",
+                line_height=20,
+            ),
+        ]
+    )
     gates = [
         (912, 216, "BALANCE", "mass / energy", GREEN),
         (912, 330, "NUMERICS", "stability / parity", CYAN),
@@ -1196,13 +1467,33 @@ def render_uncertainty_decision_landscape() -> str:
         "Uncertainty-to-decision landscape",
         "A qualification landscape where uncertainty and applicability determine PASS, HOLD, FAIL or NOT_EVALUATED.",
     )
-    header(parts, "Uncertainty-to-decision landscape", "Precision is not confidence; confidence requires independent closure", eyebrow="DECISION SCIENCE", accent=AMBER)
-    panels = [(72, PURPLE, "1 - UNCERTAINTY"), (435, CYAN, "2 - APPLICABILITY"), (798, GREEN, "3 - DECISION GATE")]
+    header(
+        parts,
+        "Uncertainty-to-decision landscape",
+        "Precision is not confidence; confidence requires independent closure",
+        eyebrow="DECISION SCIENCE",
+        accent=AMBER,
+    )
+    panels = [
+        (72, PURPLE, "1 - UNCERTAINTY"),
+        (435, CYAN, "2 - APPLICABILITY"),
+        (798, GREEN, "3 - DECISION GATE"),
+    ]
     for x, color, title_value in panels:
         parts.append(rect(x, 226, 330, 360, fill="#101D31", stroke=color, radius=28, shadow=True))
         parts.append(text(x + 30, 272, title_value, size=18, fill=color, weight=800))
-    left = [("PARAMETER", "identified / prior / nuisance"), ("MODEL FORM", "candidate closures and bias"), ("NUMERICAL", "tolerance, stiffness and drift"), ("MEASUREMENT", "noise, censoring and calibration")]
-    middle = [("DOMAIN", "temperature / pressure / composition"), ("SCALE", "laboratory / pilot / plant"), ("REGIME", "phase / transport / kinetics"), ("EVIDENCE", "direct / inferred / missing")]
+    left = [
+        ("PARAMETER", "identified / prior / nuisance"),
+        ("MODEL FORM", "candidate closures and bias"),
+        ("NUMERICAL", "tolerance, stiffness and drift"),
+        ("MEASUREMENT", "noise, censoring and calibration"),
+    ]
+    middle = [
+        ("DOMAIN", "temperature / pressure / composition"),
+        ("SCALE", "laboratory / pilot / plant"),
+        ("REGIME", "phase / transport / kinetics"),
+        ("EVIDENCE", "direct / inferred / missing"),
+    ]
     for index, (label, value) in enumerate(left):
         y = 320 + index * 62
         parts.append(pill(102, y - 22, label, PURPLE, width=116, height=26, mono=True))
@@ -1211,7 +1502,12 @@ def render_uncertainty_decision_landscape() -> str:
         y = 320 + index * 62
         parts.append(pill(465, y - 22, label, CYAN, width=104, height=26, mono=True))
         parts.append(text(583, y, value, size=13, weight=650))
-    gates = [("PASS", "declared Gate closed", GREEN), ("HOLD", "evidence incomplete", AMBER), ("FAIL", "contract violated", RED), ("NOT EVALUATED", "no qualified claim", DIM)]
+    gates = [
+        ("PASS", "declared Gate closed", GREEN),
+        ("HOLD", "evidence incomplete", AMBER),
+        ("FAIL", "contract violated", RED),
+        ("NOT EVALUATED", "no qualified claim", DIM),
+    ]
     for index, (label, value, color) in enumerate(gates):
         y = 304 + index * 66
         parts.append(rect(832, y, 264, 50, fill=f"{color}18", stroke=color, radius=14))
@@ -1228,7 +1524,13 @@ def render_law_to_grade_inverse_design() -> str:
         "Law-to-Grade inverse design",
         "An inverse scientific workflow from observed product behavior to hidden mechanisms and forward reconstruction.",
     )
-    header(parts, "Law-to-Grade inverse design", "Infer missing physics, then reconstruct the grade and process forward", eyebrow="INVERSE PROBLEM", accent=PURPLE)
+    header(
+        parts,
+        "Law-to-Grade inverse design",
+        "Infer missing physics, then reconstruct the grade and process forward",
+        eyebrow="INVERSE PROBLEM",
+        accent=PURPLE,
+    )
     top = [
         (62, "OBSERVED", "quality, failure and operating signatures", BLUE, "chart"),
         (300, "INFER", "hidden states, parameters and closure terms", PURPLE, "cpu"),
@@ -1237,12 +1539,32 @@ def render_law_to_grade_inverse_design() -> str:
         (1014, "TEST", "new perturbations and falsification", GREEN, "shield"),
     ]
     for i, (x, title_value, detail, color, icon) in enumerate(top):
-        node_card(parts, x, 238, 190, 160, title_value, detail, color, icon=icon, tag=f"S{i+1}", title_size=15)
+        node_card(
+            parts,
+            x,
+            238,
+            190,
+            160,
+            title_value,
+            detail,
+            color,
+            icon=icon,
+            tag=f"S{i + 1}",
+            title_size=15,
+        )
         if i < len(top) - 1:
-            parts.append(line(x + 190, 318, top[i + 1][0] - 10, 318, stroke=color, width=2.4, arrow=True))
+            parts.append(
+                line(x + 190, 318, top[i + 1][0] - 10, 318, stroke=color, width=2.4, arrow=True)
+            )
     parts.append(rect(132, 474, 936, 118, fill="#0B182A", stroke=AMBER, radius=24))
     parts.append(text(160, 514, "IDENTIFIABILITY GATE", size=16, fill=AMBER, weight=800))
-    checks = ["multiple experiments", "independent observables", "prior sensitivity", "out-of-sample perturbation", "mechanism competition"]
+    checks = [
+        "multiple experiments",
+        "independent observables",
+        "prior sensitivity",
+        "out-of-sample perturbation",
+        "mechanism competition",
+    ]
     for index, label in enumerate(checks):
         x = 160 + index * 178
         parts.append(pill(x, 542, label.upper(), AMBER, width=158, height=28, mono=True))
@@ -1255,13 +1577,29 @@ def render_autonomous_experiment_loop() -> str:
         "Autonomous experiment loop",
         "A safe closed-loop workflow for selecting experiments, executing measurements and updating models.",
     )
-    header(parts, "Autonomous experiment loop", "Maximize information gain while preserving safety and evidence quality", eyebrow="ACTIVE LEARNING", accent=TEAL)
+    header(
+        parts,
+        "Autonomous experiment loop",
+        "Maximize information gain while preserving safety and evidence quality",
+        eyebrow="ACTIVE LEARNING",
+        accent=TEAL,
+    )
     center_x, center_y = 600, 392
-    parts.extend([
-        circle(center_x, center_y, 90, fill="#0C1B30", stroke=TEAL, width=2),
-        text(center_x, center_y - 5, "DoE", size=30, weight=850, anchor="middle"),
-        text(center_x, center_y + 25, "information gain", size=14, fill=TEAL, weight=750, anchor="middle"),
-    ])
+    parts.extend(
+        [
+            circle(center_x, center_y, 90, fill="#0C1B30", stroke=TEAL, width=2),
+            text(center_x, center_y - 5, "DoE", size=30, weight=850, anchor="middle"),
+            text(
+                center_x,
+                center_y + 25,
+                "information gain",
+                size=14,
+                fill=TEAL,
+                weight=750,
+                anchor="middle",
+            ),
+        ]
+    )
     nodes = [
         (84, 238, "CANDIDATES", "feasible conditions and controllable factors", BLUE, "database"),
         (328, 190, "SELECT", "expected information, cost and risk", PURPLE, "chart"),
@@ -1286,13 +1624,30 @@ def render_process_knowledge_graph() -> str:
         "Process knowledge graph",
         "A traceable knowledge graph connecting evidence, variables, models, equipment, risks and decisions.",
     )
-    header(parts, "Process knowledge graph", "Every claim is connected to its source, conditions and decision boundary", eyebrow="KNOWLEDGE ARCHITECTURE", accent=BLUE)
+    header(
+        parts,
+        "Process knowledge graph",
+        "Every claim is connected to its source, conditions and decision boundary",
+        eyebrow="KNOWLEDGE ARCHITECTURE",
+        accent=BLUE,
+    )
     center = (600, 388)
-    parts.extend([
-        circle(*center, 94, fill="#0D2038", stroke=BLUE, width=2),
-        text(600, 374, "PROCESS", size=24, weight=850, anchor="middle"),
-        text(600, 405, "KNOWLEDGE GRAPH", size=14, fill=CYAN, weight=800, anchor="middle", letter=0.8),
-    ])
+    parts.extend(
+        [
+            circle(*center, 94, fill="#0D2038", stroke=BLUE, width=2),
+            text(600, 374, "PROCESS", size=24, weight=850, anchor="middle"),
+            text(
+                600,
+                405,
+                "KNOWLEDGE GRAPH",
+                size=14,
+                fill=CYAN,
+                weight=800,
+                anchor="middle",
+                letter=0.8,
+            ),
+        ]
+    )
     nodes = [
         (94, 222, "EVIDENCE", "papers, tests, plant records", TEAL, "database"),
         (94, 488, "DECISIONS", "Gates, owners and rationale", GREEN, "shield"),
@@ -1315,18 +1670,34 @@ def render_model_risk_governance() -> str:
         "Model risk governance",
         "A layered governance architecture for scientific models from registration through retirement.",
     )
-    header(parts, "Model risk governance", "Separate computational correctness from scientific validity and operational approval", eyebrow="MODEL GOVERNANCE", accent=RED)
+    header(
+        parts,
+        "Model risk governance",
+        "Separate computational correctness from scientific validity and operational approval",
+        eyebrow="MODEL GOVERNANCE",
+        accent=RED,
+    )
     layers = [
         (210, "REGISTER", "purpose, owner, version, equations and dependencies", BLUE, "database"),
         (296, "VERIFY", "tests, invariants, numerical stability and reproducibility", CYAN, "cpu"),
         (382, "VALIDATE", "independent evidence, uncertainty and applicability", PURPLE, "chart"),
-        (468, "APPROVE", "named technical, engineering, HSE and customer authorities", AMBER, "shield"),
+        (
+            468,
+            "APPROVE",
+            "named technical, engineering, HSE and customer authorities",
+            AMBER,
+            "shield",
+        ),
         (554, "MONITOR", "drift, incidents, change control and retirement", GREEN, "flow"),
     ]
     widths = [980, 870, 760, 650, 540]
-    for index, ((y, title_value, detail, color, icon), width) in enumerate(zip(layers, widths, strict=True)):
+    for index, ((y, title_value, detail, color, icon), width) in enumerate(
+        zip(layers, widths, strict=True)
+    ):
         x = (1200 - width) / 2
-        parts.append(rect(x, y, width, 64, fill=f"{color}14", stroke=color, radius=18, shadow=index == 0))
+        parts.append(
+            rect(x, y, width, 64, fill=f"{color}14", stroke=color, radius=18, shadow=index == 0)
+        )
         small_icon(parts, x + 38, y + 32, icon, color)
         parts.append(text(x + 74, y + 28, title_value, size=15, fill=color, weight=850, mono=True))
         parts.append(text(x + 74, y + 49, detail, size=13, weight=650))
@@ -1348,12 +1719,32 @@ ASSETS = {
         "Universal process-package lifecycle",
         "One decision-centered lifecycle from design basis to technology transfer",
         [
-            ("Design basis", "scope · targets\ncomponents · units\nacceptance criteria", BLUE, "database"),
+            (
+                "Design basis",
+                "scope · targets\ncomponents · units\nacceptance criteria",
+                BLUE,
+                "database",
+            ),
             ("Evidence & models", "data boundary\nthermo · kinetics\nuncertainty", CYAN, "chart"),
-            ("Process synthesis", "reactor · separation\nutilities · equipment\nbalances", TEAL, "flow"),
-            ("Control & HSE", "alarms · interlocks\nabnormal cases\nsafety interfaces", RED, "shield"),
+            (
+                "Process synthesis",
+                "reactor · separation\nutilities · equipment\nbalances",
+                TEAL,
+                "flow",
+            ),
+            (
+                "Control & HSE",
+                "alarms · interlocks\nabnormal cases\nsafety interfaces",
+                RED,
+                "shield",
+            ),
             ("Scale-up & TEA", "similarity breaks\npilot evidence\nCAPEX / OPEX", PURPLE, "chart"),
-            ("Package & transfer", "documents · owners\nGate matrix\noperating handover", GREEN, "database"),
+            (
+                "Package & transfer",
+                "documents · owners\nGate matrix\noperating handover",
+                GREEN,
+                "database",
+            ),
         ],
         footer="MISSING EVIDENCE OR APPROVAL → HOLD",
         eyebrow="PROCESS-PACKAGE LIFECYCLE",

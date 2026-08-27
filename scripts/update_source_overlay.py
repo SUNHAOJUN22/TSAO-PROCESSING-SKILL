@@ -57,8 +57,7 @@ def update_overlay(
                 relative = _normalized_relative(str(row.get("path") or ""))
                 if relative in records:
                     raise ValueError(
-                        f"duplicate overlay path in {target_relative} row {row_number}: "
-                        f"{relative}"
+                        f"duplicate overlay path in {target_relative} row {row_number}: {relative}"
                     )
                 records[relative] = {field: str(row.get(field) or "") for field in FIELDS}
     for relative in paths:

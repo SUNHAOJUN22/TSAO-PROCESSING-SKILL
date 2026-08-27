@@ -141,9 +141,7 @@ def wrap(
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}" role="img">'
         f"<title>{escape(title_value)}</title><desc>{escape(description)}</desc>{defs}"
-        f'<rect width="{width}" height="{height}" fill="url(#bg)"/>'
-        + "".join(body)
-        + "</svg>\n"
+        f'<rect width="{width}" height="{height}" fill="url(#bg)"/>' + "".join(body) + "</svg>\n"
     )
 
 
@@ -261,9 +259,7 @@ def lifecycle() -> str:
                 )
             )
         if index < len(stages) - 1:
-            body.append(
-                line(x + 160, 315, x + 180, 315, stroke="#8394aa", marker=True)
-            )
+            body.append(line(x + 160, 315, x + 180, 315, stroke="#8394aa", marker=True))
     body += [
         rect(180, 500, 840, 96, fill="#102033", stroke="#102033", radius=22),
         text(

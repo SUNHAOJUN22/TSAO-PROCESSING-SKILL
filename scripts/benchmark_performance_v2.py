@@ -86,9 +86,7 @@ def _epdm_semibatch_trajectory_compiled(steps: int = 10_000) -> object:
         "final_inventory": result["final_inventory"],
         "history": result["history"],
         "total_polymer_increment_mol": result["total_polymer_increment_mol"],
-        "maximum_abs_molar_closure_residual": result[
-            "maximum_abs_molar_closure_residual"
-        ],
+        "maximum_abs_molar_closure_residual": result["maximum_abs_molar_closure_residual"],
     }
 
 

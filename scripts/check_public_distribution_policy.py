@@ -143,9 +143,17 @@ def evaluate(
 
     expected_count = manifest.get("expected_asset_count")
     declared_count = manifest.get("asset_count")
-    if isinstance(expected_count, bool) or not isinstance(expected_count, int) or expected_count < 0:
+    if (
+        isinstance(expected_count, bool)
+        or not isinstance(expected_count, int)
+        or expected_count < 0
+    ):
         raise PolicyContractError("expected asset count must be a non-negative integer")
-    if isinstance(declared_count, bool) or not isinstance(declared_count, int) or declared_count < 0:
+    if (
+        isinstance(declared_count, bool)
+        or not isinstance(declared_count, int)
+        or declared_count < 0
+    ):
         raise PolicyContractError("declared asset count must be a non-negative integer")
 
     reason_counts: Counter[str] = Counter()
@@ -267,7 +275,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     args.inventory_out.parent.mkdir(parents=True, exist_ok=True)
-    rendered = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    rendered = (
+        json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    )
     args.inventory_out.write_text(rendered, encoding="utf-8", newline="\n")
     sys.stdout.write(json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n")
     return 0 if result["pass"] else 2
