@@ -52,34 +52,38 @@ jobs:
           path = Path('.github/workflows/ci.yml')
           text = path.read_text(encoding='utf-8')
           marker = '      - name: Verify installed dependency graph\n        run: python -m pip check\n'
-          addition = '''      - name: Verify controlled registry blocks public artifacts
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PYBLOCK'
-          from pathlib import Path
-          from tsao.distribution_policy import assert_public_distribution_allowed
-
-          for artifact_kind in ('public source distribution', 'public wheel'):
-              try:
-                  assert_public_distribution_allowed(Path.cwd(), artifact_kind=artifact_kind)
-              except Exception as exc:
-                  message = str(exc)
-                  if 'CONTROLLED' not in message.upper() and 'BLOCK' not in message.upper():
-                      raise SystemExit(f'{artifact_kind} failed for an unrelated reason: {message}') from exc
-              else:
-                  raise SystemExit(f'{artifact_kind} was permitted while the registry remains controlled')
-          PYBLOCK
-      - name: Run distribution containment regressions
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
-        run: |
-          python -m pytest -q -p no:cacheprovider \\
-            tests/test_distribution_containment_v20.py \\
-            tests/test_release_integrity_alpha6.py \\
-            tests/test_main_only_ci_policy.py \\
-            tests/test_public_distribution_boundary_workflow.py
-'''
+          addition = '\n'.join(
+              [
+                  '      - name: Verify controlled registry blocks public artifacts',
+                  "        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'",
+                  '        shell: bash',
+                  '        run: |',
+                  '          set -euo pipefail',
+                  "          python - <<'PYBLOCK'",
+                  '          from pathlib import Path',
+                  '          from tsao.distribution_policy import assert_public_distribution_allowed',
+                  '',
+                  "          for artifact_kind in ('public source distribution', 'public wheel'):",
+                  '              try:',
+                  '                  assert_public_distribution_allowed(Path.cwd(), artifact_kind=artifact_kind)',
+                  '              except Exception as exc:',
+                  '                  message = str(exc)',
+                  "                  if 'CONTROLLED' not in message.upper() and 'BLOCK' not in message.upper():",
+                  "                      raise SystemExit(f'{artifact_kind} failed for an unrelated reason: {message}') from exc",
+                  '              else:',
+                  "                  raise SystemExit(f'{artifact_kind} was permitted while the registry remains controlled')",
+                  '          PYBLOCK',
+                  '      - name: Run distribution containment regressions',
+                  "        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'",
+                  '        run: |',
+                  '          python -m pytest -q -p no:cacheprovider \\',
+                  '            tests/test_distribution_containment_v20.py \\',
+                  '            tests/test_release_integrity_alpha6.py \\',
+                  '            tests/test_main_only_ci_policy.py \\',
+                  '            tests/test_public_distribution_boundary_workflow.py',
+                  '',
+              ]
+          )
           if 'Verify controlled registry blocks public artifacts' not in text:
               if marker not in text:
                   raise SystemExit('canonical install marker not found')
