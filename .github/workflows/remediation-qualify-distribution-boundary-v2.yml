@@ -60,10 +60,18 @@ jobs:
               ['python', str(script), '--help'],
               text=True,
               capture_output=True,
+              check=True,
           )
           help_text = probe.stdout + probe.stderr
           if '--write' in help_text:
               command = ['python', str(script), '--write']
+          elif '--out' in help_text:
+              command = [
+                  'python',
+                  str(script),
+                  '--out',
+                  'reports/SOURCE_CORE_MANIFEST.tsv',
+              ]
           elif '--output' in help_text:
               command = [
                   'python',
@@ -72,7 +80,7 @@ jobs:
                   'reports/SOURCE_CORE_MANIFEST.tsv',
               ]
           else:
-              command = ['python', str(script)]
+              raise SystemExit('source-manifest builder exposes no supported output option')
           subprocess.run(command, check=True)
           PY
           git add -A
