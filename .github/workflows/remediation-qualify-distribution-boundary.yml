@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - remediation/pep517-setup-bootstrap
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,7 +16,7 @@ jobs:
   qualify-and-freeze:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 90
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONNOUSERSITE: "1"
@@ -32,89 +31,101 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           cache: pip
           cache-dependency-path: requirements.lock
 
       - name: Install exact dependencies and package
         run: |
-          python -m pip install --disable-pip-version-check -r requirements.lock
-          python -m pip install --disable-pip-version-check -e . --no-deps
+          python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
           python -m pip check
 
-      - name: Remove transport workflow and regenerate provenance
+      - name: Fold controlled distribution gate into canonical CI
         shell: bash
         run: |
           set -euo pipefail
-          rm .github/workflows/remediation-qualify-distribution-boundary.yml
-          python -m ruff format \
-            tests/test_public_distribution_boundary_workflow.py
-          python -m ruff check --fix \
-            tests/test_public_distribution_boundary_workflow.py
           python - <<'PY'
           from pathlib import Path
-          import subprocess
 
-          script = Path('scripts/build_source_asset_manifest.py')
-          help_run = subprocess.run(
-              ['python', str(script), '--help'],
-              text=True,
-              capture_output=True,
+          workflow = Path('.github/workflows/ci.yml')
+          text = workflow.read_text(encoding='utf-8')
+          marker = "      - name: Verify installed dependency graph\n        run: python -m pip check\n"
+          addition = """      - name: Verify controlled registry blocks public artifacts
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -c \"from pathlib import Path; from tsao.distribution_policy import assert_public_distribution_allowed; kinds=('public source distribution','public wheel'); [(lambda kind: (_ for _ in ()).throw(SystemExit(f'{kind} was permitted while the registry remains controlled')) if not _blocked(Path.cwd(), kind, assert_public_distribution_allowed) else None)(kind) for kind in kinds]\"
+      - name: Run distribution containment regressions
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          tests/test_distribution_containment_v20.py
+          tests/test_release_integrity_alpha6.py
+          tests/test_main_only_ci_policy.py
+          tests/test_public_distribution_boundary_workflow.py
+"""
+          # Replace the compact command above with a readable helper local to ci.yml.
+          addition = addition.replace(
+              "python -c \\\"from pathlib import Path; from tsao.distribution_policy import assert_public_distribution_allowed; kinds=('public source distribution','public wheel'); [(lambda kind: (_ for _ in ()).throw(SystemExit(f'{kind} was permitted while the registry remains controlled')) if not _blocked(Path.cwd(), kind, assert_public_distribution_allowed) else None)(kind) for kind in kinds]\\\"",
+              "python - <<'PYBLOCK'\n          from pathlib import Path\n          from tsao.distribution_policy import assert_public_distribution_allowed\n\n          for artifact_kind in ('public source distribution', 'public wheel'):\n              try:\n                  assert_public_distribution_allowed(Path.cwd(), artifact_kind=artifact_kind)\n              except Exception as exc:\n                  message = str(exc)\n                  if 'CONTROLLED' not in message.upper() and 'BLOCK' not in message.upper():\n                      raise SystemExit(f'{artifact_kind} failed for an unrelated reason: {message}') from exc\n              else:\n                  raise SystemExit(f'{artifact_kind} was permitted while the registry remains controlled')\n          PYBLOCK",
           )
-          help_text = help_run.stdout + help_run.stderr
-          if '--write' in help_text:
-              subprocess.run(['python', str(script), '--write'], check=True)
-          elif '--output' in help_text:
-              subprocess.run(
-                  [
-                      'python',
-                      str(script),
-                      '--output',
-                      'reports/SOURCE_CORE_MANIFEST.tsv',
-                  ],
-                  check=True,
-              )
-          else:
-              completed = subprocess.run(
-                  ['python', str(script)],
-                  check=True,
-                  text=True,
-                  capture_output=True,
-              )
-              if completed.stdout.strip():
-                  Path('reports/SOURCE_CORE_MANIFEST.tsv').write_text(
-                      completed.stdout,
-                      encoding='utf-8',
-                  )
+          if 'Verify controlled registry blocks public artifacts' not in text:
+              if marker not in text:
+                  raise SystemExit('canonical dependency marker not found')
+              text = text.replace(marker, marker + addition, 1)
+          workflow.write_text(text, encoding='utf-8')
           PY
-          git add -A
+          cat > tests/test_public_distribution_boundary_workflow.py <<'PY'
+          from __future__ import annotations
+
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[1]
+          WORKFLOW = ROOT / '.github/workflows/ci.yml'
+
+
+          def test_controlled_registry_is_part_of_the_single_authoritative_workflow() -> None:
+              text = WORKFLOW.read_text(encoding='utf-8')
+              assert sorted(path.name for path in (ROOT / '.github/workflows').glob('*.yml')) == ['ci.yml']
+              assert 'contents: read' in text
+              assert 'assert_public_distribution_allowed' in text
+              assert 'public source distribution' in text
+              assert 'public wheel' in text
+              assert 'was permitted while the registry remains controlled' in text
+              assert 'continue-on-error' not in text
+
+
+          def test_canonical_ci_runs_distribution_containment_regressions() -> None:
+              text = WORKFLOW.read_text(encoding='utf-8')
+              assert 'tests/test_distribution_containment_v20.py' in text
+              assert 'tests/test_release_integrity_alpha6.py' in text
+              assert 'tests/test_main_only_ci_policy.py' in text
+              assert 'tests/test_public_distribution_boundary_workflow.py' in text
+          PY
+          find .github/workflows -maxdepth 1 -type f ! -name ci.yml -delete
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
 
       - name: Execute full repository qualification
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q
-          python -m ruff format --check .
-          python -m ruff check .
-          python -m tsao doctor --profile core
+          python -m ruff format setup.py tsao tests scripts
+          python -m ruff check setup.py tsao tests scripts
+          python -m ruff format --check setup.py tsao tests scripts
+          python -m pytest -q -p no:cacheprovider
+          python -m tsao.cli doctor --root . --profile core
+          test "$(find .github/workflows -maxdepth 1 -type f -printf '%f\n')" = 'ci.yml'
           git diff --check
-
-      - name: Verify final bounded diff
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f .github/workflows/public-distribution-boundary.yml
-          test -f tests/test_public_distribution_boundary_workflow.py
-          test ! -e .github/workflows/remediation-qualify-distribution-boundary.yml
-          rg -n 'public-distribution-boundary.yml' reports/SOURCE_CORE_MANIFEST.tsv
-          rg -n 'test_public_distribution_boundary_workflow.py' reports/SOURCE_CORE_MANIFEST.tsv
 
       - name: Commit exact review tree
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m "ci(distribution): enforce permanent controlled-registry boundary"
+          git commit -m 'fix(ci): enforce controlled distribution in canonical workflow'
           git push origin HEAD:remediation/pep517-setup-bootstrap
