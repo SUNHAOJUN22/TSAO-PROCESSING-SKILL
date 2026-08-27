@@ -119,9 +119,7 @@ def wrap(
         f'viewBox="0 0 {width} {height}" role="img">'
         f"<title>{escape(title_value)}</title><desc>{escape(description)}</desc>"
         f"{definitions}"
-        f'<rect width="{width}" height="{height}" fill="url(#bg)"/>'
-        + "".join(body)
-        + "</svg>\n"
+        f'<rect width="{width}" height="{height}" fill="url(#bg)"/>' + "".join(body) + "</svg>\n"
     )
 
 

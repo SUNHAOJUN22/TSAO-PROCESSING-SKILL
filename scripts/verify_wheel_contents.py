@@ -247,8 +247,7 @@ def _verify_wheel_identity(
     }
     if f"-{_EXPECTED_PEP440_VERSION}-" not in wheel.name:
         errors.append(
-            "wheel filename version mismatch: "
-            f"expected {_EXPECTED_PEP440_VERSION} in {wheel.name}"
+            f"wheel filename version mismatch: expected {_EXPECTED_PEP440_VERSION} in {wheel.name}"
         )
 
     metadata_member = _unique_dist_info_member(
@@ -379,15 +378,12 @@ def verify(wheel: Path) -> dict[str, object]:
         f"{_SHARE_ROOT}/skills/process-general/modules/{name}" for name in _PROCESS_MODULES
     )
     share_required.update(
-        f"{_SHARE_ROOT}/skills/process-general/workflows/{name}"
-        for name in _PROCESS_WORKFLOWS
+        f"{_SHARE_ROOT}/skills/process-general/workflows/{name}" for name in _PROCESS_WORKFLOWS
     )
     share_required.update(
         f"{_SHARE_ROOT}/skills/polymer-general/scripts/{name}" for name in _POLYMER_SCRIPTS
     )
-    share_required.update(
-        f"{_SHARE_ROOT}/docs/assets/readme/{name}" for name in _README_ASSETS
-    )
+    share_required.update(f"{_SHARE_ROOT}/docs/assets/readme/{name}" for name in _README_ASSETS)
     share_required.update(f"{_SHARE_ROOT}/scripts/{name}" for name in _MAINTENANCE_SCRIPTS)
     installed_share_members = _relative_share_members(names)
     errors.extend(

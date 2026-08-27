@@ -49,7 +49,7 @@ FORBIDDEN_ELEMENTS = {
     "script",
     "set",
 }
-EMOJI_PATTERN = re.compile("[\U0001F1E6-\U0001FAFF]")
+EMOJI_PATTERN = re.compile("[\U0001f1e6-\U0001faff]")
 MINIMUM_TEXT_SIZE_PX = 12.0
 
 
@@ -63,7 +63,11 @@ def relative_luminance(hex_color: str) -> float:
     if len(value) != 6:
         raise ValueError(f"expected six-digit hex color, found {hex_color}")
     red, green, blue = (int(value[index : index + 2], 16) for index in (0, 2, 4))
-    return 0.2126 * _linear_channel(red) + 0.7152 * _linear_channel(green) + 0.0722 * _linear_channel(blue)
+    return (
+        0.2126 * _linear_channel(red)
+        + 0.7152 * _linear_channel(green)
+        + 0.0722 * _linear_channel(blue)
+    )
 
 
 def contrast_ratio(foreground: str, background: str) -> float:
@@ -134,8 +138,7 @@ def verify_svg(path: Path) -> list[str]:
                 else:
                     if size < MINIMUM_TEXT_SIZE_PX:
                         errors.append(
-                            f"{path.name}: font-size {size:g}px is below "
-                            f"{MINIMUM_TEXT_SIZE_PX:g}px"
+                            f"{path.name}: font-size {size:g}px is below {MINIMUM_TEXT_SIZE_PX:g}px"
                         )
     return errors
 
@@ -185,9 +188,7 @@ def verify(directory: Path = OUT) -> dict[str, object]:
     contrasts = _contrast_contract()
     for name, row in contrasts.items():
         if not row["pass"]:
-            errors.append(
-                f"contrast contract failed for {name}: {row['ratio']} < {row['minimum']}"
-            )
+            errors.append(f"contrast contract failed for {name}: {row['ratio']} < {row['minimum']}")
 
     return {
         "pass": not errors,

@@ -117,10 +117,15 @@ def _restricted_process_handle(pid: int) -> tuple[int | None, str | None]:
     handle = open_process(0x00001000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
     if handle:
         return int(handle), None
-    return None, f"cannot open restricted process handle for PID {pid}: winerror {ctypes.get_last_error()}"
+    return (
+        None,
+        f"cannot open restricted process handle for PID {pid}: winerror {ctypes.get_last_error()}",
+    )
 
 
-def _assign(job: WindowsKillJob, process_handle: int, pid: int, test_fault: str | None) -> list[str]:
+def _assign(
+    job: WindowsKillJob, process_handle: int, pid: int, test_fault: str | None
+) -> list[str]:
     import ctypes
     from ctypes import wintypes
 
@@ -144,7 +149,9 @@ def _assign(job: WindowsKillJob, process_handle: int, pid: int, test_fault: str 
         if test_fault == "assign_access_denied":
             issues.append("restricted-handle assignment unexpectedly succeeded")
     else:
-        issues.append(f"cannot bind PID {pid} to Windows Job Object: winerror {ctypes.get_last_error()}")
+        issues.append(
+            f"cannot bind PID {pid} to Windows Job Object: winerror {ctypes.get_last_error()}"
+        )
 
     if restricted_handle is not None:
         close_issue = _close_handle(restricted_handle)
@@ -347,7 +354,9 @@ def close_kill_job(job: WindowsKillJob | None) -> list[str]:
         if result == 0x00000102:
             issues.append(f"Windows Job Object PID {pid} did not exit after handle close")
         elif result == 0xFFFFFFFF:
-            issues.append(f"cannot wait for Windows Job Object PID {pid}: winerror {ctypes.get_last_error()}")
+            issues.append(
+                f"cannot wait for Windows Job Object PID {pid}: winerror {ctypes.get_last_error()}"
+            )
         handle_issue = _close_handle(handle)
         if handle_issue:
             issues.append(handle_issue)

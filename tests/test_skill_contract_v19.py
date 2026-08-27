@@ -38,9 +38,7 @@ class SkillContractV19Tests(unittest.TestCase):
         )
         self.assertFalse(contract["scientific_quantity"]["boolean_is_numeric"])
         self.assertFalse(contract["scientific_quantity"]["unknown_is_zero"])
-        self.assertFalse(
-            contract["status_lattice"]["software_pass_implies_external_acceptance"]
-        )
+        self.assertFalse(contract["status_lattice"]["software_pass_implies_external_acceptance"])
         order = contract["status_lattice"]["severity_order"]
         self.assertLess(order.index("FAIL"), order.index("HOLD"))
         self.assertLess(order.index("HOLD"), order.index("PASS"))
@@ -61,9 +59,7 @@ class SkillContractV19Tests(unittest.TestCase):
         )
         self.assertEqual(status["status"], "NOT_RUN")
         self.assertEqual(capture["status"], "NOT_RUN")
-        self.assertTrue(
-            all(item["selected_skills"] is None for item in capture["decisions"])
-        )
+        self.assertTrue(all(item["selected_skills"] is None for item in capture["decisions"]))
 
     def test_unknown_or_boolean_values_cannot_be_silent_zero(self) -> None:
         for value in (True, False, None, float("nan"), float("inf")):

@@ -143,7 +143,11 @@ def _render_v2(report: dict[str, object], language_index: int) -> str:
     common = report.get("common_workload_comparisons")
     optimized = report.get("optimized_path_comparisons")
     scales = report.get("scale_checks")
-    if not isinstance(common, list) or not isinstance(optimized, list) or not isinstance(scales, list):
+    if (
+        not isinstance(common, list)
+        or not isinstance(optimized, list)
+        or not isinstance(scales, list)
+    ):
         raise ValueError("v2 performance comparison is incomplete")
     common_by_name = {row.get("name"): row for row in common if isinstance(row, dict)}
     optimized_by_name = {row.get("name"): row for row in optimized if isinstance(row, dict)}

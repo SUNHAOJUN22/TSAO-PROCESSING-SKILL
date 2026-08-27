@@ -143,9 +143,7 @@ def wrap(
         f'height="{height}" viewBox="0 0 {width} {height}" role="img">'
         f"<title>{escape(title_value)}</title>"
         f"<desc>{escape(description)}</desc>{definitions}"
-        f'<rect width="{width}" height="{height}" fill="url(#bg)"/>'
-        + "".join(body)
-        + "</svg>\n"
+        f'<rect width="{width}" height="{height}" fill="url(#bg)"/>' + "".join(body) + "</svg>\n"
     )
 
 
@@ -158,7 +156,9 @@ def process_package_data_model() -> str:
     body += [
         rect(470, 165, 260, 88, fill="#eff6ff", stroke="#93c5fd", radius=22),
         text(600, 202, "Design basis", size=23, weight=780, anchor="middle"),
-        text(600, 230, "scope · capacity · components · limits", size=14, fill=MUTED, anchor="middle"),
+        text(
+            600, 230, "scope · capacity · components · limits", size=14, fill=MUTED, anchor="middle"
+        ),
     ]
     nodes = [
         (70, 300, 190, "Streams", "composition · T/P · enthalpy", CYAN),
@@ -178,10 +178,24 @@ def process_package_data_model() -> str:
     body += [
         rect(170, 490, 360, 96, fill="#f0fdfa", stroke="#5eead4", radius=22),
         text(350, 529, "Evidence ledger", size=21, weight=780, fill=TEAL, anchor="middle"),
-        text(350, 560, "source · condition · claim · uncertainty", size=15, fill=MUTED, anchor="middle"),
+        text(
+            350,
+            560,
+            "source · condition · claim · uncertainty",
+            size=15,
+            fill=MUTED,
+            anchor="middle",
+        ),
         rect(670, 490, 360, 96, fill="#f0fdf4", stroke="#86efac", radius=22),
         text(850, 529, "Acceptance & approvals", size=21, weight=780, fill=GREEN, anchor="middle"),
-        text(850, 560, "criterion · evidence ID · role · decision", size=15, fill=MUTED, anchor="middle"),
+        text(
+            850,
+            560,
+            "criterion · evidence ID · role · decision",
+            size=15,
+            fill=MUTED,
+            anchor="middle",
+        ),
         line(530, 538, 670, 538, stroke="#8294aa", marker=True),
         line(600, 420, 350, 490, stroke="#8294aa", marker=True),
         line(600, 420, 850, 490, stroke="#8294aa", marker=True),
@@ -215,7 +229,14 @@ def epdm_catalyst_kinetics_network() -> str:
     body += [
         rect(430, 305, 340, 92, fill="#eff6ff", stroke="#93c5fd", radius=24),
         text(600, 342, "Evidenced active-site population", size=22, weight=800, anchor="middle"),
-        text(600, 372, "site fraction · activity · poison sensitivity", size=15, fill=MUTED, anchor="middle"),
+        text(
+            600,
+            372,
+            "site fraction · activity · poison sensitivity",
+            size=15,
+            fill=MUTED,
+            anchor="middle",
+        ),
     ]
     reactions = [
         (80, 455, "E insertion", BLUE),
@@ -232,7 +253,15 @@ def epdm_catalyst_kinetics_network() -> str:
         ]
     body += [
         rect(205, 570, 790, 62, fill="#fff7ed", stroke="#fdba74", radius=20),
-        text(600, 608, "sequence · MWD/CCD · retained unsaturation · branching · gel risk", size=19, weight=760, fill=AMBER, anchor="middle"),
+        text(
+            600,
+            608,
+            "sequence · MWD/CCD · retained unsaturation · branching · gel risk",
+            size=19,
+            weight=760,
+            fill=AMBER,
+            anchor="middle",
+        ),
         line(160, 525, 420, 570, stroke="#8294aa", marker=True),
         line(350, 525, 500, 570, stroke="#8294aa", marker=True),
         line(540, 525, 580, 570, stroke="#8294aa", marker=True),
@@ -275,18 +304,40 @@ def epdm_reactor_mode_map() -> str:
     levels = [
         (65, 400, 330, "Level 1 — screening", "constant-site rates · rapid ranking", BLUE),
         (435, 400, 330, "Level 2 — engineering", "Arrhenius · balances · heat/mixing", AMBER),
-        (805, 400, 330, "Level 3 — detailed reference", "site families · moments · phase/gel", PURPLE),
+        (
+            805,
+            400,
+            330,
+            "Level 3 — detailed reference",
+            "site families · moments · phase/gel",
+            PURPLE,
+        ),
     ]
     for x, y, width, title_value, subtitle, color in levels:
         body += [
             rect(x, y, width, 100, fill=WHITE, stroke=f"{color}66", radius=22),
-            text(x + width // 2, y + 42, title_value, size=19, weight=780, fill=color, anchor="middle"),
+            text(
+                x + width // 2,
+                y + 42,
+                title_value,
+                size=19,
+                weight=780,
+                fill=color,
+                anchor="middle",
+            ),
             text(x + width // 2, y + 72, subtitle, size=14, fill=MUTED, anchor="middle"),
         ]
     body += [
         rect(170, 550, 860, 70, fill="#fff1f2", stroke="#fda4af", radius=20),
         text(600, 579, "Promotion rule", size=18, weight=800, fill=RED, anchor="middle"),
-        text(600, 605, "Higher fidelity requires identifiable parameters, qualified data and a decision benefit", size=15, weight=560, anchor="middle"),
+        text(
+            600,
+            605,
+            "Higher fidelity requires identifiable parameters, qualified data and a decision benefit",
+            size=15,
+            weight=560,
+            anchor="middle",
+        ),
     ]
     return wrap(
         "EPDM reactor-mode decision map",
