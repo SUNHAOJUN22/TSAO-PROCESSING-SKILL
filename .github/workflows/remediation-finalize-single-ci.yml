@@ -139,12 +139,15 @@ jobs:
           test "$(find .github/workflows -maxdepth 1 -type f -printf '%f\n')" = 'ci.yml'
           git diff --check
 
-      - name: Commit clean source tree
+      - name: Commit tested non-workflow tree for connector finalization
         shell: bash
         run: |
           set -euo pipefail
+          cp .github/workflows/ci.yml /tmp/CI_CANONICAL_PENDING.yml
+          git restore --source=HEAD --staged --worktree .github/workflows
+          cp /tmp/CI_CANONICAL_PENDING.yml reports/CI_CANONICAL_PENDING.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'fix(ci): enforce controlled distribution in canonical workflow'
+          git commit -m 'chore(ci): stage tested single-workflow source tree'
           git push origin HEAD:remediation/pep517-setup-bootstrap
