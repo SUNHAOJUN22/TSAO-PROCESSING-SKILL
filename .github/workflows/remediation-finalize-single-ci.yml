@@ -114,13 +114,20 @@ jobs:
               assert 'tests/test_public_distribution_boundary_workflow.py' in text
           PY
           find .github/workflows -maxdepth 1 -type f ! -name ci.yml -delete
+
+      - name: Canonical formatting and deterministic manifest refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m ruff format setup.py tsao tests scripts
+          python -m ruff check --fix setup.py tsao tests scripts
+          python -m ruff format setup.py tsao tests scripts
           python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
 
       - name: Run complete qualification
         shell: bash
         run: |
           set -euo pipefail
-          python -m ruff format setup.py tsao tests scripts
           python -m ruff check setup.py tsao tests scripts
           python -m ruff format --check setup.py tsao tests scripts
           python -m pytest -q -p no:cacheprovider
