@@ -18,9 +18,7 @@ _SYNTHETIC_APPLICABILITY_TOKENS = (
 )
 
 
-def _epdm_evidence_references(
-    value: object, path: str = "epdm_case"
-) -> dict[str, set[str]]:
+def _epdm_evidence_references(value: object, path: str = "epdm_case") -> dict[str, set[str]]:
     """Collect every EPDM evidence reference with its source paths."""
     referenced: dict[str, set[str]] = {}
     if isinstance(value, Mapping):
@@ -51,9 +49,7 @@ def _epdm_evidence_references(
     return referenced
 
 
-def _ledger_records(
-    ledger: object, errors: list[str]
-) -> dict[str, dict[str, Any]]:
+def _ledger_records(ledger: object, errors: list[str]) -> dict[str, dict[str, Any]]:
     if not isinstance(ledger, list):
         errors.append("process package evidence_ledger must be an array")
         return {}
@@ -74,8 +70,7 @@ def _ledger_records(
         known[normalized] = item
     if duplicates:
         errors.append(
-            "process package evidence ledger contains duplicate IDs: "
-            f"{sorted(duplicates)}"
+            f"process package evidence ledger contains duplicate IDs: {sorted(duplicates)}"
         )
     return known
 
@@ -97,18 +92,13 @@ def _validate_reference_applicability(
         holds.append(f"EPDM evidence {evidence_id} lacks locator or applicability")
         return
     normalized = str(applicability).casefold()
-    synthetic_scope = any(
-        token in normalized for token in _SYNTHETIC_APPLICABILITY_TOKENS
-    )
+    synthetic_scope = any(token in normalized for token in _SYNTHETIC_APPLICABILITY_TOKENS)
     if case_kind == "SYNTHETIC_REFERENCE_TEST" and not synthetic_scope:
         holds.append(
-            f"EPDM evidence {evidence_id} applicability does not cover "
-            "a synthetic software fixture"
+            f"EPDM evidence {evidence_id} applicability does not cover a synthetic software fixture"
         )
     elif case_kind == "PROJECT_CASE" and synthetic_scope:
-        holds.append(
-            f"EPDM evidence {evidence_id} is scoped only to a synthetic/software fixture"
-        )
+        holds.append(f"EPDM evidence {evidence_id} is scoped only to a synthetic/software fixture")
 
 
 def _resolve_epdm_evidence(
@@ -132,16 +122,12 @@ def _resolve_epdm_evidence(
         status = record.get("status")
         if status in _TERMINAL_INVALID_EVIDENCE:
             invalid += 1
-            errors.append(
-                f"EPDM evidence {evidence_id} is {status} and cannot support {paths}"
-            )
+            errors.append(f"EPDM evidence {evidence_id} is {status} and cannot support {paths}")
         elif status == _QUALIFIED_EVIDENCE:
             qualified += 1
         elif status in _PROVISIONAL_EVIDENCE:
             provisional += 1
-            holds.append(
-                f"EPDM evidence {evidence_id} is {status}, not QUALIFIED, for {paths}"
-            )
+            holds.append(f"EPDM evidence {evidence_id} is {status}, not QUALIFIED, for {paths}")
         else:
             invalid += 1
             errors.append(f"EPDM evidence {evidence_id} has invalid or missing status")
@@ -183,23 +169,16 @@ def _audit_epdm_process_package(package: object) -> dict[str, Any]:
 
     family = package.get("process_family")
     if not isinstance(family, str) or not any(
-        token in family.casefold()
-        for token in ("epdm", "epm", "ethylene propylene")
+        token in family.casefold() for token in ("epdm", "epm", "ethylene propylene")
     ):
         errors.append("process package family is not identified as EPM/EPDM")
 
     records = _ledger_records(package.get("evidence_ledger"), errors)
-    references = (
-        _epdm_evidence_references(case_payload)
-        if isinstance(case_payload, dict)
-        else {}
-    )
+    references = _epdm_evidence_references(case_payload) if isinstance(case_payload, dict) else {}
     evidence_gate = _resolve_epdm_evidence(
         references=references,
         records=records,
-        case_kind=(
-            case_payload.get("case_kind") if isinstance(case_payload, dict) else None
-        ),
+        case_kind=(case_payload.get("case_kind") if isinstance(case_payload, dict) else None),
         errors=errors,
         holds=holds,
     )

@@ -56,9 +56,7 @@ def _qualification_error(qualification: Mapping[str, Any]) -> str | None:
             software_status=qualification.get("software_status"),
             thermodynamic_status=qualification.get("thermodynamic_status"),
             kinetic_calibration_status=qualification.get("kinetic_calibration_status"),
-            independent_validation_status=qualification.get(
-                "independent_validation_status"
-            ),
+            independent_validation_status=qualification.get("independent_validation_status"),
             engineering_use_status=qualification.get("engineering_use_status"),
             gate_results=tuple(gates),
             model_generation=qualification.get(
@@ -104,8 +102,7 @@ def validate_v2_project(
             "ERROR",
             GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
             exc.issue.path,
-            f"canonical contract publication failed during {exc.issue.phase}: "
-            f"{exc.issue.message}",
+            f"canonical contract publication failed during {exc.issue.phase}: {exc.issue.message}",
         )
         return _core.V2ValidationResult(
             GateDecision.FAIL,

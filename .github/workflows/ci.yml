@@ -127,21 +127,29 @@ jobs:
         run: |
           python -m tsao.skillpacks --root .
           python -m tsao.cli package template --family "generic process"
-      - name: Build wheel
-        run: python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-      - name: Verify wheel members and installed runtime
+      - name: Prove controlled public wheel is blocked without emitting an artifact
+        shell: python
         run: |
-          python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-          python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-          python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
-      - name: Upload release wheel
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsao-wheel-alpha15-${{ github.sha }}
-          path: wheelhouse/*.whl
-          if-no-files-found: error
-          retention-days: 30
+          import pathlib
+          import subprocess
+          import sys
+
+          wheelhouse = pathlib.Path("wheelhouse")
+          wheelhouse.mkdir(exist_ok=True)
+          result = subprocess.run(
+              [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", ".", "-w", str(wheelhouse)],
+              text=True,
+              capture_output=True,
+              check=False,
+          )
+          output = result.stdout + result.stderr
+          if result.returncode == 0:
+              raise SystemExit("public wheel was emitted while controlled metadata remains blocked")
+          if "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION" not in output:
+              raise SystemExit(f"wheel build failed for an unrelated reason:\n{output}")
+          if list(wheelhouse.glob("*.whl")):
+              raise SystemExit("blocked wheel build left a public artifact")
+          print("EXPECTED_BLOCK: public wheel remains fail-closed")
       - name: Extended performance regression gate
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         shell: bash
@@ -161,15 +169,12 @@ jobs:
           (
             cd "$baseline_root"
             rm -rf wheelhouse build dist *.egg-info
-            python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
             python scripts/benchmark_performance_v2.py \
               --repeats 7 \
-              --wheel-dir wheelhouse \
               --output "$baseline_report"
           )
           python scripts/benchmark_performance_v2.py \
             --repeats 7 \
-            --wheel-dir wheelhouse \
             --output reports/runtime/PERFORMANCE_RESULTS_V2.json
           BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<'PY'
           import json
@@ -187,7 +192,7 @@ jobs:
               code = (
                   "from pathlib import Path; "
                   "from tsao.doctor import diagnose; "
-                  "print(diagnose(Path('.'), profile='core')['metrics']['schemas'])"
+                  "print(diagnose(Path('.'), profile='core')['metrics']['schemas']))"
               )
               output = subprocess.check_output(
                   [sys.executable, "-c", code],
@@ -281,18 +286,28 @@ jobs:
         run: python -m pip check
       - name: Verify committed source identity
         run: python -m tsao.cli doctor --root . --profile core
-      - name: Build and inspect deterministic public-source snapshot
+      - name: Prove controlled public-source snapshot is blocked without emitting an artifact
+        shell: python
         run: |
-          python scripts/export_source_snapshot.py --root . --out TSAO-PROCESSING-SKILL-source-alpha.15.zip
-          python -c "import zipfile; p='TSAO-PROCESSING-SKILL-source-alpha.15.zip'; names=set(zipfile.ZipFile(p).namelist()); required=('skills/epdm/canonical_loader.py','skills/epdm/acceptance.py','skills/epdm/tests/test_acceptance.py','skills/epdm/docs/SOFTWARE_ACCEPTANCE.md','scripts/qualify_acceptance.py','scripts/verify_acceptance_runtime.py','skills/epdm/executable_rhs.py','skills/epdm/numerical_integration.py','skills/epdm/schemas/integration-request-a15.schema.json','skills/epdm/schemas/integration-result-a15.schema.json','skills/epdm/tests/test_epdm_phase_a4_integration.py','reports/EPDM_PHASE_A4_QUALIFICATION.json'); missing=[r for r in required if not any(n.endswith('/'+r) for n in names)]; assert not missing, missing"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tsao-source-alpha15-${{ github.sha }}
-          path: |
-            TSAO-PROCESSING-SKILL-source-alpha.15.zip
-            TSAO-PROCESSING-SKILL-source-alpha.15.zip.sha256
-          if-no-files-found: error
-          retention-days: 14
+          import pathlib
+          import subprocess
+          import sys
+
+          archive = pathlib.Path("TSAO-PROCESSING-SKILL-source-alpha.15.zip")
+          result = subprocess.run(
+              [sys.executable, "scripts/export_source_snapshot.py", "--root", ".", "--out", str(archive)],
+              text=True,
+              capture_output=True,
+              check=False,
+          )
+          output = result.stdout + result.stderr
+          if result.returncode == 0:
+              raise SystemExit("public source snapshot was emitted while controlled metadata remains blocked")
+          if "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION" not in output:
+              raise SystemExit(f"snapshot export failed for an unrelated reason:\n{output}")
+          if archive.exists() or archive.with_suffix(archive.suffix + ".sha256").exists():
+              raise SystemExit("blocked snapshot export left a public artifact")
+          print("EXPECTED_BLOCK: public source snapshot remains fail-closed")
 
   qualification-ledger:
     needs: [qualification, source-snapshot]

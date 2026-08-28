@@ -2,6 +2,16 @@
 
 [English](README.md) · [架构](ARCHITECTURE.md) · [能力矩阵](docs/CAPABILITY_MATRIX.md) · [视觉系统](docs/README_VISUAL_SYSTEM.md)
 
+
+<!-- CLOSURE_STATUS_START -->
+## 当前代码资格与分发边界
+
+- 唯一的 `ci.yml` 在 Windows/Linux、Python 3.11–3.14 上验证源码安装、数值内核、测试、覆盖率、CLI 与性能路径。
+- 只要跟踪的 registry 仍为 `CONTROLLED`，公共 wheel 和公共源码快照就必须失败。CI 将这一经验证的 fail-closed 阻断记为 containment 成功，并确保不留下公开工件。
+- `artifact_software_qualification=PASS` 不会重新分类源数据，也不等于科学、工程、HSE、客户或工业批准。
+- 在权利人/法务/IP/安全部门给出授权决定前，公开分发状态保持 `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION`。
+<!-- CLOSURE_STATUS_END -->
+
 **面向化工过程 Skill、受治理数理模型、证据链、来源身份和验收交付的 fail-closed 软件系统。**
 
 <!-- LOCALIZED_VISION_ZH:START -->
@@ -17,7 +27,7 @@
 
 ## 已交付系统
 
-TSAO 安装四个 Skill：`process-general`、`epdm`、`poe` 与 `polymer-general`。源码树和 Wheel 必须暴露同一组模块、Schema、报告、CLI、测试和 **32 幅确定性 SVG 示意图**。`PASS` 只代表软件行为合格；科学、工程、HSE、客户和工业批准继续保持 `NOT_EVALUATED`。
+TSAO 安装四个 Skill：`process-general`、`epdm`、`poe` 与 `polymer-general`。受治理的源码检出提供同一组模块、Schema、报告、CLI、测试和 **32 幅确定性 SVG 示意图**。未来可分发 Wheel 必须保持同一清单，但当前公共 Wheel 因受控历史元数据而被有意阻断。`PASS` 只代表软件行为合格；科学、工程、HSE、客户和工业批准继续保持 `NOT_EVALUATED`。
 
 ## 验收命令
 
@@ -113,7 +123,7 @@ DOPRI5(4) 只有在缩放误差、守恒、有限性和时间单调 Gate 全部�
 4. A2/A3/A4 执行前先发布 canonical contract。
 5. 参数拟合与科学资格必须分离。
 6. 用不确定度和可辨识性决定下一项实验。
-7. Wheel 与源码快照必须来自同一 exact qualified tree。
+7. 在分类获得授权前持续阻断公共 Wheel 与源码快照；授权后也只能从 exact qualified tree 构建。
 8. 只有具名责任人与签署证据才能提升批准状态。
 
 ## 验证流程
@@ -124,11 +134,10 @@ python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
 python skills/poe/scripts/audit_p1.py --root .
+# 当前受控树：以下两条命令必须 fail-closed，且不得留下公开工件。
 python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
 python scripts/export_source_snapshot.py --root . --out dist/source.zip
+# 只有在授权分类允许分发后，才运行 Wheel/运行时验证器。
 ```
 
 CI 对 Windows 与 Ubuntu 的 Python 3.11–3.14 完整矩阵进行资格验证；安装门同时检查 `pip install --target` 与不继承系统 site-packages 的标准虚拟环境。

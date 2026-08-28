@@ -76,14 +76,10 @@ class StoichiometricTerm:
     def __post_init__(self) -> None:
         if not _IDENTIFIER.fullmatch(self.state_id):
             raise ContractValidationError("stoichiometric state_id is invalid")
-        if isinstance(self.coefficient, bool) or not isinstance(
-            self.coefficient, (int, float)
-        ):
+        if isinstance(self.coefficient, bool) or not isinstance(self.coefficient, (int, float)):
             raise ContractValidationError("stoichiometric coefficient must be numeric")
         if not math.isfinite(float(self.coefficient)) or self.coefficient == 0:
-            raise ContractValidationError(
-                "stoichiometric coefficient must be finite and non-zero"
-            )
+            raise ContractValidationError("stoichiometric coefficient must be finite and non-zero")
 
     def as_dict(self) -> dict[str, object]:
         return {"state_id": self.state_id, "coefficient": float(self.coefficient)}
@@ -140,10 +136,7 @@ class ReactionChannel:
                 raise ContractValidationError(f"{label} is invalid")
         if self.terminal_id is not None and self.terminal_id not in _MONOMER_STATE:
             raise ContractValidationError("terminal_id must be E, P, or D")
-        if (
-            self.incoming_monomer_id is not None
-            and self.incoming_monomer_id not in _MONOMER_STATE
-        ):
+        if self.incoming_monomer_id is not None and self.incoming_monomer_id not in _MONOMER_STATE:
             raise ContractValidationError("incoming_monomer_id must be E, P, or D")
         for label, values in (
             ("reactant_state_ids", self.reactant_state_ids),
@@ -683,7 +676,9 @@ def audit_reaction_network(
     if network.state_definition_id != state_definition.source_state_definition_id:
         errors.append("network state_definition_id does not match source state definition")
     if network.generated_state_definition_id != state_definition.generated_state_definition_id:
-        errors.append("network generated_state_definition_id does not match generated state definition")
+        errors.append(
+            "network generated_state_definition_id does not match generated state definition"
+        )
     if network.generated_state_digest_sha256 != state_definition.digest_sha256_without_self:
         errors.append("network generated-state digest does not match state definition")
     if network.state_ids != state_definition.state_ids:
@@ -724,7 +719,10 @@ def audit_reaction_network(
         ReactionFamily.INH_H2_REVERSE,
     }.issubset(families):
         errors.append("reversible hydrogen inhibition is incomplete")
-    if network.options.enable_spontaneous_deactivation and ReactionFamily.DEACT_SPON not in families:
+    if (
+        network.options.enable_spontaneous_deactivation
+        and ReactionFamily.DEACT_SPON not in families
+    ):
         errors.append("spontaneous deactivation is enabled but absent")
     if network.options.enable_poison_deactivation and ReactionFamily.DEACT_POISON not in families:
         errors.append("poison deactivation is enabled but absent")

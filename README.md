@@ -2,6 +2,16 @@
 
 [简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Visual system](docs/README_VISUAL_SYSTEM.md)
 
+
+<!-- CLOSURE_STATUS_START -->
+## Current qualification and distribution boundary
+
+- The canonical `ci.yml` qualifies the source checkout, numerical kernels, tests, coverage, CLI and performance paths across Windows/Linux and Python 3.11–3.14.
+- Public wheel and public source-snapshot creation are intentionally expected to fail while the tracked registry remains `CONTROLLED`. CI treats the verified fail-closed block as a successful containment result and emits no public artifact.
+- `artifact_software_qualification=PASS` does not reclassify source metadata and does not imply scientific, engineering, HSE, customer or industrial approval.
+- Public distribution stays `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` until an authorized owner/legal/IP/security decision changes the evidence basis.
+<!-- CLOSURE_STATUS_END -->
+
 **Fail-closed software delivery for chemical-process Skills, governed mathematics, evidence, provenance and acceptance.**
 
 <!-- LOCALIZED_VISION_EN:START -->
@@ -17,7 +27,7 @@
 
 ## Delivered system
 
-TSAO installs four Skills: `process-general`, `epdm`, `poe`, and `polymer-general`. The source tree and Wheel must expose the same modules, schemas, reports, CLI, tests and **32 deterministic SVG diagrams**. `PASS` qualifies software behavior only; scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.
+TSAO installs four Skills: `process-general`, `epdm`, `poe`, and `polymer-general`. The governed source checkout exposes the modules, schemas, reports, CLI, tests and **32 deterministic SVG diagrams**. A future distributable Wheel must preserve that inventory, but the current public Wheel is intentionally blocked by controlled historical metadata. `PASS` qualifies software behavior only; scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.
 
 ## Acceptance commands
 
@@ -113,7 +123,7 @@ DOPRI5(4) accepts a step only when the scaled error, conservation, finiteness an
 4. Publish canonical contracts before A2/A3/A4 execution.
 5. Separate parameter fitting from scientific qualification.
 6. Use uncertainty and identifiability to select the next experiment.
-7. Build the Wheel and source snapshot from the exact qualified tree.
+7. Keep public Wheel and source-snapshot creation blocked until classification is authorized; after authorization, build them only from the exact qualified tree.
 8. Advance approval states only with named accountable evidence.
 
 ## Verification
@@ -124,11 +134,10 @@ python scripts/run_ci.py
 python skills/epdm/scripts/audit_epdm.py
 python skills/poe/scripts/audit_p0.py --root .
 python skills/poe/scripts/audit_p1.py --root .
+# Current controlled tree: both commands below must fail closed and emit no artifact.
 python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-python scripts/verify_wheel_contents.py --wheel-dir wheelhouse
-python scripts/verify_wheel_runtime.py --wheel-dir wheelhouse
-python scripts/verify_acceptance_runtime.py --wheel-dir wheelhouse
 python scripts/export_source_snapshot.py --root . --out dist/source.zip
+# Run wheel/runtime verifiers only after an authorized classification enables a distributable artifact.
 ```
 
 CI qualifies Windows and Ubuntu with Python 3.11–3.14. Installation is checked through `pip install --target` and a standard virtual environment with no inherited system site packages.

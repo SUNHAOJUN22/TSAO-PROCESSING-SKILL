@@ -20,7 +20,7 @@ Convert a POE grade or process question into a traceable programme:
 - P0 moment kinetics plus `P1_REFERENCE_KERNEL_ALPHA` utilities for bounded estimation, identifiability, polymer-solution thermodynamics, PFR/CSTR known solutions, steady-state balances, property errors, viscosity/heat-transfer checks, FOPDT response, recycle memory and dimensionless scale-up;
 - model-asset passports for Aspen, MATLAB, Origin/CFD or Python references;
 - `CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA` for manifests, hashes, structured-record integrity, evidence status, requirements, conflicts, model passports and approvals;
-- wheel member and installed-runtime qualification (`RUNTIME_VERIFIED`).
+- source-checkout runtime qualification; public wheel creation remains `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` until an authorized metadata-classification decision.
 
 ## Historical evidence boundary
 

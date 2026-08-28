@@ -122,7 +122,9 @@ class GeneratedStateDefinition:
             if variable.nonnegative and float(value) < -nonnegative_tolerance:
                 raise ContractValidationError(f"state {variable.state_id} must be non-negative")
 
-    def pack(self, values: Mapping[str, float], *, fill_missing: float | None = None) -> tuple[float, ...]:
+    def pack(
+        self, values: Mapping[str, float], *, fill_missing: float | None = None
+    ) -> tuple[float, ...]:
         unknown = sorted(set(values) - set(self._index_by_id))
         if unknown:
             raise ContractValidationError(f"unknown state IDs: {unknown}")

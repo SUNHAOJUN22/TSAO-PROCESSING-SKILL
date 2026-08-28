@@ -167,13 +167,17 @@ def test_single_channel_hand_calculation_matches_matrix_and_moment_update():
     state, network = _state_and_network()
     package = build_calculated_reference_rate_package(network)
     channel_id = "ACT_SPON:SITE-A"
-    bindings = tuple(replace(item, enabled=item.reaction_id == channel_id) for item in package.bindings)
+    bindings = tuple(
+        replace(item, enabled=item.reaction_id == channel_id) for item in package.bindings
+    )
     parameter_id = package.binding(channel_id).parameter_set_id  # type: ignore[union-attr]
     parameters = tuple(
         replace(
             item,
             k_ref_value=0.5 if item.parameter_set_id == parameter_id else item.k_ref_value,
-            activation_energy_j_mol=0.0 if item.parameter_set_id == parameter_id else item.activation_energy_j_mol,
+            activation_energy_j_mol=0.0
+            if item.parameter_set_id == parameter_id
+            else item.activation_energy_j_mol,
         )
         for item in package.parameter_sets
     )
@@ -202,13 +206,17 @@ def test_propagation_hand_calculation_updates_first_and_second_moments():
     network = build_reaction_network(state)
     package = build_calculated_reference_rate_package(network)
     channel_id = "PROPAGATION:SITE-A:E:E"
-    bindings = tuple(replace(item, enabled=item.reaction_id == channel_id) for item in package.bindings)
+    bindings = tuple(
+        replace(item, enabled=item.reaction_id == channel_id) for item in package.bindings
+    )
     parameter_id = package.binding(channel_id).parameter_set_id  # type: ignore[union-attr]
     parameters = tuple(
         replace(
             item,
             k_ref_value=0.1 if item.parameter_set_id == parameter_id else item.k_ref_value,
-            activation_energy_j_mol=0.0 if item.parameter_set_id == parameter_id else item.activation_energy_j_mol,
+            activation_energy_j_mol=0.0
+            if item.parameter_set_id == parameter_id
+            else item.activation_energy_j_mol,
         )
         for item in package.parameter_sets
     )

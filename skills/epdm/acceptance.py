@@ -333,8 +333,7 @@ def qualify_acceptance(
         "analytic_reference": analytic_error <= MAX_ANALYTIC_ABSOLUTE_ERROR,
         "loader_median_time": median_load_s <= MAX_MEDIAN_LOAD_SECONDS,
         "loader_peak_memory": peak_load_bytes <= MAX_PEAK_LOAD_BYTES,
-        "approval_boundary_closed": snapshot.qualification.engineering_use_status.value
-        != "PASS",
+        "approval_boundary_closed": snapshot.qualification.engineering_use_status.value != "PASS",
     }
     for name, passed in checks.items():
         if not passed:

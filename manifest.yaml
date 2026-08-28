@@ -54,7 +54,7 @@ subskills:
   process_package_qualification: CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA
   historical_assets: CONTROLLED_HISTORICAL_EVIDENCE
   model_asset_passports: IMPLEMENTED_REFERENCE_SCHEMA
-  wheel_delivery: RUNTIME_VERIFIED
+  wheel_delivery: BLOCKED_CONTROLLED_METADATA_CLASSIFICATION
 - id: polymer-general
   path: skills/polymer-general
   inherited_release: 2.0.0

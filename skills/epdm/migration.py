@@ -15,8 +15,10 @@ def _collect_evidence_ids(value: object) -> set[str]:
         for key, item in value.items():
             if key == "evidence_id" and isinstance(item, str) and item.strip():
                 found.add(item.strip())
-            elif key.endswith("evidence_ids") and isinstance(item, Sequence) and not isinstance(
-                item, (str, bytes)
+            elif (
+                key.endswith("evidence_ids")
+                and isinstance(item, Sequence)
+                and not isinstance(item, (str, bytes))
             ):
                 found.update(
                     candidate.strip()

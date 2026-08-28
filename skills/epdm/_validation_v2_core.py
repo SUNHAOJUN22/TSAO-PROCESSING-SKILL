@@ -169,8 +169,10 @@ def _collect_evidence_references(value: object, path: str = "$") -> dict[str, se
             child = f"{path}.{key}"
             if key == "evidence_id" and isinstance(item, str):
                 references[item].add(child)
-            elif key.endswith("evidence_ids") and isinstance(item, Sequence) and not isinstance(
-                item, (str, bytes)
+            elif (
+                key.endswith("evidence_ids")
+                and isinstance(item, Sequence)
+                and not isinstance(item, (str, bytes))
             ):
                 for index, identifier in enumerate(item):
                     if isinstance(identifier, str):
@@ -187,9 +189,7 @@ def _collect_evidence_references(value: object, path: str = "$") -> dict[str, se
     return references
 
 
-def _validate_ranges(
-    domains: Mapping[str, dict[str, Any]], issues: list[ValidationIssue]
-) -> None:
+def _validate_ranges(domains: Mapping[str, dict[str, Any]], issues: list[ValidationIssue]) -> None:
     for domain_id, domain in domains.items():
         for field in (
             "temperature_K",
@@ -414,7 +414,6 @@ def _validate_calibration_plans(
                             f"assumed parameter cannot be varied formally: {parameter_id}",
                         )
                     )
-
 
 
 def _canonical_digest(payload: Mapping[str, Any]) -> str:
@@ -742,9 +741,13 @@ def _validate_semantics(project: Mapping[str, Any]) -> tuple[ValidationIssue, ..
         "$.applicability_domains",
         issues,
     )
-    catalysts = _index(project.get("catalyst_passports"), "catalyst_id", "$.catalyst_passports", issues)
+    catalysts = _index(
+        project.get("catalyst_passports"), "catalyst_id", "$.catalyst_passports", issues
+    )
     dienes = _index(project.get("diene_passports"), "diene_id", "$.diene_passports", issues)
-    thermos = _index(project.get("thermo_passports"), "thermo_passport_id", "$.thermo_passports", issues)
+    thermos = _index(
+        project.get("thermo_passports"), "thermo_passport_id", "$.thermo_passports", issues
+    )
     parameter_sets = _index(
         project.get("kinetic_parameter_sets"),
         "parameter_set_id",
@@ -785,62 +788,225 @@ def _validate_semantics(project: Mapping[str, Any]) -> tuple[ValidationIssue, ..
     all_parameters: dict[str, dict[str, Any]] = {}
     all_rate_laws: dict[str, dict[str, Any]] = {}
     for set_id, parameter_set in parameter_sets.items():
-        _require_reference(parameter_set.get("catalyst_id"), catalysts, f"$.kinetic_parameter_sets[{set_id}].catalyst_id", "catalyst", issues)
-        _require_reference(parameter_set.get("diene_id"), dienes, f"$.kinetic_parameter_sets[{set_id}].diene_id", "diene", issues)
-        _require_reference(parameter_set.get("applicability_domain_id"), domains, f"$.kinetic_parameter_sets[{set_id}].applicability_domain_id", "applicability-domain", issues)
-        local_rate_laws = _index(parameter_set.get("rate_laws"), "rate_law_id", f"$.kinetic_parameter_sets[{set_id}].rate_laws", issues)
+        _require_reference(
+            parameter_set.get("catalyst_id"),
+            catalysts,
+            f"$.kinetic_parameter_sets[{set_id}].catalyst_id",
+            "catalyst",
+            issues,
+        )
+        _require_reference(
+            parameter_set.get("diene_id"),
+            dienes,
+            f"$.kinetic_parameter_sets[{set_id}].diene_id",
+            "diene",
+            issues,
+        )
+        _require_reference(
+            parameter_set.get("applicability_domain_id"),
+            domains,
+            f"$.kinetic_parameter_sets[{set_id}].applicability_domain_id",
+            "applicability-domain",
+            issues,
+        )
+        local_rate_laws = _index(
+            parameter_set.get("rate_laws"),
+            "rate_law_id",
+            f"$.kinetic_parameter_sets[{set_id}].rate_laws",
+            issues,
+        )
         for identifier, record in local_rate_laws.items():
             if identifier in all_rate_laws:
-                issues.append(ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, f"$.kinetic_parameter_sets[{set_id}].rate_laws", f"duplicate global rate-law ID: {identifier}"))
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.kinetic_parameter_sets[{set_id}].rate_laws",
+                        f"duplicate global rate-law ID: {identifier}",
+                    )
+                )
             all_rate_laws[identifier] = record
-        local_parameters = _index(parameter_set.get("parameters"), "parameter_id", f"$.kinetic_parameter_sets[{set_id}].parameters", issues)
+        local_parameters = _index(
+            parameter_set.get("parameters"),
+            "parameter_id",
+            f"$.kinetic_parameter_sets[{set_id}].parameters",
+            issues,
+        )
         for identifier, parameter in local_parameters.items():
             if identifier in all_parameters:
-                issues.append(ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, f"$.kinetic_parameter_sets[{set_id}].parameters", f"duplicate global parameter ID: {identifier}"))
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.kinetic_parameter_sets[{set_id}].parameters",
+                        f"duplicate global parameter ID: {identifier}",
+                    )
+                )
             all_parameters[identifier] = parameter
-            _require_reference(parameter.get("rate_law_id"), local_rate_laws, f"$.kinetic_parameter_sets[{set_id}].parameters[{identifier}].rate_law_id", "rate-law", issues)
-            _require_reference(parameter.get("applicability_domain_id"), domains, f"$.kinetic_parameter_sets[{set_id}].parameters[{identifier}].applicability_domain_id", "applicability-domain", issues)
-            low, value, high = parameter.get("lower_bound"), parameter.get("value"), parameter.get("upper_bound")
-            if all(isinstance(item, (int, float)) and not isinstance(item, bool) for item in (low, value, high)) and not low <= value <= high:
-                issues.append(ValidationIssue("ERROR", GateReasonCode.INVALID_UNIT_BASIS, f"$.kinetic_parameter_sets[{set_id}].parameters[{identifier}]", "parameter value lies outside declared bounds"))
+            _require_reference(
+                parameter.get("rate_law_id"),
+                local_rate_laws,
+                f"$.kinetic_parameter_sets[{set_id}].parameters[{identifier}].rate_law_id",
+                "rate-law",
+                issues,
+            )
+            _require_reference(
+                parameter.get("applicability_domain_id"),
+                domains,
+                f"$.kinetic_parameter_sets[{set_id}].parameters[{identifier}].applicability_domain_id",
+                "applicability-domain",
+                issues,
+            )
+            low, value, high = (
+                parameter.get("lower_bound"),
+                parameter.get("value"),
+                parameter.get("upper_bound"),
+            )
+            if (
+                all(
+                    isinstance(item, (int, float)) and not isinstance(item, bool)
+                    for item in (low, value, high)
+                )
+                and not low <= value <= high
+            ):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.INVALID_UNIT_BASIS,
+                        f"$.kinetic_parameter_sets[{set_id}].parameters[{identifier}]",
+                        "parameter value lies outside declared bounds",
+                    )
+                )
 
     for catalyst_id, catalyst in catalysts.items():
-        _require_reference(catalyst.get("applicability_domain_id"), domains, f"$.catalyst_passports[{catalyst_id}].applicability_domain_id", "applicability-domain", issues)
-        if catalyst.get("family") == "METALLOCENE" and catalyst.get("site_model") == "EFFECTIVE_MULTISITE":
+        _require_reference(
+            catalyst.get("applicability_domain_id"),
+            domains,
+            f"$.catalyst_passports[{catalyst_id}].applicability_domain_id",
+            "applicability-domain",
+            issues,
+        )
+        if (
+            catalyst.get("family") == "METALLOCENE"
+            and catalyst.get("site_model") == "EFFECTIVE_MULTISITE"
+        ):
             if not catalyst.get("evidence_ids"):
-                issues.append(ValidationIssue("ERROR", GateReasonCode.MISSING_EVIDENCE, f"$.catalyst_passports[{catalyst_id}].evidence_ids", "metallocene effective-multisite model requires evidence"))
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.MISSING_EVIDENCE,
+                        f"$.catalyst_passports[{catalyst_id}].evidence_ids",
+                        "metallocene effective-multisite model requires evidence",
+                    )
+                )
         if catalyst.get("active_site_basis") == "ASSUMED":
-            issues.append(ValidationIssue("HOLD", GateReasonCode.MISSING_EVIDENCE, f"$.catalyst_passports[{catalyst_id}].active_site_basis", "assumed active-site basis prevents calibration qualification"))
+            issues.append(
+                ValidationIssue(
+                    "HOLD",
+                    GateReasonCode.MISSING_EVIDENCE,
+                    f"$.catalyst_passports[{catalyst_id}].active_site_basis",
+                    "assumed active-site basis prevents calibration qualification",
+                )
+            )
 
     for diene_id, diene in dienes.items():
-        _require_reference(diene.get("applicability_domain_id"), domains, f"$.diene_passports[{diene_id}].applicability_domain_id", "applicability-domain", issues)
+        _require_reference(
+            diene.get("applicability_domain_id"),
+            domains,
+            f"$.diene_passports[{diene_id}].applicability_domain_id",
+            "applicability-domain",
+            issues,
+        )
         if diene.get("identity") == "OTHER":
-            issues.append(ValidationIssue("ERROR", GateReasonCode.UNSUPPORTED_TOPOLOGY, f"$.diene_passports[{diene_id}].identity", "OTHER diene is not supported by the frozen Phase A1 registry"))
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                    f"$.diene_passports[{diene_id}].identity",
+                    "OTHER diene is not supported by the frozen Phase A1 registry",
+                )
+            )
         if not diene.get("repeat_segment_id"):
-            issues.append(ValidationIssue("ERROR", GateReasonCode.UNSUPPORTED_TOPOLOGY, f"$.diene_passports[{diene_id}].repeat_segment_id", "repeat segment is required for detailed V2"))
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                    f"$.diene_passports[{diene_id}].repeat_segment_id",
+                    "repeat segment is required for detailed V2",
+                )
+            )
         if not diene.get("thermo_parameter_source_id"):
-            issues.append(ValidationIssue("HOLD", GateReasonCode.BLOCKED_BY_THERMODYNAMICS, f"$.diene_passports[{diene_id}].thermo_parameter_source_id", "diene thermodynamic parameters are unresolved"))
+            issues.append(
+                ValidationIssue(
+                    "HOLD",
+                    GateReasonCode.BLOCKED_BY_THERMODYNAMICS,
+                    f"$.diene_passports[{diene_id}].thermo_parameter_source_id",
+                    "diene thermodynamic parameters are unresolved",
+                )
+            )
         if diene.get("terminal_model_supported") and not diene.get("kinetic_parameter_source_id"):
-            issues.append(ValidationIssue("HOLD", GateReasonCode.MISSING_EVIDENCE, f"$.diene_passports[{diene_id}].kinetic_parameter_source_id", "terminal-model kinetic source is unresolved"))
+            issues.append(
+                ValidationIssue(
+                    "HOLD",
+                    GateReasonCode.MISSING_EVIDENCE,
+                    f"$.diene_passports[{diene_id}].kinetic_parameter_source_id",
+                    "terminal-model kinetic source is unresolved",
+                )
+            )
 
     for thermo_id, thermo in thermos.items():
         for dataset_id in thermo.get("validation_dataset_ids", []):
-            _require_reference(dataset_id, datasets, f"$.thermo_passports[{thermo_id}].validation_dataset_ids", "dataset", issues)
+            _require_reference(
+                dataset_id,
+                datasets,
+                f"$.thermo_passports[{thermo_id}].validation_dataset_ids",
+                "dataset",
+                issues,
+            )
         if not thermo.get("validation_dataset_ids"):
-            issues.append(ValidationIssue("HOLD", GateReasonCode.BLOCKED_BY_THERMODYNAMICS, f"$.thermo_passports[{thermo_id}].validation_dataset_ids", "thermodynamic passport has no validation dataset"))
+            issues.append(
+                ValidationIssue(
+                    "HOLD",
+                    GateReasonCode.BLOCKED_BY_THERMODYNAMICS,
+                    f"$.thermo_passports[{thermo_id}].validation_dataset_ids",
+                    "thermodynamic passport has no validation dataset",
+                )
+            )
 
     targets: dict[str, dict[str, Any]] = {}
     for dataset_id, dataset in datasets.items():
-        _require_reference(dataset.get("catalyst_id"), catalysts, f"$.datasets[{dataset_id}].catalyst_id", "catalyst", issues)
-        _require_reference(dataset.get("diene_id"), dienes, f"$.datasets[{dataset_id}].diene_id", "diene", issues)
+        _require_reference(
+            dataset.get("catalyst_id"),
+            catalysts,
+            f"$.datasets[{dataset_id}].catalyst_id",
+            "catalyst",
+            issues,
+        )
+        _require_reference(
+            dataset.get("diene_id"), dienes, f"$.datasets[{dataset_id}].diene_id", "diene", issues
+        )
         for target in dataset.get("targets", []):
             if isinstance(target, dict) and isinstance(target.get("target_id"), str):
                 target_id = target["target_id"]
                 if target_id in targets:
-                    issues.append(ValidationIssue("ERROR", GateReasonCode.DATA_LEAKAGE, f"$.datasets[{dataset_id}].targets", f"duplicate target ID: {target_id}"))
+                    issues.append(
+                        ValidationIssue(
+                            "ERROR",
+                            GateReasonCode.DATA_LEAKAGE,
+                            f"$.datasets[{dataset_id}].targets",
+                            f"duplicate target ID: {target_id}",
+                        )
+                    )
                 targets[target_id] = target
                 if target.get("dataset_id") != dataset_id:
-                    issues.append(ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, f"$.datasets[{dataset_id}].targets[{target_id}].dataset_id", "target dataset_id does not match parent dataset"))
+                    issues.append(
+                        ValidationIssue(
+                            "ERROR",
+                            GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                            f"$.datasets[{dataset_id}].targets[{target_id}].dataset_id",
+                            "target dataset_id does not match parent dataset",
+                        )
+                    )
     _validate_dataset_leakage(datasets, issues)
     _validate_calibration_plans(plans, all_parameters, targets, issues)
     _validate_a2_structures(
@@ -852,35 +1018,121 @@ def _validate_semantics(project: Mapping[str, Any]) -> tuple[ValidationIssue, ..
     )
 
     for case_id, case in cases.items():
-        _require_reference(case.get("catalyst_passport_id"), catalysts, f"$.cases[{case_id}].catalyst_passport_id", "catalyst", issues)
-        _require_reference(case.get("diene_passport_id"), dienes, f"$.cases[{case_id}].diene_passport_id", "diene", issues)
-        _require_reference(case.get("thermo_passport_id"), thermos, f"$.cases[{case_id}].thermo_passport_id", "thermo-passport", issues)
-        _require_reference(case.get("applicability_domain_id"), domains, f"$.cases[{case_id}].applicability_domain_id", "applicability-domain", issues)
-        _require_reference(case.get("kinetic_parameter_set_id"), parameter_sets, f"$.cases[{case_id}].kinetic_parameter_set_id", "kinetic-parameter-set", issues)
+        _require_reference(
+            case.get("catalyst_passport_id"),
+            catalysts,
+            f"$.cases[{case_id}].catalyst_passport_id",
+            "catalyst",
+            issues,
+        )
+        _require_reference(
+            case.get("diene_passport_id"),
+            dienes,
+            f"$.cases[{case_id}].diene_passport_id",
+            "diene",
+            issues,
+        )
+        _require_reference(
+            case.get("thermo_passport_id"),
+            thermos,
+            f"$.cases[{case_id}].thermo_passport_id",
+            "thermo-passport",
+            issues,
+        )
+        _require_reference(
+            case.get("applicability_domain_id"),
+            domains,
+            f"$.cases[{case_id}].applicability_domain_id",
+            "applicability-domain",
+            issues,
+        )
+        _require_reference(
+            case.get("kinetic_parameter_set_id"),
+            parameter_sets,
+            f"$.cases[{case_id}].kinetic_parameter_set_id",
+            "kinetic-parameter-set",
+            issues,
+        )
         state_id = case.get("state_definition_id")
-        _require_reference(state_id, state_definitions, f"$.cases[{case_id}].state_definition_id", "state-definition", issues)
+        _require_reference(
+            state_id,
+            state_definitions,
+            f"$.cases[{case_id}].state_definition_id",
+            "state-definition",
+            issues,
+        )
         state_definition = state_definitions.get(state_id)
         case_basis = case.get("initial_state", {}).get("state_basis")
         reactor_basis = case.get("reactor", {}).get("state_basis")
         definition_basis = state_definition.get("basis") if state_definition else None
         if len({case_basis, reactor_basis, definition_basis} - {None}) > 1:
-            issues.append(ValidationIssue("ERROR", GateReasonCode.MIXED_STATE_BASIS, f"$.cases[{case_id}]", "case, reactor, and state definition use mixed state bases"))
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.MIXED_STATE_BASIS,
+                    f"$.cases[{case_id}]",
+                    "case, reactor, and state definition use mixed state bases",
+                )
+            )
         parameter_set = parameter_sets.get(case.get("kinetic_parameter_set_id"))
         if parameter_set:
             if parameter_set.get("catalyst_id") != case.get("catalyst_passport_id"):
-                issues.append(ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, f"$.cases[{case_id}].kinetic_parameter_set_id", "parameter set catalyst does not match case catalyst"))
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                        f"$.cases[{case_id}].kinetic_parameter_set_id",
+                        "parameter set catalyst does not match case catalyst",
+                    )
+                )
             if parameter_set.get("diene_id") != case.get("diene_passport_id"):
-                issues.append(ValidationIssue("ERROR", GateReasonCode.UNSUPPORTED_TOPOLOGY, f"$.cases[{case_id}].kinetic_parameter_set_id", "parameter set diene does not match case diene"))
-        if case.get("engineering_use_requested") is True and not case.get("qualification_report_id"):
-            issues.append(ValidationIssue("ERROR", GateReasonCode.APPROVAL_MISSING, f"$.cases[{case_id}].qualification_report_id", "engineering-use request requires a qualification report"))
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.UNSUPPORTED_TOPOLOGY,
+                        f"$.cases[{case_id}].kinetic_parameter_set_id",
+                        "parameter set diene does not match case diene",
+                    )
+                )
+        if case.get("engineering_use_requested") is True and not case.get(
+            "qualification_report_id"
+        ):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.APPROVAL_MISSING,
+                    f"$.cases[{case_id}].qualification_report_id",
+                    "engineering-use request requires a qualification report",
+                )
+            )
 
     qualification = project.get("qualification", {})
     if isinstance(qualification, dict):
-        manual_pass = [key for key, value in qualification.items() if key.endswith("_status") and value == "PASS"]
+        manual_pass = [
+            key
+            for key, value in qualification.items()
+            if key.endswith("_status") and value == "PASS"
+        ]
         if manual_pass and not qualification.get("gate_results"):
-            issues.append(ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, "$.qualification", "qualification PASS cannot be entered manually without gate results"))
-        if qualification.get("engineering_use_status") == "PASS" and not qualification.get("evidence_ids"):
-            issues.append(ValidationIssue("ERROR", GateReasonCode.APPROVAL_MISSING, "$.qualification.engineering_use_status", "engineering-use PASS requires approval evidence"))
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                    "$.qualification",
+                    "qualification PASS cannot be entered manually without gate results",
+                )
+            )
+        if qualification.get("engineering_use_status") == "PASS" and not qualification.get(
+            "evidence_ids"
+        ):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    GateReasonCode.APPROVAL_MISSING,
+                    "$.qualification.engineering_use_status",
+                    "engineering-use PASS requires approval evidence",
+                )
+            )
 
     return tuple(issues)
 
@@ -891,20 +1143,31 @@ def validate_v2_project(
     schema_dir: Path | None = None,
 ) -> V2ValidationResult:
     try:
-        structural = validate_schema_instance(project, "epdm-project-v2.schema.json", schema_dir=schema_dir)
+        structural = validate_schema_instance(
+            project, "epdm-project-v2.schema.json", schema_dir=schema_dir
+        )
         if structural:
             return V2ValidationResult(GateDecision.FAIL, structural)
         if not isinstance(project, Mapping):
-            issue = ValidationIssue("ERROR", GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED, "$", "project root must be an object")
+            issue = ValidationIssue(
+                "ERROR",
+                GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
+                "$",
+                "project root must be an object",
+            )
             return V2ValidationResult(GateDecision.FAIL, (issue,))
         issues = _validate_semantics(project)
-        decision = GateDecision.FAIL if any(issue.severity == "ERROR" for issue in issues) else GateDecision.HOLD if issues else GateDecision.PASS
+        decision = (
+            GateDecision.FAIL
+            if any(issue.severity == "ERROR" for issue in issues)
+            else GateDecision.HOLD
+            if issues
+            else GateDecision.PASS
+        )
         a2_present = bool(project.get("reaction_networks")) or bool(
             project.get("generated_state_definitions")
         )
-        execution_status = (
-            "NOT_IMPLEMENTED_PHASE_A2" if a2_present else "NOT_IMPLEMENTED_PHASE_A1"
-        )
+        execution_status = "NOT_IMPLEMENTED_PHASE_A2" if a2_present else "NOT_IMPLEMENTED_PHASE_A1"
         return V2ValidationResult(
             decision,
             issues,

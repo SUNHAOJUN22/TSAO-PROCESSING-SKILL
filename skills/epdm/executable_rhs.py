@@ -60,7 +60,10 @@ class ApplicabilityDomain:
         )
         if any(isinstance(value, bool) or not math.isfinite(float(value)) for value in values):
             raise ContractValidationError("applicability-domain values must be finite numeric")
-        if self.minimum_temperature_k <= 0 or self.maximum_temperature_k <= self.minimum_temperature_k:
+        if (
+            self.minimum_temperature_k <= 0
+            or self.maximum_temperature_k <= self.minimum_temperature_k
+        ):
             raise ContractValidationError("temperature applicability domain is invalid")
         if self.minimum_volume_m3 <= 0 or self.maximum_volume_m3 <= self.minimum_volume_m3:
             raise ContractValidationError("volume applicability domain is invalid")
@@ -141,8 +144,10 @@ class KineticParameterSet:
             raise ContractValidationError("temperature_k must be finite numeric")
         if temperature_k <= 0:
             raise ContractValidationError("temperature_k must be positive")
-        exponent = -self.activation_energy_j_mol / _GAS_CONSTANT_J_MOL_K * (
-            1.0 / temperature_k - 1.0 / self.reference_temperature_k
+        exponent = (
+            -self.activation_energy_j_mol
+            / _GAS_CONSTANT_J_MOL_K
+            * (1.0 / temperature_k - 1.0 / self.reference_temperature_k)
         )
         value = self.k_ref_value * math.exp(exponent)
         if not math.isfinite(value) or value < 0:
@@ -346,7 +351,9 @@ def audit_rate_package(
             holds.append(f"missing parameter set: {binding.parameter_set_id}")
         elif parameter.k_ref_unit != expected_unit:
             errors.append(f"parameter unit mismatch: {binding.parameter_set_id}")
-    extras = sorted(set(package._binding_by_reaction) - {item.reaction_id for item in network.channels})
+    extras = sorted(
+        set(package._binding_by_reaction) - {item.reaction_id for item in network.channels}
+    )
     if extras:
         errors.append(f"rate package contains unknown reaction bindings: {extras}")
     decision = GateDecision.FAIL if errors else GateDecision.HOLD if holds else GateDecision.PASS
@@ -460,7 +467,9 @@ def _rate_for_binding(
     if not binding.enabled:
         return 0.0
     k_value = parameter.rate_constant(temperature_k)
-    amounts = [state[state_id] for state_id in (*binding.required_states, *binding.required_modifiers)]
+    amounts = [
+        state[state_id] for state_id in (*binding.required_states, *binding.required_modifiers)
+    ]
     if any(value < 0 for value in amounts):
         raise ContractValidationError("rate-law state amounts must be non-negative")
     if binding.kinetic_order == 1:
@@ -565,8 +574,7 @@ def _apply_moment_rules(
                 add(first_id, tdb_average * rate)
                 add(
                     second_id,
-                    (2.0 * first_average * tdb_average + tdb_average * tdb_average)
-                    * rate,
+                    (2.0 * first_average * tdb_average + tdb_average * tdb_average) * rate,
                 )
                 add(tdb_first, -tdb_average * rate)
 
@@ -714,7 +722,9 @@ def execute_structural_rhs(
     _apply_moment_rules(network, state, rates, internal_rhs)
 
     size = state_definition.size
-    feed = np.zeros(size, dtype=float) if feed_mol_s is None else np.asarray(feed_mol_s, dtype=float)
+    feed = (
+        np.zeros(size, dtype=float) if feed_mol_s is None else np.asarray(feed_mol_s, dtype=float)
+    )
     outflow = (
         np.zeros(size, dtype=float)
         if outflow_mol_s is None

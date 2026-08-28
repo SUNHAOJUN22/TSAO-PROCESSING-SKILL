@@ -17,6 +17,16 @@ def test_controlled_registry_is_part_of_the_single_authoritative_workflow() -> N
     assert "continue-on-error" not in text
 
 
+def test_canonical_ci_treats_expected_distribution_blocks_as_success() -> None:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "Prove controlled public wheel is blocked without emitting an artifact" in text
+    assert "Prove controlled public-source snapshot is blocked without emitting an artifact" in text
+    assert text.count("BLOCKED_CONTROLLED_METADATA_CLASSIFICATION") >= 2
+    assert "Upload release wheel" not in text
+    assert "tsao-source-alpha15-${{ github.sha }}" not in text
+    assert "--wheel-dir wheelhouse" not in text
+
+
 def test_canonical_ci_runs_distribution_containment_regressions() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "tests/test_distribution_containment_v20.py" in text

@@ -275,8 +275,7 @@ def _coerce(value: Any, annotation: Any, path: str) -> Any:
             raise _error("dataclass_construction", path, "expected an array")
         if len(args) == 2 and args[1] is Ellipsis:
             return tuple(
-                _coerce(item, args[0], f"{path}[{index}]")
-                for index, item in enumerate(value)
+                _coerce(item, args[0], f"{path}[{index}]") for index, item in enumerate(value)
             )
         if len(value) != len(args):
             raise _error(
@@ -295,9 +294,7 @@ def _coerce(value: Any, annotation: Any, path: str) -> Any:
         key_type, value_type = args
         return MappingProxyType(
             {
-                _coerce(key, key_type, f"{path}.<key>"): _coerce(
-                    item, value_type, f"{path}.{key}"
-                )
+                _coerce(key, key_type, f"{path}.<key>"): _coerce(item, value_type, f"{path}.{key}")
                 for key, item in value.items()
             }
         )

@@ -234,7 +234,7 @@ def capability_contract_issues(root: Path) -> list[str]:
             "under_distillation",
             "content_and_evidence_audit_v2_alpha",
             "p1_reference_kernel_alpha",
-            "runtime_verified",
+            "blocked_controlled_metadata_classification",
             "registered_139_of_139",
             "controlled_historical_evidence",
             "not_evaluated",

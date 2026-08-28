@@ -184,9 +184,7 @@ def _set_evidence_status(package: dict[str, object], evidence_id: str, status: s
 
 @pytest.mark.parametrize("evidence_id", ["E-KINETICS", "E-ACTIVE", "E-RAW_POLYMER"])
 @pytest.mark.parametrize("status", ["RETRACTED", "SUPERSEDED"])
-def test_terminal_invalid_epdm_evidence_fails_package(
-    evidence_id: str, status: str
-):
+def test_terminal_invalid_epdm_evidence_fails_package(evidence_id: str, status: str):
     package = copy.deepcopy(_reference_cases()["valid_package"])
     _set_evidence_status(package, evidence_id, status)
     result = audit_epdm_process_package(package)
