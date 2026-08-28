@@ -11,7 +11,7 @@
 | kinetics / estimation / properties / reactors / dynamics / scale-up | `P1_REFERENCE_KERNEL_ALPHA` |
 | model-asset passport | `IMPLEMENTED_REFERENCE_SCHEMA` |
 | process-package audit | `CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA` |
-| wheel delivery | `RUNTIME_VERIFIED` |
+| public wheel delivery | `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` |
 | POE scientific execution | `UNDER_DISTILLATION` |
 | historical Aspen/MATLAB/Origin assets | `CONTROLLED_HISTORICAL_EVIDENCE` |
 | scientific/engineering/HSE/customer/industrial approval | `NOT_EVALUATED` |

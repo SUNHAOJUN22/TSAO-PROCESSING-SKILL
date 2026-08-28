@@ -81,9 +81,7 @@ def _require_identifier(identifier: object, label: str) -> str:
 def _snapshot(value: Any) -> Any:
     if is_dataclass(value) and not isinstance(value, type):
         kwargs = {
-            item.name: _snapshot(getattr(value, item.name))
-            for item in fields(value)
-            if item.init
+            item.name: _snapshot(getattr(value, item.name)) for item in fields(value) if item.init
         }
         try:
             return type(value)(**kwargs)
@@ -115,8 +113,7 @@ def _canonical_value(value: Any) -> Any:
         return {
             "__type__": _qualified_type(type(value)),
             "fields": {
-                item.name: _canonical_value(getattr(value, item.name))
-                for item in fields(value)
+                item.name: _canonical_value(getattr(value, item.name)) for item in fields(value)
             },
         }
     if isinstance(value, Enum):
@@ -387,9 +384,7 @@ class ContractRegistry:
         self.thermo_passports = IndexedRegistry(
             "thermo-passport", ThermoPassport, "thermo_passport_id", lock=self._lock
         )
-        self.datasets = IndexedRegistry(
-            "dataset", KineticDataset, "dataset_id", lock=self._lock
-        )
+        self.datasets = IndexedRegistry("dataset", KineticDataset, "dataset_id", lock=self._lock)
         self.criteria = IndexedRegistry(
             "criterion", ValidationCriterion, "criterion_id", lock=self._lock
         )
@@ -560,8 +555,7 @@ class ContractRegistry:
     def manifest(self) -> Mapping[str, Any]:
         with self._lock:
             registries = {
-                name: dict(registry.manifest())
-                for name, registry in self._registries().items()
+                name: dict(registry.manifest()) for name, registry in self._registries().items()
             }
         payload: dict[str, Any] = {
             "schema": _MANIFEST_SCHEMA,

@@ -52,7 +52,11 @@ def _coerce(value: object, annotation: object, label: str) -> object:
             _fail(f"{label} must be integer")
         return value
     if annotation is float:
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
             _fail(f"{label} must be finite numeric")
         return float(value)
     if annotation is str:
@@ -101,7 +105,10 @@ def _custom(instance: object) -> None:
         if instance.basis is not None and not instance.basis.strip():
             _fail("basis must be a non-empty string")
         if instance.standard_uncertainty is not None and instance.uncertainty_unit is not None:
-            if _c.SI_UNIT_DIMENSIONS[instance.uncertainty_unit] != _c.SI_UNIT_DIMENSIONS[instance.unit]:
+            if (
+                _c.SI_UNIT_DIMENSIONS[instance.uncertainty_unit]
+                != _c.SI_UNIT_DIMENSIONS[instance.unit]
+            ):
                 _fail("uncertainty_unit must have the same dimension as unit")
 
     elif isinstance(instance, _c.KineticParameter):
@@ -147,11 +154,20 @@ def _custom(instance: object) -> None:
             _fail("non-applicable gate must be NOT_APPLICABLE")
         if not instance.applicable and instance.mandatory:
             _fail("non-applicable gate cannot be mandatory")
-        if instance.decision == _c.GateDecision.PASS and instance.reason_code != _c.GateReasonCode.NONE:
+        if (
+            instance.decision == _c.GateDecision.PASS
+            and instance.reason_code != _c.GateReasonCode.NONE
+        ):
             _fail("PASS gate must use reason code NONE")
-        if instance.decision in {_c.GateDecision.HOLD, _c.GateDecision.FAIL} and instance.reason_code == _c.GateReasonCode.NONE:
+        if (
+            instance.decision in {_c.GateDecision.HOLD, _c.GateDecision.FAIL}
+            and instance.reason_code == _c.GateReasonCode.NONE
+        ):
             _fail("HOLD/FAIL gate requires a reason code")
-        if instance.decision in {_c.GateDecision.NOT_EVALUATED, _c.GateDecision.NOT_APPLICABLE} and instance.reason_code != _c.GateReasonCode.NONE:
+        if (
+            instance.decision in {_c.GateDecision.NOT_EVALUATED, _c.GateDecision.NOT_APPLICABLE}
+            and instance.reason_code != _c.GateReasonCode.NONE
+        ):
             _fail(f"{instance.decision.value} gate must use reason code NONE")
 
     elif isinstance(instance, _c.ModelQualification):
@@ -208,7 +224,9 @@ def harden_contracts(module: object = _c) -> None:
                 continue
 
             @wraps(original_init)
-            def hardened_init(self: object, *args: Any, _original: Any = original_init, **kwargs: Any) -> None:
+            def hardened_init(
+                self: object, *args: Any, _original: Any = original_init, **kwargs: Any
+            ) -> None:
                 _original(self, *args, **kwargs)
                 _prevalidate(self)
                 _custom(self)
@@ -234,4 +252,3 @@ def harden_contracts(module: object = _c) -> None:
 
         hardened.__tsao_hardened__ = True  # type: ignore[attr-defined]
         value.__post_init__ = hardened
-

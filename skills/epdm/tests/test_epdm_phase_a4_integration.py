@@ -72,7 +72,9 @@ def _single_activation(package, network, rate=0.5):
     parameters = tuple(
         replace(
             item,
-            k_ref_value=rate if item.parameter_set_id == binding.parameter_set_id else item.k_ref_value,
+            k_ref_value=rate
+            if item.parameter_set_id == binding.parameter_set_id
+            else item.k_ref_value,
             activation_energy_j_mol=(
                 0.0
                 if item.parameter_set_id == binding.parameter_set_id
@@ -92,8 +94,6 @@ def test_request_is_serializable_and_strict_schema_valid():
     assert not validate_schema_instance(payload, "integration-request-a15.schema.json")
     payload["unknown_field"] = True
     assert validate_schema_instance(payload, "integration-request-a15.schema.json")
-
-
 
 
 def test_reference_request_fixture_matches_current_parameter_bundle():
@@ -302,7 +302,10 @@ def test_missing_link_nonidentifiable_and_applicability_are_machine_holds():
     nonidentifiable = replace(
         package,
         parameter_sets=(
-            replace(package.parameter_sets[0], identifiability_state=IdentifiabilityState.NON_IDENTIFIABLE),
+            replace(
+                package.parameter_sets[0],
+                identifiability_state=IdentifiabilityState.NON_IDENTIFIABLE,
+            ),
             *package.parameter_sets[1:],
         ),
     )
@@ -598,7 +601,11 @@ def test_request_requires_enum_instances_and_parameter_bundle_binds_values():
     state, network, package = _system()
     valid = _request(state, network, package)
     for field, value, match in (
-        ("integration_method", IntegrationMethod.ADAPTIVE_DORMAND_PRINCE_54.value, "IntegrationMethod"),
+        (
+            "integration_method",
+            IntegrationMethod.ADAPTIVE_DORMAND_PRINCE_54.value,
+            "IntegrationMethod",
+        ),
         (
             "nonnegative_state_policy",
             NonnegativeStatePolicy.REJECT_REDUCE_ROUNDOFF_CLAMP.value,
@@ -615,7 +622,9 @@ def test_request_requires_enum_instances_and_parameter_bundle_binds_values():
     changed = replace(
         package,
         parameter_sets=(
-            replace(package.parameter_sets[0], k_ref_value=package.parameter_sets[0].k_ref_value * 2.0),
+            replace(
+                package.parameter_sets[0], k_ref_value=package.parameter_sets[0].k_ref_value * 2.0
+            ),
             *package.parameter_sets[1:],
         ),
     )

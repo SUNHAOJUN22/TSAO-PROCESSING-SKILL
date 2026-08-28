@@ -178,15 +178,11 @@ def test_sequence_fields_normalize_lists_but_reject_scalar_strings() -> None:
             "parent dataset",
         ),
         (
-            lambda: _plan(
-                parameter_bindings=(_binding(scope=ParameterScope.GRADE_CORRECTION),)
-            ),
+            lambda: _plan(parameter_bindings=(_binding(scope=ParameterScope.GRADE_CORRECTION),)),
             "grade-specific",
         ),
         (
-            lambda: _plan(
-                parameter_bindings=(_binding(scope=ParameterScope.REACTOR_CORRECTION),)
-            ),
+            lambda: _plan(parameter_bindings=(_binding(scope=ParameterScope.REACTOR_CORRECTION),)),
             "reactor-specific",
         ),
         (
@@ -231,9 +227,7 @@ def test_missing_and_unknown_constructor_fields_fail_closed() -> None:
         lambda project: project["catalyst_passports"][0].update(
             {"family": "UNKNOWN_CATALYST_FAMILY"}
         ),
-        lambda project: project["diene_passports"][0].update(
-            {"terminal_model_supported": "true"}
-        ),
+        lambda project: project["diene_passports"][0].update({"terminal_model_supported": "true"}),
     ],
 )
 def test_schema_boundary_rejects_unknown_missing_version_enum_and_type_confusion(
@@ -339,5 +333,3 @@ def test_valid_reference_project_remains_compatible() -> None:
     project = copy.deepcopy(_project())
     result = validate_v2_project(project)
     assert result.decision == GateDecision.PASS, result.as_dict()
-
-

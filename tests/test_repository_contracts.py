@@ -226,7 +226,7 @@ def test_manifest_registers_all_specialists_and_truthful_poe_status() -> None:
     assert poe["historical_asset_lineage"] == "REGISTERED_139_OF_139"
     assert poe["process_package_qualification"] == "CONTENT_AND_EVIDENCE_AUDIT_V2_ALPHA"
     assert poe["reference_scientific_kernel"] == "P1_REFERENCE_KERNEL_ALPHA"
-    assert poe["wheel_delivery"] == "RUNTIME_VERIFIED"
+    assert poe["wheel_delivery"] == "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION"
 
 
 def test_github_issue_form_uses_issue_form_contract() -> None:
@@ -251,10 +251,17 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "[skip ci]" not in workflow
     assert "export_source_snapshot.py" in workflow
     assert "tsao.cli doctor" in workflow
-    assert "verify_wheel_contents.py" in workflow
+    assert "Prove controlled public wheel is blocked without emitting an artifact" in workflow
+    assert (
+        "Prove controlled public-source snapshot is blocked without emitting an artifact"
+        in workflow
+    )
+    assert "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION" in workflow
+    assert "Upload release wheel" not in workflow
+    assert "verify_wheel_contents.py" not in workflow
+    assert "verify_wheel_runtime.py" not in workflow
     assert "tsao.cli package template" in workflow
     assert "tsao.cli epdm audit" in workflow
-    assert "verify_wheel_runtime.py" in workflow
     assert "benchmark_performance_v2.py" in workflow
     assert "compare_performance_v2.py" in workflow
     assert "generate_uiux_readme_assets.py" in workflow

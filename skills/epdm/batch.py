@@ -41,9 +41,7 @@ def batch_pseudo_first_order_screening(
 
     validated_parameters = parameters.validated()
     validated_energies = activation_energies.validated()
-    reference_temperature = _positive_temperature(
-        reference_temperature_K, "reference temperature"
-    )
+    reference_temperature = _positive_temperature(reference_temperature_K, "reference temperature")
     temperature = _finite_array(temperatures_K, "temperatures_K")
     residence = _finite_array(residence_times_s, "residence_times_s")
     active_site = _finite_array(active_site_mol_L, "active_site_mol_L")
@@ -69,26 +67,17 @@ def batch_pseudo_first_order_screening(
             kp_e = (
                 validated_parameters.kp_e_L_mol_s
                 * multiplier
-                * np.exp(
-                    -(validated_energies.kp_e_J_mol / GAS_CONSTANT_J_MOL_K)
-                    * inverse_delta
-                )
+                * np.exp(-(validated_energies.kp_e_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta)
             )
             kp_p = (
                 validated_parameters.kp_p_L_mol_s
                 * multiplier
-                * np.exp(
-                    -(validated_energies.kp_p_J_mol / GAS_CONSTANT_J_MOL_K)
-                    * inverse_delta
-                )
+                * np.exp(-(validated_energies.kp_p_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta)
             )
             kp_d = (
                 validated_parameters.kp_d_L_mol_s
                 * multiplier
-                * np.exp(
-                    -(validated_energies.kp_d_J_mol / GAS_CONSTANT_J_MOL_K)
-                    * inverse_delta
-                )
+                * np.exp(-(validated_energies.kp_d_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta)
             )
             exposure = active_site * residence
             conversion_e = -np.expm1(-kp_e * exposure)

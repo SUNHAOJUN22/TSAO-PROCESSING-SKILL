@@ -44,9 +44,7 @@ def _v1_case() -> dict[str, object]:
 def test_contracts_module_is_base_install_light_and_side_effect_free():
     tree = ast.parse((ROOT / "contracts.py").read_text(encoding="utf-8"))
     imported_roots = {
-        node.names[0].name.split(".")[0]
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Import)
+        node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)
     }
     imported_roots.update(
         node.module.split(".")[0]
@@ -186,8 +184,7 @@ def test_unsupported_diene_and_missing_thermo_source_fail_or_hold():
     result = validate_v2_project(project)
     assert result.decision == GateDecision.HOLD
     assert any(
-        issue.reason_code == GateReasonCode.BLOCKED_BY_THERMODYNAMICS
-        for issue in result.holds
+        issue.reason_code == GateReasonCode.BLOCKED_BY_THERMODYNAMICS for issue in result.holds
     )
 
 
@@ -197,7 +194,9 @@ def test_illegal_local_binding_and_assumed_varied_parameter_fail():
     plan["parameter_bindings"][0]["scope"] = "GRADE_CORRECTION"
     result = validate_v2_project(project)
     assert result.decision == GateDecision.FAIL
-    assert any(issue.reason_code == GateReasonCode.ILLEGAL_PARAMETER_BINDING for issue in result.errors)
+    assert any(
+        issue.reason_code == GateReasonCode.ILLEGAL_PARAMETER_BINDING for issue in result.errors
+    )
 
     project = _project()
     project["kinetic_parameter_sets"][0]["parameters"][0]["maturity"] = "ASSUMED"
@@ -272,9 +271,7 @@ def test_v1_adapter_is_metadata_only_and_never_fabricates_evidence():
 
 
 def test_phase_a1_does_not_change_v1_golden_rates():
-    golden = json.loads(
-        (ROOT / "fixtures/v1_golden_outputs.json").read_text(encoding="utf-8")
-    )
+    golden = json.loads((ROOT / "fixtures/v1_golden_outputs.json").read_text(encoding="utf-8"))
     state = EpdmKineticState(*golden["reference_input"]["state"])
     parameters = EpdmKineticParameters(*golden["reference_input"]["parameters"])
     assert insertion_rates(state, parameters) == pytest.approx(
@@ -286,12 +283,8 @@ def test_phase_a1_does_not_change_v1_golden_rates():
 
 def test_catalogs_cover_frozen_phase_a1_contracts():
     gates = json.loads((ROOT / "data/gate_catalog_v2.json").read_text(encoding="utf-8"))
-    reasons = json.loads(
-        (ROOT / "data/reason_code_catalog_v2.json").read_text(encoding="utf-8")
-    )
-    states = json.loads(
-        (ROOT / "data/state_variable_catalog_v2.json").read_text(encoding="utf-8")
-    )
+    reasons = json.loads((ROOT / "data/reason_code_catalog_v2.json").read_text(encoding="utf-8"))
+    states = json.loads((ROOT / "data/state_variable_catalog_v2.json").read_text(encoding="utf-8"))
     reactions = json.loads(
         (ROOT / "data/reaction_class_catalog_v2.json").read_text(encoding="utf-8")
     )

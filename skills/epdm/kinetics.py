@@ -159,7 +159,9 @@ def _arrhenius_scaled(rate: float, activation: float, inverse_temperature_delta:
     try:
         scaled = rate * math.exp(exponent)
     except OverflowError as exc:
-        raise ValueError("Arrhenius scaling overflowed; check temperatures and energy units") from exc
+        raise ValueError(
+            "Arrhenius scaling overflowed; check temperatures and energy units"
+        ) from exc
     if scaled == math.inf:
         raise ValueError(
             "Arrhenius-scaled rate became non-finite; reduce the input magnitude or check units"
@@ -221,10 +223,10 @@ def _temperature_adjusted_validated(
             parameters.k_poison_L_mol_s * math.exp(exponents[5]),
         )
     except OverflowError as exc:
-        raise ValueError("Arrhenius scaling overflowed; check temperatures and energy units") from exc
-    if not math.isfinite(
-        max(values[0], values[1], values[2], values[3], values[4], values[5])
-    ):
+        raise ValueError(
+            "Arrhenius scaling overflowed; check temperatures and energy units"
+        ) from exc
+    if not math.isfinite(max(values[0], values[1], values[2], values[3], values[4], values[5])):
         for value in values:
             if value == math.inf:
                 raise ValueError(
@@ -252,8 +254,8 @@ def temperature_adjusted_parameters(
 def _insertion_rates_validated(
     state: EpdmKineticState, parameters: EpdmKineticParameters
 ) -> dict[str, float]:
-    ethylene, propylene, diene, transfer, deactivation = (
-        _insertion_rate_values_validated(state, parameters)
+    ethylene, propylene, diene, transfer, deactivation = _insertion_rate_values_validated(
+        state, parameters
     )
     return {
         "ethylene": ethylene,
@@ -510,14 +512,14 @@ def three_level_kinetic_suite(
     multipliers = tuple(
         _finite(value, "site activity multiplier") for value in site_activity_multipliers
     )
-    if min(fractions) < 0 or min(multipliers) < 0 or not math.isclose(
-        sum(fractions), 1.0, rel_tol=1e-9, abs_tol=1e-12
+    if (
+        min(fractions) < 0
+        or min(multipliers) < 0
+        or not math.isclose(sum(fractions), 1.0, rel_tol=1e-9, abs_tol=1e-12)
     ):
         raise ValueError("site fractions must be non-negative and sum to one")
 
-    adjusted = _temperature_adjusted_validated(
-        parameters, activation_energies, temperature, 298.15
-    )
+    adjusted = _temperature_adjusted_validated(parameters, activation_energies, temperature, 298.15)
     simple_rates = _insertion_rates_validated(state, parameters)
     adjusted_rates = _insertion_rates_validated(state, adjusted)
     simple = {
@@ -538,8 +540,7 @@ def three_level_kinetic_suite(
     weighted_deactivation = 0.0
     try:
         multiplier_mean = math.fsum(
-            weight * multiplier
-            for weight, multiplier in zip(fractions, multipliers, strict=True)
+            weight * multiplier for weight, multiplier in zip(fractions, multipliers, strict=True)
         )
         multiplier_variance = math.fsum(
             weight * (multiplier - multiplier_mean) ** 2
@@ -552,17 +553,11 @@ def three_level_kinetic_suite(
     site = state.active_site_mol_L
     transfer = adjusted_rates["transfer"]
     deactivation = adjusted_rates["deactivation"]
-    for index, (weight, multiplier) in enumerate(
-        zip(fractions, multipliers, strict=True), start=1
-    ):
+    for index, (weight, multiplier) in enumerate(zip(fractions, multipliers, strict=True), start=1):
         ethylene = adjusted.kp_e_L_mol_s * multiplier * state.ethylene_mol_L * site
         propylene = adjusted.kp_p_L_mol_s * multiplier * state.propylene_mol_L * site
         diene = adjusted.kp_d_L_mol_s * multiplier * state.diene_mol_L * site
-        if not (
-            math.isfinite(ethylene)
-            and math.isfinite(propylene)
-            and math.isfinite(diene)
-        ):
+        if not (math.isfinite(ethylene) and math.isfinite(propylene) and math.isfinite(diene)):
             _raise_nonfinite_rate(ethylene, propylene, diene, transfer, deactivation)
         weighted_ethylene += weight * ethylene
         weighted_propylene += weight * propylene
@@ -604,9 +599,7 @@ def three_level_kinetic_suite(
         "transfer": weighted_transfer,
         "deactivation": weighted_deactivation,
     }
-    site_cv = (
-        0.0 if multiplier_mean <= 0 else math.sqrt(multiplier_variance) / multiplier_mean
-    )
+    site_cv = 0.0 if multiplier_mean <= 0 else math.sqrt(multiplier_variance) / multiplier_mean
     _finite_result(site_cv, "site-activity coefficient of variation")
     detailed = {
         "site_families": family_records,

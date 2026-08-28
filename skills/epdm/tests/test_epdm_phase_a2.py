@@ -56,9 +56,7 @@ def test_multisite_state_generation_expands_without_hard_coded_indices():
         site_family_ids=("SITE-A", "SITE-B"),
     )
     assert state.size == 33
-    assert state.index_of("N_SITE_VACANT:SITE-A") != state.index_of(
-        "N_SITE_VACANT:SITE-B"
-    )
+    assert state.index_of("N_SITE_VACANT:SITE-A") != state.index_of("N_SITE_VACANT:SITE-B")
     assert state.index_of("LAMBDA0:SITE-B:D") == 22
 
 
@@ -105,7 +103,9 @@ def test_default_level2_network_is_deterministic_and_structurally_qualified():
     assert network.matrix_shape == (20, 41)
     assert len(network.channels) == 41
     assert network.family_counts[ReactionFamily.PROPAGATION.value] == 9
-    assert network.digest_sha256 == "18daec20b3d2fde28b7fa924b33442a9fcd68fc2bc0637a8db31934b90e7e73a"
+    assert (
+        network.digest_sha256 == "18daec20b3d2fde28b7fa924b33442a9fcd68fc2bc0637a8db31934b90e7e73a"
+    )
     assert audit.decision == GateDecision.PASS
     assert audit.metrics["max_site_inventory_residual"] == 0.0
 
@@ -266,7 +266,9 @@ def test_phase_a2_explicitly_refuses_numerical_rhs_execution():
 
 def test_requirement_and_module_catalogs_record_a2_without_claiming_numerics():
     requirements = json.loads((ROOT / "data/requirements_v2.json").read_text(encoding="utf-8"))
-    statuses = {item["requirement_id"]: item["implementation_status"] for item in requirements["items"]}
+    statuses = {
+        item["requirement_id"]: item["implementation_status"] for item in requirements["items"]
+    }
     for requirement_id in (
         "ARCH-003",
         "RXN-001",

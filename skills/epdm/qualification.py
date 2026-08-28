@@ -54,9 +54,7 @@ def _valid_evidence_ids(value: object) -> bool:
     return len(normalized) == len(set(normalized))
 
 
-def _require_evidence(
-    payload: dict[str, Any], field: str, message: str, holds: list[str]
-) -> None:
+def _require_evidence(payload: dict[str, Any], field: str, message: str, holds: list[str]) -> None:
     if not _valid_evidence_ids(payload.get(field)):
         holds.append(message)
 
@@ -65,8 +63,7 @@ def _validate_case_kind(case: dict[str, Any], errors: list[str], holds: list[str
     case_kind = case.get("case_kind")
     if case_kind is None:
         holds.append(
-            "case_kind is missing; software-fixture and project evidence boundaries "
-            "are unresolved"
+            "case_kind is missing; software-fixture and project evidence boundaries are unresolved"
         )
     elif not isinstance(case_kind, str) or case_kind not in _ALLOWED_CASE_KINDS:
         errors.append("case_kind must be SYNTHETIC_REFERENCE_TEST or PROJECT_CASE")
@@ -77,9 +74,7 @@ def _validate_parameter_provenance(
 ) -> None:
     basis = kinetic.get("parameter_basis")
     if not isinstance(basis, str) or basis not in _ALLOWED_PARAMETER_BASES:
-        holds.append(
-            "kinetic parameter basis is missing or outside the recognized reference set"
-        )
+        holds.append("kinetic parameter basis is missing or outside the recognized reference set")
     elif basis == "SYNTHETIC_REFERENCE_TEST" and case.get("case_kind") != _SYNTHETIC_CASE_KIND:
         holds.append(
             "synthetic reference parameters are only valid for a declared software fixture"
@@ -285,11 +280,7 @@ def _validate_epdm_case(case: object) -> dict[str, Any]:
             )
             metrics["steady_poison_mol_h"] = poison
             maximum = recovery.get("max_poison_mol_h")
-            if (
-                isinstance(maximum, bool)
-                or not isinstance(maximum, (int, float))
-                or maximum < 0
-            ):
+            if isinstance(maximum, bool) or not isinstance(maximum, (int, float)) or maximum < 0:
                 errors.append("recovery.max_poison_mol_h must be non-negative numeric")
             elif poison > float(maximum):
                 errors.append("recycle poison steady state exceeds the declared limit")

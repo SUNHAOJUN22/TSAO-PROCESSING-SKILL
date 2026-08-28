@@ -60,9 +60,7 @@ class IntegrationRequest:
         if not isinstance(self.integration_method, IntegrationMethod):
             raise ContractValidationError("integration_method must be IntegrationMethod")
         if not isinstance(self.nonnegative_state_policy, NonnegativeStatePolicy):
-            raise ContractValidationError(
-                "nonnegative_state_policy must be NonnegativeStatePolicy"
-            )
+            raise ContractValidationError("nonnegative_state_policy must be NonnegativeStatePolicy")
         if not isinstance(self.conservation_policy, ConservationPolicy):
             raise ContractValidationError("conservation_policy must be ConservationPolicy")
         for label, value in (
@@ -202,14 +200,20 @@ class IntegrationResult:
             if self.minimum_step_used_s > self.maximum_step_used_s:
                 raise ContractValidationError("used step bounds are inconsistent")
         if any(
-            isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value))
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
             for value in self.times_s
         ):
             raise ContractValidationError("times_s must contain finite numeric values")
-        if any(later <= earlier for earlier, later in zip(self.times_s, self.times_s[1:], strict=False)):
+        if any(
+            later <= earlier for earlier, later in zip(self.times_s, self.times_s[1:], strict=False)
+        ):
             raise ContractValidationError("times_s must be strictly increasing")
         if self.final_state is not None and any(
-            isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value))
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
             for value in self.final_state
         ):
             raise ContractValidationError("final_state must contain finite numeric values")
@@ -238,9 +242,7 @@ class IntegrationResult:
                 "minimum_step_used_s": self.minimum_step_used_s,
                 "maximum_step_used_s": self.maximum_step_used_s,
                 "maximum_error_norm": float(self.maximum_error_norm),
-                "maximum_conservation_residual": float(
-                    self.maximum_conservation_residual
-                ),
+                "maximum_conservation_residual": float(self.maximum_conservation_residual),
                 "conservation": dict(self.conservation),
                 "errors": list(self.errors),
                 "holds": list(self.holds),
@@ -373,9 +375,9 @@ def _inventory_totals(
     totals: dict[str, float] = {}
     for variable, value in zip(state_definition.variables, values, strict=True):
         if variable.conserved_inventory_id:
-            totals[variable.conserved_inventory_id] = (
-                totals.get(variable.conserved_inventory_id, 0.0) + float(value)
-            )
+            totals[variable.conserved_inventory_id] = totals.get(
+                variable.conserved_inventory_id, 0.0
+            ) + float(value)
     polymer_units = 0.0
     for state_id, value in zip(state_definition.state_ids, values, strict=True):
         if state_id in {"N_E", "N_P", "N_D"} or state_id.startswith(
@@ -411,9 +413,7 @@ _A = (
     (35 / 384, 0.0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84),
 )
 _B5 = np.asarray((35 / 384, 0.0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84, 0.0))
-_B4 = np.asarray(
-    (5179 / 57600, 0.0, 7571 / 16695, 393 / 640, -92097 / 339200, 187 / 2100, 1 / 40)
-)
+_B4 = np.asarray((5179 / 57600, 0.0, 7571 / 16695, 393 / 640, -92097 / 339200, 187 / 2100, 1 / 40))
 
 
 def integrate_adaptive(
@@ -650,7 +650,7 @@ def integrate_adaptive(
             consecutive_rejections = 0
             min_used = step if min_used is None else min(min_used, step)
             max_used = step if max_used is None else max(max_used, step)
-            factor = 5.0 if error_norm == 0.0 else min(5.0, max(0.2, 0.9 * error_norm ** -0.2))
+            factor = 5.0 if error_norm == 0.0 else min(5.0, max(0.2, 0.9 * error_norm**-0.2))
             step = min(request.maximum_step_s, max(request.minimum_step_s, step * factor))
             continue
 
@@ -707,7 +707,9 @@ def integrate_adaptive(
         "external_feed_integral_mol": float(feed.sum() * duration),
         "external_outflow_integral_mol": float(outflow.sum() * duration),
         "external_flow_inventory_rates": flow_rates,
-        "time_monotonic": all(later > earlier for earlier, later in zip(times, times[1:], strict=False)),
+        "time_monotonic": all(
+            later > earlier for earlier, later in zip(times, times[1:], strict=False)
+        ),
     }
     trajectory_tolerance = max(1.0e-9, request.absolute_tolerance * 100.0)
     if trajectory_max > trajectory_tolerance:

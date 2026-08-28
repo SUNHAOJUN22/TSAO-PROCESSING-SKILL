@@ -321,11 +321,15 @@ class EvidenceReference:
         _require_identifier(self.source_id, "source_id")
         if not self.locator.strip():
             raise ContractValidationError("locator must not be empty")
-        if self.source_type in {
-            EvidenceSourceType.LAB_FIT,
-            EvidenceSourceType.PILOT_FIT,
-            EvidenceSourceType.PLANT_FIT,
-        } and not self.dataset_id:
+        if (
+            self.source_type
+            in {
+                EvidenceSourceType.LAB_FIT,
+                EvidenceSourceType.PILOT_FIT,
+                EvidenceSourceType.PLANT_FIT,
+            }
+            and not self.dataset_id
+        ):
             raise ContractValidationError("fitted evidence requires dataset_id")
         if self.dataset_id is not None:
             _require_identifier(self.dataset_id, "dataset_id")
@@ -552,7 +556,9 @@ class KineticParameter:
         elif self.stored_quantity_kind == StoredQuantityKind.DIMENSIONLESS:
             validate_si_unit(self.unit, expected_dimension="dimensionless")
         elif self.reference_temperature_K is None or self.reference_temperature_K <= 0:
-            raise ContractValidationError("kinetic rate parameters require positive reference_temperature_K")
+            raise ContractValidationError(
+                "kinetic rate parameters require positive reference_temperature_K"
+            )
         if self.reference_temperature_K is not None:
             _require_finite(self.reference_temperature_K, "reference_temperature_K")
         if self.standard_error is not None:
@@ -631,7 +637,10 @@ class ThermoPassport:
             _require_identifier(value, label)
         if not self.method_family.strip() or not self.fitted_components:
             raise ContractValidationError("method_family and fitted_components are required")
-        if self.temperature_range_K[0] <= 0 or self.temperature_range_K[0] > self.temperature_range_K[1]:
+        if (
+            self.temperature_range_K[0] <= 0
+            or self.temperature_range_K[0] > self.temperature_range_K[1]
+        ):
             raise ContractValidationError("temperature_range_K is invalid")
         if self.pressure_range_Pa[0] < 0 or self.pressure_range_Pa[0] > self.pressure_range_Pa[1]:
             raise ContractValidationError("pressure_range_Pa is invalid")
@@ -750,7 +759,9 @@ class CalibrationStage:
         _require_ids(self.prerequisite_gate_ids, "prerequisite_gate_ids", allow_empty=True)
         overlap = set(self.varied_parameter_ids) & set(self.fixed_parameter_ids)
         if overlap:
-            raise ContractValidationError(f"parameters cannot be both fixed and varied: {sorted(overlap)}")
+            raise ContractValidationError(
+                f"parameters cannot be both fixed and varied: {sorted(overlap)}"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -839,7 +850,10 @@ class GateResult:
             raise ContractValidationError("non-applicable gate must be NOT_APPLICABLE")
         if self.decision == GateDecision.PASS and self.reason_code != GateReasonCode.NONE:
             raise ContractValidationError("PASS gate must use reason code NONE")
-        if self.decision in {GateDecision.HOLD, GateDecision.FAIL} and self.reason_code == GateReasonCode.NONE:
+        if (
+            self.decision in {GateDecision.HOLD, GateDecision.FAIL}
+            and self.reason_code == GateReasonCode.NONE
+        ):
             raise ContractValidationError("HOLD/FAIL gate requires a reason code")
 
 

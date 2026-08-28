@@ -39,18 +39,14 @@ def derive_model_qualification(
         by_layer[gate.layer].append(gate)
     return ModelQualification(
         software_status=aggregate_gate_results(by_layer[QualificationLayer.SOFTWARE]),
-        thermodynamic_status=aggregate_gate_results(
-            by_layer[QualificationLayer.THERMODYNAMIC]
-        ),
+        thermodynamic_status=aggregate_gate_results(by_layer[QualificationLayer.THERMODYNAMIC]),
         kinetic_calibration_status=aggregate_gate_results(
             by_layer[QualificationLayer.KINETIC_CALIBRATION]
         ),
         independent_validation_status=aggregate_gate_results(
             by_layer[QualificationLayer.INDEPENDENT_VALIDATION]
         ),
-        engineering_use_status=aggregate_gate_results(
-            by_layer[QualificationLayer.ENGINEERING_USE]
-        ),
+        engineering_use_status=aggregate_gate_results(by_layer[QualificationLayer.ENGINEERING_USE]),
         gate_results=gates,
         model_generation=model_generation,
     )
