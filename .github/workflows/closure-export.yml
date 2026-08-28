@@ -51,6 +51,8 @@ jobs:
           python -m pip install --quiet --require-hashes -r requirements.lock
           python -m pip install --quiet --no-deps --no-build-isolation -e .
           python -m pip check
+          python scripts/build_source_asset_manifest.py --root . --out reports/SOURCE_CORE_MANIFEST.tsv
+          git add reports/SOURCE_CORE_MANIFEST.tsv
           python -m pytest -q -p no:cacheprovider
           python -m ruff check tsao tests scripts skills/process-general skills/epdm skills/poe skills/polymer-general
           python -m ruff format --check tsao tests scripts skills/process-general skills/epdm skills/poe skills/polymer-general
