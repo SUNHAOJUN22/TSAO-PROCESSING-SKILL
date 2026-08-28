@@ -32,14 +32,16 @@ jobs:
           python-version: "3.14"
           cache: pip
           cache-dependency-path: requirements.lock
-      - name: Apply reviewed non-workflow patch
+      - name: Apply reviewed final source and workflow views
         shell: bash
         run: |
           set -euo pipefail
-          gzip -dc .github/closure/nonworkflow.patch.gz > /tmp/closure.patch
-          git apply --index --binary /tmp/closure.patch
+          gzip -dc .github/closure/nonworkflow.patch.gz > /tmp/nonworkflow.patch
+          gzip -dc .github/closure/workflows.patch.gz > /tmp/workflows.patch
+          git apply --index --binary /tmp/nonworkflow.patch
+          git apply --binary /tmp/workflows.patch
           rm -rf .github/closure
-          git add -A
+          git add -A .github/closure
       - name: Qualify controlled-distribution closure
         shell: bash
         run: |
@@ -57,6 +59,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import subprocess
+
           result = subprocess.run(
               ["python", "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", ".", "-w", "wheelhouse"],
               text=True,
@@ -68,10 +71,13 @@ jobs:
           assert not list(Path("wheelhouse").glob("*.whl"))
           PY
           git diff --check
-      - name: Commit qualified source changes
+      - name: Commit qualified non-workflow changes
         shell: bash
         run: |
           set -euo pipefail
+          git restore --source=HEAD --staged --worktree .github/workflows
+          git add -A
+          git diff --cached --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "fix(closure): align controlled distribution CI and documentation"
