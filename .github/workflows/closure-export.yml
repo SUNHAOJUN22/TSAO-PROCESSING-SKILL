@@ -32,16 +32,17 @@ jobs:
           python-version: "3.14"
           cache: pip
           cache-dependency-path: requirements.lock
-      - name: Apply reviewed final source and workflow views
+      - name: Apply reviewed source and expose final workflow view
         shell: bash
         run: |
           set -euo pipefail
+          cp .github/closure/final-ci.yml /tmp/final-ci.yml
           gzip -dc .github/closure/nonworkflow.patch.gz > /tmp/nonworkflow.patch
-          gzip -dc .github/closure/workflows.patch.gz > /tmp/workflows.patch
           git apply --index --binary /tmp/nonworkflow.patch
-          git apply --binary /tmp/workflows.patch
           rm -rf .github/closure
-          git add -A .github/closure
+          cp /tmp/final-ci.yml .github/workflows/ci.yml
+          rm .github/workflows/closure-export.yml
+          git add -A
       - name: Qualify controlled-distribution closure
         shell: bash
         run: |
