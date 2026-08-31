@@ -31,7 +31,9 @@ def test_schema_unit_command_is_valid_python() -> None:
     compile(SCHEMA_UNIT_COMMAND, "<performance-schema-units>", "exec")
 
 
-def test_schema_units_reads_the_final_nonempty_line(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_schema_units_reads_the_final_nonempty_line(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def fake_check_output(*args: object, **kwargs: object) -> str:
         assert kwargs["cwd"] == Path("baseline")
         assert kwargs["text"] is True
@@ -75,7 +77,8 @@ def test_annotate_report_updates_exactly_one_workload(
     assert doctor["work_units"] == 9.0
     assert doctor["work_unit"] == WORK_UNIT
     assert json.loads(report_path.read_text(encoding="utf-8")) == report
-    assert not report_path.with_name(f".{report_path.name}.tmp").exists()
+    temporary = report_path.with_name(f".{report_path.name}.tmp")
+    assert not temporary.exists()
 
 
 @pytest.mark.parametrize(
@@ -104,5 +107,9 @@ def test_annotate_report_rejects_missing_duplicate_or_invalid_workloads(
 def test_performance_workflow_uses_the_tested_annotator() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     assert text.count("python scripts/annotate_performance_work_units.py") == 2
-    assert "BASELINE_ROOT=\"$baseline_root\" BASELINE_REPORT=\"$baseline_report\" python - <<'PY'" not in text
+    legacy_inline = (
+        'BASELINE_ROOT="$baseline_root" '
+        'BASELINE_REPORT="$baseline_report" python - <<\'PY\''
+    )
+    assert legacy_inline not in text
     assert "schemas']))" not in text
