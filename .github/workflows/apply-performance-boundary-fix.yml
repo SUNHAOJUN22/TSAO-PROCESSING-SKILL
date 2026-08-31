@@ -38,6 +38,7 @@ jobs:
       - name: Format and run focused regressions
         run: |
           python -m ruff format scripts/compare_performance_v2.py tests/test_historical_performance_boundary.py
+          python scripts/build_source_manifest.py
           python -m ruff check scripts/compare_performance_v2.py tests/test_historical_performance_boundary.py
           python -m pytest -q -p no:cacheprovider \
             tests/test_historical_performance_boundary.py \
