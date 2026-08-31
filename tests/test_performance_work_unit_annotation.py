@@ -7,8 +7,8 @@ import pytest
 
 from scripts.annotate_performance_work_units import (
     SCHEMA_UNIT_COMMAND,
-    WORKLOAD_NAME,
     WORK_UNIT,
+    WORKLOAD_NAME,
     annotate_report,
     schema_units,
 )
