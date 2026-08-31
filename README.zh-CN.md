@@ -215,3 +215,10 @@ $$
 
 执行提示词: [SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md](docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md)
 <!-- CURRENT_MAIN_ACCEPTANCE_V2:END -->
+
+
+## 历史性能资格边界
+
+当前具有阻断效力的性能资格，在同一运行器和同一 Python 解释器上，将当前源码树与 alpha.14 父基线比较。数值等价、同路径耗时、优化路径收益保持率、规模扩展检查以及所有非预期缺失工作负载仍然保持 fail-closed。
+
+alpha.10 的 `wheel_content_verification` 计时仅在该历史工作负载缺失时记为 `NOT_APPLICABLE`，因为公共 wheel 生成已被 `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` 明确阻断。当前由源码资格与分发封闭回归替代这一已退役的公共制品工作负载。该例外不允许生成 wheel 或源码快照，不放宽任何当前性能阈值，也不把软件资格扩大解释为科学、工程、HSE、客户或工业批准。
