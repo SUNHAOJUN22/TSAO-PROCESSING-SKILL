@@ -49,14 +49,10 @@ def annotate_report(
     if not isinstance(benchmarks, list):
         raise ValueError("performance report must contain a benchmarks list")
     matches = [
-        row
-        for row in benchmarks
-        if isinstance(row, dict) and row.get("name") == WORKLOAD_NAME
+        row for row in benchmarks if isinstance(row, dict) and row.get("name") == WORKLOAD_NAME
     ]
     if len(matches) != 1:
-        raise ValueError(
-            f"performance report must contain exactly one {WORKLOAD_NAME!r} workload"
-        )
+        raise ValueError(f"performance report must contain exactly one {WORKLOAD_NAME!r} workload")
 
     matches[0]["work_units"] = schema_units(
         worktree,
