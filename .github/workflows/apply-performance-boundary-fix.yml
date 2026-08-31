@@ -1,0 +1,199 @@
+name: Apply historical performance-boundary correction
+
+on:
+  push:
+    branches: [fix/20260831-historical-performance-boundary]
+
+permissions:
+  contents: write
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_INPUT: "1"
+
+jobs:
+  apply-and-qualify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/20260831-historical-performance-boundary
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Apply reviewed source, regression and README changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          comparator = Path("scripts/compare_performance_v2.py")
+          text = comparator.read_text(encoding="utf-8")
+          constant_anchor = 'LEGACY_HISTORICAL_BASELINES = {"0.1.0-alpha.10"}\n\nSPECIAL_SPECS = ('
+          constant_replacement = '''LEGACY_HISTORICAL_BASELINES = {"0.1.0-alpha.10"}
+
+HISTORICAL_RETIRED_WORKLOADS = {
+    "wheel_content_verification": (
+        "public wheel generation is intentionally blocked by "
+        "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION; source qualification and "
+        "distribution-containment regressions replace this historical workload"
+    )
+}
+
+SPECIAL_SPECS = ('''
+          if text.count(constant_anchor) != 1:
+              raise SystemExit("historical baseline constant anchor changed")
+          text = text.replace(constant_anchor, constant_replacement, 1)
+
+          missing_anchor = '''    missing = sorted(set(baseline_rows) - set(current_rows))
+    if missing:
+        errors.append(f"current report is missing baseline workloads: {missing}")
+'''
+          missing_replacement = '''    missing = sorted(set(baseline_rows) - set(current_rows))
+    if historical:
+        unexpected_missing: list[str] = []
+        for name in missing:
+            reason = HISTORICAL_RETIRED_WORKLOADS.get(name)
+            if reason is None:
+                unexpected_missing.append(name)
+                continue
+            not_applicable.append(f"{name}: {reason}")
+        missing = unexpected_missing
+    if missing:
+        errors.append(f"current report is missing baseline workloads: {missing}")
+'''
+          if text.count(missing_anchor) != 1:
+              raise SystemExit("missing-workload comparator anchor changed")
+          comparator.write_text(text.replace(missing_anchor, missing_replacement, 1), encoding="utf-8")
+
+          test_path = Path("tests/test_historical_performance_boundary.py")
+          test_path.write_text(
+              '''from __future__ import annotations
+
+from scripts.compare_performance_v2 import _common_comparisons
+
+
+def _row(name: str) -> dict[str, object]:
+    return {
+        "name": name,
+        "median_s_per_call": 1.0,
+        "peak_memory_bytes": 1,
+        "result_sha256": name,
+    }
+
+
+def test_controlled_public_wheel_is_not_applicable_only_for_historical_trend() -> None:
+    errors: list[str] = []
+    not_applicable: list[str] = []
+    comparisons = _common_comparisons(
+        {"wheel_content_verification": _row("wheel_content_verification")},
+        {},
+        historical=True,
+        errors=errors,
+        not_applicable=not_applicable,
+    )
+    assert comparisons == []
+    assert errors == []
+    assert len(not_applicable) == 1
+    assert "wheel_content_verification" in not_applicable[0]
+    assert "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION" in not_applicable[0]
+
+
+def test_unexpected_historical_missing_workload_still_fails_closed() -> None:
+    errors: list[str] = []
+    not_applicable: list[str] = []
+    _common_comparisons(
+        {"unexpected_workload": _row("unexpected_workload")},
+        {},
+        historical=True,
+        errors=errors,
+        not_applicable=not_applicable,
+    )
+    assert errors == [
+        "current report is missing baseline workloads: ['unexpected_workload']"
+    ]
+    assert not_applicable == []
+
+
+def test_current_qualification_cannot_hide_missing_wheel_workload() -> None:
+    errors: list[str] = []
+    not_applicable: list[str] = []
+    _common_comparisons(
+        {"wheel_content_verification": _row("wheel_content_verification")},
+        {},
+        historical=False,
+        errors=errors,
+        not_applicable=not_applicable,
+    )
+    assert errors == [
+        "current report is missing baseline workloads: ['wheel_content_verification']"
+    ]
+    assert not_applicable == []
+''',
+              encoding="utf-8",
+          )
+
+          english = Path("README.md")
+          english_text = english.read_text(encoding="utf-8")
+          english_heading = "## Historical performance qualification boundary"
+          if english_heading not in english_text:
+              english_text += '''
+
+## Historical performance qualification boundary
+
+Current blocking performance qualification compares the current source tree with the alpha.14 parent on the same runner and Python interpreter. Numerical parity, same-path timing, optimized-path benefit retention, scale checks, and all unexpected missing workloads remain fail-closed.
+
+The alpha.10 `wheel_content_verification` timing is recorded as `NOT_APPLICABLE` only when that historical workload is absent because public wheel generation is intentionally blocked by `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION`. Source qualification and distribution-containment regressions replace that retired public-artifact workload. This exception does not permit a wheel or source snapshot to be emitted, does not relax any current performance threshold, and does not convert software qualification into scientific, engineering, HSE, customer, or industrial approval.
+'''
+              english.write_text(english_text, encoding="utf-8")
+
+          chinese = Path("README.zh-CN.md")
+          chinese_text = chinese.read_text(encoding="utf-8")
+          chinese_heading = "## 历史性能资格边界"
+          if chinese_heading not in chinese_text:
+              chinese_text += '''
+
+## 历史性能资格边界
+
+当前具有阻断效力的性能资格，在同一运行器和同一 Python 解释器上，将当前源码树与 alpha.14 父基线比较。数值等价、同路径耗时、优化路径收益保持率、规模扩展检查以及所有非预期缺失工作负载仍然保持 fail-closed。
+
+alpha.10 的 `wheel_content_verification` 计时仅在该历史工作负载缺失时记为 `NOT_APPLICABLE`，因为公共 wheel 生成已被 `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` 明确阻断。当前由源码资格与分发封闭回归替代这一已退役的公共制品工作负载。该例外不允许生成 wheel 或源码快照，不放宽任何当前性能阈值，也不把软件资格扩大解释为科学、工程、HSE、客户或工业批准。
+'''
+              chinese.write_text(chinese_text, encoding="utf-8")
+
+          workflow = Path(".github/workflows/apply-performance-boundary-fix.yml")
+          workflow.unlink()
+          PY
+      - name: Install exact locked environment
+        run: |
+          python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
+          python -m pip install --quiet --require-hashes -r requirements.lock
+          python -m pip install --quiet --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Format and run focused regressions
+        run: |
+          python -m ruff format scripts/compare_performance_v2.py tests/test_historical_performance_boundary.py
+          python -m ruff check scripts/compare_performance_v2.py tests/test_historical_performance_boundary.py
+          python -m pytest -q -p no:cacheprovider \
+            tests/test_historical_performance_boundary.py \
+            tests/test_performance_v2_reports.py \
+            tests/test_distribution_containment_v20.py \
+            tests/test_public_distribution_boundary_workflow.py
+          python scripts/run_ci.py
+          git diff --check
+      - name: Commit the qualified clean tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(performance): retire blocked public-wheel historical workload"
+          git push origin HEAD:fix/20260831-historical-performance-boundary
