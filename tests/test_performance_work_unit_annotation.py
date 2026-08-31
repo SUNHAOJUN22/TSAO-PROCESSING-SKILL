@@ -7,8 +7,8 @@ import pytest
 
 from scripts.annotate_performance_work_units import (
     SCHEMA_UNIT_COMMAND,
-    WORKLOAD_NAME,
     WORK_UNIT,
+    WORKLOAD_NAME,
     annotate_report,
     schema_units,
 )
@@ -108,8 +108,7 @@ def test_performance_workflow_uses_the_tested_annotator() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     assert text.count("python scripts/annotate_performance_work_units.py") == 2
     legacy_inline = (
-        'BASELINE_ROOT="$baseline_root" '
-        'BASELINE_REPORT="$baseline_report" python - <<\'PY\''
+        'BASELINE_ROOT="$baseline_root" BASELINE_REPORT="$baseline_report" python - <<\'PY\''
     )
     assert legacy_inline not in text
     assert "schemas']))" not in text
