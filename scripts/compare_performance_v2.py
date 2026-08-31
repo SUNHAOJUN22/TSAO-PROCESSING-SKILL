@@ -50,6 +50,14 @@ WORK_UNIT_NORMALIZED = {
 # numerical workload identity is still provably the same.
 LEGACY_HISTORICAL_BASELINES = {"0.1.0-alpha.10"}
 
+HISTORICAL_RETIRED_WORKLOADS = {
+    "wheel_content_verification": (
+        "public wheel generation is intentionally blocked by "
+        "BLOCKED_CONTROLLED_METADATA_CLASSIFICATION; source qualification and "
+        "distribution-containment regressions replace this historical workload"
+    )
+}
+
 SPECIAL_SPECS = (
     (
         "epdm_parameter_scan_1000_batch",
@@ -185,6 +193,15 @@ def _common_comparisons(
 ) -> list[dict[str, object]]:
     comparisons: list[dict[str, object]] = []
     missing = sorted(set(baseline_rows) - set(current_rows))
+    if historical:
+        unexpected_missing: list[str] = []
+        for name in missing:
+            reason = HISTORICAL_RETIRED_WORKLOADS.get(name)
+            if reason is None:
+                unexpected_missing.append(name)
+                continue
+            not_applicable.append(f"{name}: {reason}")
+        missing = unexpected_missing
     if missing:
         errors.append(f"current report is missing baseline workloads: {missing}")
 
