@@ -222,3 +222,11 @@ $$
 当前具有阻断效力的性能资格，在同一运行器和同一 Python 解释器上，将当前源码树与 alpha.14 父基线比较。数值等价、同路径耗时、优化路径收益保持率、规模扩展检查以及所有非预期缺失工作负载仍然保持 fail-closed。
 
 alpha.10 的 `wheel_content_verification` 计时仅在该历史工作负载缺失时记为 `NOT_APPLICABLE`，因为公共 wheel 生成已被 `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` 明确阻断。当前由源码资格与分发封闭回归替代这一已退役的公共制品工作负载。该例外不允许生成 wheel 或源码快照，不放宽任何当前性能阈值，也不把软件资格扩大解释为科学、工程、HSE、客户或工业批准。
+
+
+<!-- closure:qualification-boundary -->
+## 软件资格与受控分发边界
+
+性能门通过经过测试、失败封闭的注释器记录仓库尺度工作量，再比较同一工作合同下的结果。缺失、非有限、为零或身份不一致的工作量元数据会被拒绝，不能被转换成有利的性能结论。
+
+软件资格绑定到精确源码树。测试、doctor、覆盖率或性能门通过，均不构成公开 wheel、sdist 或源码快照的授权。只要受控历史元数据仍被标记为项目受控，公共制品就必须继续以 `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` 失败封闭，并且不得留下可分发制品。

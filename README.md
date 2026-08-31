@@ -222,3 +222,11 @@ Execution prompt: [SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md](docs/SIX_
 Current blocking performance qualification compares the current source tree with the alpha.14 parent on the same runner and Python interpreter. Numerical parity, same-path timing, optimized-path benefit retention, scale checks, and all unexpected missing workloads remain fail-closed.
 
 The alpha.10 `wheel_content_verification` timing is recorded as `NOT_APPLICABLE` only when that historical workload is absent because public wheel generation is intentionally blocked by `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION`. Source qualification and distribution-containment regressions replace that retired public-artifact workload. This exception does not permit a wheel or source snapshot to be emitted, does not relax any current performance threshold, and does not convert software qualification into scientific, engineering, HSE, customer, or industrial approval.
+
+
+<!-- closure:qualification-boundary -->
+## Qualification and controlled-distribution boundary
+
+The performance gate annotates repository-scale work units through a tested, fail-closed helper before comparing like-for-like runs. Missing, non-finite, zero, or mismatched work-unit metadata is rejected rather than converted into a favorable timing result.
+
+Software qualification is evaluated from the exact source tree. A successful test, doctor, coverage, or performance result does **not** authorize a public wheel, sdist, or source snapshot. While controlled historical metadata remains classified as project-controlled, public artifacts must continue to fail with `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` and must leave no distributable artifact behind.
