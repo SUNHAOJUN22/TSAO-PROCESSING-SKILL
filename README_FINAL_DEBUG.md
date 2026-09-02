@@ -2,17 +2,26 @@
 
 ## Code changes
 
-The public-distribution policy now has one production implementation:
+The public-distribution boundary now has one registry scanner and one classifier:
 
 ```text
-tsao.distribution_policy
-├── audit_public_distribution(...)
-├── assert_public_distribution_allowed(...)
-├── evaluate_public_distribution(...)
-└── public_distribution_policy_main(...)
+source_asset_registry.json + declared parts
+                 │
+                 ▼
+        _scan_registry(...)
+          ├── safe part validation
+          ├── duplicate-key/non-finite JSON rejection
+          ├── record counting and optional stable-ID checks
+          ├── one controlled-record classifier
+          └── manifest, part-set and corpus digests
+                 │
+          ┌──────┴───────────────────┐
+          ▼                          ▼
+audit_public_distribution   evaluate_public_distribution
+(repository/package guard)  (surface-aware CLI policy)
 ```
 
-`scripts/check_public_distribution_policy.py` is a compatibility adapter only. It contains no independent JSON parser, classification vocabulary, digest logic, decision parser or release verdict.
+`scripts/check_public_distribution_policy.py` remains a compatibility adapter only. It contains no independent JSON parser, classification vocabulary, digest logic, decision parser, or release verdict.
 
 ## Regression contract
 
@@ -26,7 +35,7 @@ python -m pytest -q -p no:cacheprovider \
 python scripts/run_ci.py
 ```
 
-The single-source regression proves that the compatibility CLI delegates to the canonical evaluator and that controlled records still block every requested public surface.
+The single-source regression binds both public APIs to the same manifest digest, part-set digest, record count, controlled-record count, and part count. It also rejects the previous `_policy_*` duplicate classifier path.
 
 ## Distribution boundary
 
@@ -36,4 +45,4 @@ PUBLIC_SDIST            = BLOCKED_CONTROLLED_METADATA_CLASSIFICATION
 PUBLIC_SOURCE_SNAPSHOT  = BLOCKED_CONTROLLED_METADATA_CLASSIFICATION
 ```
 
-This is an intentional fail-closed result while tracked registry records remain classified as controlled. Software qualification does not reclassify source metadata and does not establish scientific, engineering, HSE, customer, legal or industrial approval.
+This fail-closed result is intentional while tracked registry records remain classified as controlled. Refactoring and software tests do not reclassify metadata and do not establish scientific, engineering, HSE, customer, legal, IP, or industrial approval.

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import importlib
 import importlib.util
+import inspect
 import json
 from pathlib import Path
 from types import ModuleType
 
 from tsao.distribution_policy import (
     BLOCKED_STATUS,
+    audit_public_distribution,
     evaluate_public_distribution,
 )
 
@@ -23,6 +26,7 @@ def _load_script() -> ModuleType:
 
 
 def _write_registry(root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
     (root / "source_asset_registry.part01.json").write_text(
         json.dumps(
             {
@@ -61,9 +65,30 @@ def test_compatibility_cli_delegates_to_the_canonical_policy(tmp_path: Path) -> 
     assert result["blocked_surfaces"] == ["source-snapshot", "wheel"]
 
 
-def test_compatibility_cli_contains_no_second_policy_engine() -> None:
-    source = SCRIPT.read_text(encoding="utf-8")
-    assert "import hashlib" not in source
-    assert "json.loads" not in source
-    assert "def evaluate(" not in source
-    assert "evaluate_public_distribution" in source
+def test_public_apis_share_one_registry_scan(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    registry = repository / "skills/poe/data"
+    _write_registry(registry)
+
+    audit = audit_public_distribution(repository)
+    evaluated = evaluate_public_distribution(registry, ["wheel"])
+
+    assert audit.record_count == evaluated["record_count"] == 1
+    assert audit.controlled_record_count == evaluated["controlled_record_count"] == 1
+    assert audit.part_count == evaluated["part_count"] == 1
+    assert audit.registry_sha256 == evaluated["registry_sha256"]
+    assert audit.part_set_sha256 == evaluated["part_set_sha256"]
+
+
+def test_compatibility_cli_and_module_contain_no_second_policy_engine() -> None:
+    script_source = SCRIPT.read_text(encoding="utf-8")
+    assert "import hashlib" not in script_source
+    assert "json.loads" not in script_source
+    assert "def evaluate(" not in script_source
+    assert "evaluate_public_distribution" in script_source
+
+    module = importlib.import_module("tsao.distribution_policy")
+    module_source = inspect.getsource(module)
+    assert module_source.count("def _scan_registry(") == 1
+    assert "_policy_safe_part_name" not in module_source
+    assert "_policy_record_is_controlled" not in module_source
