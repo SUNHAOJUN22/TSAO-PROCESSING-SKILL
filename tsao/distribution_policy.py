@@ -1,9 +1,14 @@
 """Fail-closed public-distribution policy for controlled POE source metadata.
 
-The audit deliberately reports counts, classifications, and content digests only.
-It never returns source asset names, original relative paths, or record payloads.
-Both package/runtime guards and the compatibility CLI import this module so the
-classification semantics have one production source of truth.
+The policy exposes two stable public entry points:
+
+* ``audit_public_distribution`` for repository/package guards; and
+* ``evaluate_public_distribution`` for the compatibility CLI and explicit
+  distribution surfaces.
+
+Both entry points consume the same canonical registry scanner.  The scanner
+reports only aggregate classifications and content digests; it never returns
+source asset names, original relative paths, or record payloads.
 """
 
 from __future__ import annotations
@@ -71,6 +76,20 @@ class DistributionAudit:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class _RegistryScan:
+    record_count: int
+    controlled_record_count: int
+    public_fixture_eligible_count: int
+    part_count: int
+    flat_classification_counts: dict[str, int]
+    classification_counts: dict[str, dict[str, int]]
+    reason_counts: dict[str, int]
+    manifest_sha256: str
+    part_set_sha256: str
+    corpus_sha256: str
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     try:
@@ -80,6 +99,13 @@ def _sha256(path: Path) -> str:
     except OSError as exc:
         raise PolicyContractError("registry artifact is missing or unreadable") from exc
     return digest.hexdigest()
+
+
+def _read_bytes(path: Path) -> bytes:
+    try:
+        return path.read_bytes()
+    except OSError as exc:
+        raise PolicyContractError("registry artifact is missing or unreadable") from exc
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -123,21 +149,29 @@ def _records(payload: object) -> list[Mapping[str, object]]:
     return result
 
 
-def _safe_part_names(index: Mapping[str, object]) -> tuple[str, ...]:
-    raw = index.get("asset_files")
+def _safe_part_name(value: object, *, enforce_contract_name: bool) -> str:
+    if not isinstance(value, str) or not value:
+        raise PolicyContractError("registry part reference must be a non-empty string")
+    candidate = PurePosixPath(value)
+    if candidate.is_absolute() or len(candidate.parts) != 1 or ".." in candidate.parts:
+        raise PolicyContractError("registry part reference is unsafe")
+    if enforce_contract_name and (
+        not value.startswith("source_asset_registry.part") or not value.endswith(".json")
+    ):
+        raise PolicyContractError("registry part reference is outside the controlled contract")
+    return value
+
+
+def _part_names(manifest: Mapping[str, object], *, enforce_contract_names: bool) -> tuple[str, ...]:
+    raw = manifest.get("asset_files")
     if not isinstance(raw, list) or not raw:
-        raise PolicyContractError("source registry index has no asset_files")
-    names: list[str] = []
-    for item in raw:
-        if not isinstance(item, str) or not item:
-            raise PolicyContractError("source registry index contains an invalid part name")
-        path = PurePosixPath(item)
-        if path.is_absolute() or len(path.parts) != 1 or ".." in path.parts:
-            raise PolicyContractError("source registry index contains an unsafe part reference")
-        names.append(item)
+        raise PolicyContractError("source registry manifest has no declared parts")
+    names = tuple(
+        _safe_part_name(item, enforce_contract_name=enforce_contract_names) for item in raw
+    )
     if len(names) != len(set(names)):
-        raise PolicyContractError("source registry index contains duplicate part references")
-    return tuple(names)
+        raise PolicyContractError("source registry manifest contains duplicate parts")
+    return names
 
 
 def _classification_labels(record: Mapping[str, object]) -> tuple[str, ...]:
@@ -146,87 +180,11 @@ def _classification_labels(record: Mapping[str, object]) -> tuple[str, ...]:
         value = record.get(key)
         if isinstance(value, str) and value:
             labels.append(f"{key}={value}")
-    eligible = record.get("public_fixture_eligible")
-    labels.append(f"public_fixture_eligible={eligible!r}")
+    labels.append(f"public_fixture_eligible={record.get('public_fixture_eligible')!r}")
     return tuple(labels)
 
 
-def _controlled(record: Mapping[str, object]) -> bool:
-    return (
-        record.get("confidentiality") in _CONTROLLED_CONFIDENTIALITY
-        or record.get("license_scope") in _CONTROLLED_LICENSE
-        or record.get("evidence_class") in _CONTROLLED_EVIDENCE
-        or record.get("public_fixture_eligible") is not True
-    )
-
-
-def audit_public_distribution(root: Path) -> DistributionAudit:
-    root = Path(root).resolve()
-    registry = root / _REGISTRY
-    if not registry.is_file():
-        raise PolicyContractError("controlled source registry index is missing")
-    index_payload = _load_json(registry)
-    if not isinstance(index_payload, Mapping):
-        raise PolicyContractError("source registry index must be a JSON object")
-    part_names = _safe_part_names(index_payload)
-    classification_counts: Counter[str] = Counter()
-    record_count = 0
-    controlled_count = 0
-    part_digests: list[str] = []
-    for part_name in part_names:
-        part = registry.parent / part_name
-        if not part.is_file():
-            raise PolicyContractError("source registry part is missing")
-        part_digest = _sha256(part)
-        part_digests.append(part_digest)
-        for record in _records(_load_json(part)):
-            record_count += 1
-            classification_counts.update(_classification_labels(record))
-            if _controlled(record):
-                controlled_count += 1
-    expected = index_payload.get("expected_asset_count", index_payload.get("asset_count"))
-    if isinstance(expected, bool) or not isinstance(expected, int) or expected < 0:
-        raise PolicyContractError("source registry expected_asset_count is invalid")
-    if record_count != expected:
-        raise PolicyContractError("source registry record count does not match its index")
-    owner_decision_status = "PENDING_OWNER_LEGAL_IP_SECURITY_DECISION"
-    status = BLOCKED_STATUS if controlled_count > 0 else "PASS"
-    part_set_sha256 = hashlib.sha256("\n".join(sorted(part_digests)).encode("ascii")).hexdigest()
-    return DistributionAudit(
-        status=status,
-        record_count=record_count,
-        controlled_record_count=controlled_count,
-        part_count=len(part_names),
-        classification_counts=dict(classification_counts),
-        registry_sha256=_sha256(registry),
-        part_set_sha256=part_set_sha256,
-        owner_decision_status=owner_decision_status,
-    )
-
-
-def assert_public_distribution_allowed(root: Path, *, artifact_kind: str) -> DistributionAudit:
-    audit = audit_public_distribution(root)
-    if audit.status != "PASS":
-        raise DistributionBlockedError(
-            f"{artifact_kind} blocked: {audit.status}; "
-            f"records={audit.record_count}; controlled={audit.controlled_record_count}; "
-            f"owner_decision={audit.owner_decision_status}"
-        )
-    return audit
-
-
-def _policy_safe_part_name(value: object) -> str:
-    if not isinstance(value, str) or not value:
-        raise PolicyContractError("registry part reference must be a non-empty string")
-    candidate = PurePosixPath(value)
-    if candidate.is_absolute() or len(candidate.parts) != 1 or ".." in candidate.parts:
-        raise PolicyContractError("registry part reference is unsafe")
-    if not value.startswith("source_asset_registry.part") or not value.endswith(".json"):
-        raise PolicyContractError("registry part reference is outside the controlled contract")
-    return value
-
-
-def _policy_record_is_controlled(
+def _record_is_controlled(
     record: Mapping[str, object],
 ) -> tuple[bool, tuple[str, ...]]:
     reasons: list[str] = []
@@ -244,7 +202,9 @@ def _policy_record_is_controlled(
 
     if not isinstance(evidence_class, str):
         reasons.append("MISSING_EVIDENCE_CLASS")
-    elif "CONTROLLED" in evidence_class or "INTERNAL" in evidence_class:
+    elif evidence_class in _CONTROLLED_EVIDENCE or any(
+        token in evidence_class for token in ("CONTROLLED", "INTERNAL")
+    ):
         reasons.append("CONTROLLED_EVIDENCE_CLASS")
 
     if not isinstance(license_scope, str):
@@ -258,6 +218,123 @@ def _policy_record_is_controlled(
         reasons.append("NOT_PUBLIC_FIXTURE_ELIGIBLE")
 
     return bool(reasons), tuple(sorted(set(reasons)))
+
+
+def _declared_counts(manifest: Mapping[str, object]) -> tuple[int, int]:
+    expected = manifest.get("expected_asset_count", manifest.get("asset_count"))
+    declared = manifest.get("asset_count", expected)
+    for label, value in (("expected", expected), ("declared", declared)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise PolicyContractError(f"{label} asset count must be a non-negative integer")
+    return expected, declared
+
+
+def _scan_registry(
+    registry_root: Path,
+    *,
+    require_asset_ids: bool,
+    enforce_contract_part_names: bool,
+) -> _RegistryScan:
+    """Read and classify one registry exactly once for all public policy APIs."""
+
+    root = Path(registry_root)
+    manifest_path = root / "source_asset_registry.json"
+    manifest = _load_json(manifest_path)
+    if not isinstance(manifest, Mapping):
+        raise PolicyContractError("source registry manifest must be a JSON object")
+
+    part_names = _part_names(manifest, enforce_contract_names=enforce_contract_part_names)
+    expected_count, declared_count = _declared_counts(manifest)
+
+    flat_counts: Counter[str] = Counter()
+    confidentiality_counts: Counter[str] = Counter()
+    evidence_class_counts: Counter[str] = Counter()
+    license_scope_counts: Counter[str] = Counter()
+    reason_counts: Counter[str] = Counter()
+    part_digests: list[str] = []
+    asset_ids: set[str] = set()
+    record_count = 0
+    controlled_count = 0
+    public_eligible_count = 0
+    corpus_hasher = hashlib.sha256()
+    corpus_hasher.update(_read_bytes(manifest_path))
+
+    for part_name in part_names:
+        part_path = root / part_name
+        part_bytes = _read_bytes(part_path)
+        part_digests.append(hashlib.sha256(part_bytes).hexdigest())
+        corpus_hasher.update(part_bytes)
+
+        for record in _records(_load_json(part_path)):
+            if require_asset_ids:
+                asset_id = record.get("asset_id")
+                if not isinstance(asset_id, str) or not asset_id:
+                    raise PolicyContractError("registry asset record has no stable identifier")
+                if asset_id in asset_ids:
+                    raise PolicyContractError("registry asset identifiers are not unique")
+                asset_ids.add(asset_id)
+
+            record_count += 1
+            flat_counts.update(_classification_labels(record))
+            confidentiality_counts[str(record.get("confidentiality") or "MISSING")] += 1
+            evidence_class_counts[str(record.get("evidence_class") or "MISSING")] += 1
+            license_scope_counts[str(record.get("license_scope") or "MISSING")] += 1
+            if record.get("public_fixture_eligible") is True:
+                public_eligible_count += 1
+
+            controlled, reasons = _record_is_controlled(record)
+            if controlled:
+                controlled_count += 1
+                reason_counts.update(reasons)
+
+    if record_count != expected_count or record_count != declared_count:
+        raise PolicyContractError("registry record count does not match the declared contract")
+
+    return _RegistryScan(
+        record_count=record_count,
+        controlled_record_count=controlled_count,
+        public_fixture_eligible_count=public_eligible_count,
+        part_count=len(part_names),
+        flat_classification_counts=dict(sorted(flat_counts.items())),
+        classification_counts={
+            "confidentiality": dict(sorted(confidentiality_counts.items())),
+            "evidence_class": dict(sorted(evidence_class_counts.items())),
+            "license_scope": dict(sorted(license_scope_counts.items())),
+        },
+        reason_counts=dict(sorted(reason_counts.items())),
+        manifest_sha256=_sha256(manifest_path),
+        part_set_sha256=hashlib.sha256("\n".join(sorted(part_digests)).encode("ascii")).hexdigest(),
+        corpus_sha256=corpus_hasher.hexdigest(),
+    )
+
+
+def audit_public_distribution(root: Path) -> DistributionAudit:
+    scan = _scan_registry(
+        Path(root).resolve() / _REGISTRY.parent,
+        require_asset_ids=False,
+        enforce_contract_part_names=False,
+    )
+    return DistributionAudit(
+        status=BLOCKED_STATUS if scan.controlled_record_count else "PASS",
+        record_count=scan.record_count,
+        controlled_record_count=scan.controlled_record_count,
+        part_count=scan.part_count,
+        classification_counts=scan.flat_classification_counts,
+        registry_sha256=scan.manifest_sha256,
+        part_set_sha256=scan.part_set_sha256,
+        owner_decision_status="PENDING_OWNER_LEGAL_IP_SECURITY_DECISION",
+    )
+
+
+def assert_public_distribution_allowed(root: Path, *, artifact_kind: str) -> DistributionAudit:
+    audit = audit_public_distribution(root)
+    if audit.status != "PASS":
+        raise DistributionBlockedError(
+            f"{artifact_kind} blocked: {audit.status}; "
+            f"records={audit.record_count}; controlled={audit.controlled_record_count}; "
+            f"owner_decision={audit.owner_decision_status}"
+        )
+    return audit
 
 
 def _decision_status(path: Path | None) -> tuple[str, str | None]:
@@ -289,79 +366,7 @@ def evaluate_public_distribution(
     *,
     owner_decision: Path | None = None,
 ) -> dict[str, Any]:
-    """Evaluate all requested public surfaces using the canonical registry policy."""
-
-    root = Path(registry_root)
-    manifest_path = root / "source_asset_registry.json"
-    manifest = _load_json(manifest_path)
-    if not isinstance(manifest, Mapping):
-        raise PolicyContractError("source registry manifest must be a JSON object")
-    part_values = manifest.get("asset_files")
-    if not isinstance(part_values, list) or not part_values:
-        raise PolicyContractError("source registry manifest has no declared parts")
-    part_names = [_policy_safe_part_name(value) for value in part_values]
-    if len(part_names) != len(set(part_names)):
-        raise PolicyContractError("source registry manifest contains duplicate parts")
-
-    expected_count = manifest.get("expected_asset_count")
-    declared_count = manifest.get("asset_count", expected_count)
-    for label, value in (
-        ("expected", expected_count),
-        ("declared", declared_count),
-    ):
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise PolicyContractError(f"{label} asset count must be a non-negative integer")
-
-    reason_counts: Counter[str] = Counter()
-    confidentiality_counts: Counter[str] = Counter()
-    evidence_class_counts: Counter[str] = Counter()
-    license_scope_counts: Counter[str] = Counter()
-    record_count = 0
-    controlled_count = 0
-    public_eligible_count = 0
-    asset_ids: set[str] = set()
-    corpus_hasher = hashlib.sha256()
-    try:
-        corpus_hasher.update(manifest_path.read_bytes())
-    except OSError as exc:
-        raise PolicyContractError("source registry manifest is unreadable") from exc
-
-    for part_name in part_names:
-        part_path = root / part_name
-        try:
-            corpus_hasher.update(part_path.read_bytes())
-        except OSError as exc:
-            raise PolicyContractError("registry part is missing or unreadable") from exc
-        payload = _load_json(part_path)
-        if not isinstance(payload, Mapping) or not isinstance(payload.get("assets"), list):
-            raise PolicyContractError("registry part does not contain an assets array")
-        for raw_record in payload["assets"]:
-            if not isinstance(raw_record, Mapping):
-                raise PolicyContractError("registry asset record must be an object")
-            asset_id = raw_record.get("asset_id")
-            if not isinstance(asset_id, str) or not asset_id:
-                raise PolicyContractError("registry asset record has no stable identifier")
-            if asset_id in asset_ids:
-                raise PolicyContractError("registry asset identifiers are not unique")
-            asset_ids.add(asset_id)
-            record_count += 1
-
-            confidentiality = raw_record.get("confidentiality")
-            evidence_class = raw_record.get("evidence_class")
-            license_scope = raw_record.get("license_scope")
-            confidentiality_counts[str(confidentiality or "MISSING")] += 1
-            evidence_class_counts[str(evidence_class or "MISSING")] += 1
-            license_scope_counts[str(license_scope or "MISSING")] += 1
-            if raw_record.get("public_fixture_eligible") is True:
-                public_eligible_count += 1
-
-            controlled, reasons = _policy_record_is_controlled(raw_record)
-            if controlled:
-                controlled_count += 1
-                reason_counts.update(reasons)
-
-    if record_count != expected_count or record_count != declared_count:
-        raise PolicyContractError("registry record count does not match the declared contract")
+    """Evaluate requested public surfaces using the canonical registry scanner."""
 
     normalized_surfaces = sorted(set(surfaces))
     unknown_surfaces = sorted(set(normalized_surfaces) - _ALLOWED_SURFACES)
@@ -370,31 +375,35 @@ def evaluate_public_distribution(
     if not normalized_surfaces:
         raise PolicyContractError("at least one distribution surface is required")
 
+    scan = _scan_registry(
+        registry_root,
+        require_asset_ids=True,
+        enforce_contract_part_names=True,
+    )
     owner_status, owner_digest = _decision_status(owner_decision)
-    blocked = controlled_count > 0
-    status = BLOCKED_STATUS if blocked else "PUBLIC_DISTRIBUTION_POLICY_PASS"
-    reason_codes = sorted(reason_counts)
+    blocked = scan.controlled_record_count > 0
+    reason_codes = sorted(scan.reason_counts)
     if blocked:
         reason_codes.append("PUBLIC_DISTRIBUTION_BLOCKED")
+
     result: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "status": status,
+        "status": BLOCKED_STATUS if blocked else "PUBLIC_DISTRIBUTION_POLICY_PASS",
         "pass": not blocked,
         "privacy_minimized": True,
-        "record_count": record_count,
-        "controlled_record_count": controlled_count,
-        "public_fixture_eligible_count": public_eligible_count,
+        "record_count": scan.record_count,
+        "controlled_record_count": scan.controlled_record_count,
+        "public_fixture_eligible_count": scan.public_fixture_eligible_count,
+        "part_count": scan.part_count,
         "distribution_surfaces": normalized_surfaces,
         "blocked_surfaces": normalized_surfaces if blocked else [],
         "owner_decision_status": owner_status,
         "owner_decision_artifact_sha256": owner_digest,
-        "registry_artifact_sha256": corpus_hasher.hexdigest(),
-        "classification_counts": {
-            "confidentiality": dict(sorted(confidentiality_counts.items())),
-            "evidence_class": dict(sorted(evidence_class_counts.items())),
-            "license_scope": dict(sorted(license_scope_counts.items())),
-        },
-        "reason_counts": dict(sorted(reason_counts.items())),
+        "registry_sha256": scan.manifest_sha256,
+        "part_set_sha256": scan.part_set_sha256,
+        "registry_artifact_sha256": scan.corpus_sha256,
+        "classification_counts": scan.classification_counts,
+        "reason_counts": scan.reason_counts,
         "reason_codes": sorted(set(reason_codes)),
         "scientific_technical_approval": "NOT_EVALUATED",
         "engineering_design_approval": "NOT_EVALUATED",
@@ -443,3 +452,7 @@ def public_distribution_policy_main(argv: list[str] | None = None) -> int:
     args.inventory_out.write_text(rendered, encoding="utf-8", newline="\n")
     sys.stdout.write(json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n")
     return 0 if result["pass"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(public_distribution_policy_main())
