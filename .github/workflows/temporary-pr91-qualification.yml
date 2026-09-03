@@ -1,0 +1,146 @@
+name: Temporary PR91 full qualification
+
+on:
+  push:
+    branches:
+      - closure/final-debug-20260902
+
+permissions:
+  contents: read
+
+concurrency:
+  group: processing-pr91-${{ matrix.os }}-py${{ matrix.python-version }}
+  cancel-in-progress: true
+
+jobs:
+  qualification:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.14"
+          - os: windows-latest
+            python-version: "3.12"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: closure/final-debug-20260902
+          fetch-depth: 0
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+            requirements.lock
+
+      - name: Remove temporary workflow from the tested index
+        shell: python
+        run: |
+          import subprocess
+          subprocess.run(
+              ["git", "rm", ".github/workflows/temporary-pr91-qualification.yml"],
+              check=True,
+          )
+          tracked = subprocess.check_output(
+              ["git", "ls-files", ".github/workflows"], text=True
+          ).splitlines()
+          if tracked != [".github/workflows/ci.yml"]:
+              raise SystemExit(f"unexpected permanent workflow inventory: {tracked}")
+
+      - name: Verify exact hashed dependency lock
+        run: >-
+          python scripts/verify_dependency_lock.py requirements.lock
+          --pyproject pyproject.toml
+          --json-out reports/runtime/DEPENDENCY_LOCK_VERIFICATION.json
+
+      - name: Install exact locked dependencies
+        run: python -m pip install --quiet --require-hashes -r requirements.lock
+
+      - name: Install TSAO without dependency resolution
+        run: python -m pip install --quiet --no-deps --no-build-isolation -e .
+
+      - name: Verify installed dependency graph
+        run: python -m pip check
+
+      - name: Verify canonical distribution policy and fail-closed status
+        shell: python
+        run: |
+          from pathlib import Path
+          from tsao.distribution_policy import (
+              BLOCKED_STATUS,
+              assert_public_distribution_allowed,
+              audit_public_distribution,
+          )
+
+          audit = audit_public_distribution(Path.cwd())
+          if audit.status != BLOCKED_STATUS or audit.controlled_record_count < 1:
+              raise SystemExit(f"unexpected distribution audit: {audit}")
+          for artifact_kind in ("public source distribution", "public wheel"):
+              try:
+                  assert_public_distribution_allowed(Path.cwd(), artifact_kind=artifact_kind)
+              except Exception as exc:
+                  if BLOCKED_STATUS not in str(exc):
+                      raise SystemExit(
+                          f"{artifact_kind} failed for an unrelated reason: {exc}"
+                      ) from exc
+              else:
+                  raise SystemExit(
+                      f"{artifact_kind} was permitted while controlled metadata remains"
+                  )
+
+      - name: Run focused single-source policy regressions
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          tests/test_distribution_policy_single_source.py
+          tests/test_distribution_containment_v20.py
+          tests/test_public_distribution_boundary_workflow.py
+
+      - name: Run complete repository qualification
+        run: python scripts/run_ci.py
+
+      - name: Verify complete test suite and core doctor
+        run: |
+          python -m pytest -q -p no:cacheprovider
+          python -m tsao.cli doctor --root . --profile core
+
+      - name: Verify Ruff and exact source manifest
+        shell: python
+        run: |
+          import subprocess
+          import tempfile
+          from pathlib import Path
+
+          subprocess.run(["python", "-m", "ruff", "check", "."], check=True)
+          subprocess.run(["python", "-m", "ruff", "format", "--check", "."], check=True)
+          with tempfile.TemporaryDirectory() as directory:
+              candidate = Path(directory) / "SOURCE_CORE_MANIFEST.tsv"
+              subprocess.run(
+                  [
+                      "python",
+                      "scripts/build_source_asset_manifest.py",
+                      "--root",
+                      ".",
+                      "--out",
+                      str(candidate),
+                  ],
+                  check=True,
+              )
+              committed = Path("reports/SOURCE_CORE_MANIFEST.tsv")
+              if candidate.read_bytes() != committed.read_bytes():
+                  raise SystemExit(
+                      "reports/SOURCE_CORE_MANIFEST.tsv is stale for the final PR tree"
+                  )
+
+      - name: Verify no public artifact was emitted
+        shell: python
+        run: |
+          from pathlib import Path
+          artifacts = list(Path("wheelhouse").glob("*.whl")) + list(Path("dist").glob("*.zip"))
+          if artifacts:
+              raise SystemExit(f"unexpected public artifacts: {artifacts}")
