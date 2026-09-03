@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  qualify-and-refresh-manifest:
+  qualify-format-and-refresh-manifest:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -36,6 +36,7 @@ jobs:
         shell: python
         run: |
           import subprocess
+
           subprocess.run(
               ["git", "rm", ".github/workflows/temporary-pr91-qualification.yml"],
               check=True,
@@ -60,6 +61,15 @@ jobs:
 
       - name: Verify installed dependency graph
         run: python -m pip check
+
+      - name: Apply only the two canonical Ruff formatting repairs
+        run: |
+          python -m ruff check --fix \
+            tsao/distribution_policy.py \
+            .agents/skills/tsao-processing-skill/evals/score_model_routing.py
+          python -m ruff format \
+            tsao/distribution_policy.py \
+            .agents/skills/tsao-processing-skill/evals/score_model_routing.py
 
       - name: Rebuild exact source manifest without temporary transport
         run: >-
@@ -140,21 +150,46 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+
           artifacts = list(Path("wheelhouse").glob("*.whl")) + list(Path("dist").glob("*.zip"))
           if artifacts:
               raise SystemExit(f"unexpected public artifacts: {artifacts}")
 
-      - name: Commit only the deterministic manifest refresh
+      - name: Commit only the tested formatting and manifest fixed point
         shell: bash
         run: |
           set -euo pipefail
-          cp reports/SOURCE_CORE_MANIFEST.tsv "$RUNNER_TEMP/SOURCE_CORE_MANIFEST.tsv"
+          mkdir -p "$RUNNER_TEMP/pr91"
+          cp tsao/distribution_policy.py "$RUNNER_TEMP/pr91/distribution_policy.py"
+          cp .agents/skills/tsao-processing-skill/evals/score_model_routing.py \
+            "$RUNNER_TEMP/pr91/score_model_routing.py"
+          cp reports/SOURCE_CORE_MANIFEST.tsv "$RUNNER_TEMP/pr91/SOURCE_CORE_MANIFEST.tsv"
           git reset --hard HEAD
-          cp "$RUNNER_TEMP/SOURCE_CORE_MANIFEST.tsv" reports/SOURCE_CORE_MANIFEST.tsv
-          changed=$(git diff --name-only)
-          test "$changed" = 'reports/SOURCE_CORE_MANIFEST.tsv'
+          cp "$RUNNER_TEMP/pr91/distribution_policy.py" tsao/distribution_policy.py
+          cp "$RUNNER_TEMP/pr91/score_model_routing.py" \
+            .agents/skills/tsao-processing-skill/evals/score_model_routing.py
+          cp "$RUNNER_TEMP/pr91/SOURCE_CORE_MANIFEST.tsv" reports/SOURCE_CORE_MANIFEST.tsv
+          python - <<'PY'
+          import subprocess
+
+          expected = {
+              ".agents/skills/tsao-processing-skill/evals/score_model_routing.py",
+              "reports/SOURCE_CORE_MANIFEST.tsv",
+              "tsao/distribution_policy.py",
+          }
+          actual = set(
+              subprocess.check_output(["git", "diff", "--name-only"], text=True).splitlines()
+          )
+          if actual != expected:
+              raise SystemExit(
+                  f"unexpected final diff: expected={sorted(expected)!r} actual={sorted(actual)!r}"
+              )
+          PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add reports/SOURCE_CORE_MANIFEST.tsv
-          git commit -m 'chore(provenance): refresh PR91 source manifest'
+          git add \
+            tsao/distribution_policy.py \
+            .agents/skills/tsao-processing-skill/evals/score_model_routing.py \
+            reports/SOURCE_CORE_MANIFEST.tsv
+          git commit -m 'chore(quality): format policy and refresh exact source manifest'
           git push origin HEAD:closure/final-debug-20260902
