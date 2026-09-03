@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: processing-pr91-${{ matrix.os }}-py${{ matrix.python-version }}
+  group: processing-pr91-full-qualification
   cancel-in-progress: true
 
 jobs:
