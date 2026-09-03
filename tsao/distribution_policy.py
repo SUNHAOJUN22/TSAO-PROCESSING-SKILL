@@ -162,9 +162,7 @@ def _safe_part_name(value: object, *, enforce_contract_name: bool) -> str:
     return value
 
 
-def _part_names(
-    manifest: Mapping[str, object], *, enforce_contract_names: bool
-) -> tuple[str, ...]:
+def _part_names(manifest: Mapping[str, object], *, enforce_contract_names: bool) -> tuple[str, ...]:
     raw = manifest.get("asset_files")
     if not isinstance(raw, list) or not raw:
         raise PolicyContractError("source registry manifest has no declared parts")
@@ -245,9 +243,7 @@ def _scan_registry(
     if not isinstance(manifest, Mapping):
         raise PolicyContractError("source registry manifest must be a JSON object")
 
-    part_names = _part_names(
-        manifest, enforce_contract_names=enforce_contract_part_names
-    )
+    part_names = _part_names(manifest, enforce_contract_names=enforce_contract_part_names)
     expected_count, declared_count = _declared_counts(manifest)
 
     flat_counts: Counter[str] = Counter()
@@ -307,9 +303,7 @@ def _scan_registry(
         },
         reason_counts=dict(sorted(reason_counts.items())),
         manifest_sha256=_sha256(manifest_path),
-        part_set_sha256=hashlib.sha256(
-            "\n".join(sorted(part_digests)).encode("ascii")
-        ).hexdigest(),
+        part_set_sha256=hashlib.sha256("\n".join(sorted(part_digests)).encode("ascii")).hexdigest(),
         corpus_sha256=corpus_hasher.hexdigest(),
     )
 
