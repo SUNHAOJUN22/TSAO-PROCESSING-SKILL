@@ -64,7 +64,11 @@ def fit_first_order_rate(
 
     def objective(rate: float) -> float:
         residual = _first_order_conversion_validated(times, rate) - observed
-        value = float(np.sum(weight_array * residual * residual))
+        value = (
+            float(np.dot(residual, residual))
+            if weights is None
+            else float(np.sum(weight_array * residual * residual))
+        )
         if not math.isfinite(value):
             raise ValueError("weighted fit objective exceeds the finite range")
         return value
