@@ -123,15 +123,17 @@ def finite_difference_jacobian(
         step = relative_step * max(1.0, abs(float(value)))
         if not math.isfinite(step) or not math.isfinite(2.0 * step):
             raise ValueError("finite-difference step exceeds the finite range")
+        scalar = float(value)
+        upper_value = scalar + step
+        lower_value = scalar - step
+        if not math.isfinite(upper_value) or not math.isfinite(lower_value):
+            raise ValueError("finite-difference perturbation exceeds the finite range")
+        if upper_value == scalar or lower_value == scalar:
+            raise ValueError("finite-difference step is too small to perturb the parameter")
         plus = params.copy()
         minus = params.copy()
-        with np.errstate(over="ignore", invalid="ignore"):
-            plus[index] += step
-            minus[index] -= step
-        if not np.isfinite(plus[index]) or not np.isfinite(minus[index]):
-            raise ValueError("finite-difference perturbation exceeds the finite range")
-        if plus[index] == value or minus[index] == value:
-            raise ValueError("finite-difference step is too small to perturb the parameter")
+        plus[index] = upper_value
+        minus[index] = lower_value
         upper = _finite_vector(model(plus), "model output")
         lower = _finite_vector(model(minus), "model output")
         if upper.shape != baseline.shape or lower.shape != baseline.shape:
