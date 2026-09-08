@@ -64,7 +64,10 @@ def fit_first_order_rate(
 
     def objective(rate: float) -> float:
         residual = _first_order_conversion_validated(times, rate) - observed
-        return float(np.sum(weight_array * residual * residual))
+        value = float(np.sum(weight_array * residual * residual))
+        if not math.isfinite(value):
+            raise ValueError("weighted fit objective exceeds the finite range")
+        return value
 
     ratio = (math.sqrt(5.0) - 1.0) / 2.0
     left, right = float(lower_s), float(upper_s)
@@ -81,12 +84,16 @@ def fit_first_order_rate(
             x2 = left + ratio * (right - left)
             f2 = objective(x2)
     fitted = (left + right) / 2.0
+    if not math.isfinite(fitted):
+        fitted = left + (right - left) / 2.0
     predicted = _first_order_conversion_validated(times, fitted)
     residual = predicted - observed
     rmse = float(np.sqrt(np.mean(residual**2)))
     sensitivity = times * np.exp(-fitted * times)
     information = float(np.sum(weight_array * sensitivity * sensitivity))
-    identifiable = math.isfinite(information) and information > 1e-12
+    if not math.isfinite(information):
+        raise ValueError("fit information exceeds the finite range")
+    identifiable = information > 1e-12
     time_design_varies = float(np.ptp(times)) > 0
     return {
         "status": "CALCULATED_REFERENCE_ONLY" if identifiable else "HOLD",
@@ -114,15 +121,26 @@ def finite_difference_jacobian(
     jacobian = np.empty((baseline.size, params.size), dtype=float)
     for index, value in enumerate(params):
         step = relative_step * max(1.0, abs(float(value)))
+        if not math.isfinite(step) or not math.isfinite(2.0 * step):
+            raise ValueError("finite-difference step exceeds the finite range")
         plus = params.copy()
         minus = params.copy()
-        plus[index] += step
-        minus[index] -= step
+        with np.errstate(over="ignore", invalid="ignore"):
+            plus[index] += step
+            minus[index] -= step
+        if not np.isfinite(plus[index]) or not np.isfinite(minus[index]):
+            raise ValueError("finite-difference perturbation exceeds the finite range")
+        if plus[index] == value or minus[index] == value:
+            raise ValueError("finite-difference step is too small to perturb the parameter")
         upper = _finite_vector(model(plus), "model output")
         lower = _finite_vector(model(minus), "model output")
         if upper.shape != baseline.shape or lower.shape != baseline.shape:
             raise ValueError("model output shape changed during finite differences")
-        jacobian[:, index] = (upper - lower) / (2.0 * step)
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            column = (upper - lower) / (2.0 * step)
+        if not np.isfinite(column).all():
+            raise ValueError("finite-difference derivative exceeds the finite range")
+        jacobian[:, index] = column
     return jacobian
 
 
