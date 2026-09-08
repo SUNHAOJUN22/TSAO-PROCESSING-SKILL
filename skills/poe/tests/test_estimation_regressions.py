@@ -4,7 +4,11 @@ import json
 
 import pytest
 
-from skills.poe.estimation import assess_identifiability, first_order_conversion, fit_first_order_rate
+from skills.poe.estimation import (
+    assess_identifiability,
+    first_order_conversion,
+    fit_first_order_rate,
+)
 
 
 def test_fixed_positive_time_can_identify_the_single_rate() -> None:
