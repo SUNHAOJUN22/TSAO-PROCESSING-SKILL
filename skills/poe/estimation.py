@@ -15,7 +15,7 @@ def _finite_vector(values: Sequence[float], label: str) -> np.ndarray:
 
 
 def _first_order_conversion_validated(times: np.ndarray, rate_constant: float) -> np.ndarray:
-    return 1.0 - np.exp(-rate_constant * times)
+    return -np.expm1(-rate_constant * times)
 
 
 def first_order_conversion(times_s: Sequence[float], rate_constant_s: float) -> np.ndarray:
@@ -86,7 +86,8 @@ def fit_first_order_rate(
     rmse = float(np.sqrt(np.mean(residual**2)))
     sensitivity = times * np.exp(-fitted * times)
     information = float(np.sum(weight_array * sensitivity * sensitivity))
-    identifiable = information > 1e-12 and float(np.ptp(times)) > 0
+    identifiable = math.isfinite(information) and information > 1e-12
+    time_design_varies = float(np.ptp(times)) > 0
     return {
         "status": "CALCULATED_REFERENCE_ONLY" if identifiable else "HOLD",
         "rate_constant_s": fitted,
@@ -94,6 +95,7 @@ def fit_first_order_rate(
         "rmse": rmse,
         "information_scalar": information,
         "identifiable": identifiable,
+        "time_design_varies": time_design_varies,
         "bounds_s": [lower_s, upper_s],
         "scientific_approval": "NOT_EVALUATED",
     }
@@ -136,14 +138,19 @@ def assess_identifiability(
     tolerance = max(matrix.shape) * np.finfo(float).eps * singular[0]
     rank = int(np.sum(singular > tolerance))
     full_rank = rank == matrix.shape[1]
-    condition = float("inf") if singular[-1] <= tolerance else float(singular[0] / singular[-1])
-    status = "PASS" if full_rank and condition <= condition_limit else "HOLD"
+    condition = None if not full_rank else float(singular[0] / singular[-1])
+    if condition is not None and not math.isfinite(condition):
+        condition = None
+    status = "PASS" if condition is not None and condition <= condition_limit else "HOLD"
     return {
         "status": status,
         "rank": rank,
         "parameters": matrix.shape[1],
         "observations": matrix.shape[0],
         "condition_number": condition,
+        "condition_status": (
+            "RANK_DEFICIENT" if not full_rank else "NONFINITE" if condition is None else "DEFINED"
+        ),
         "condition_limit": condition_limit,
         "scientific_approval": "NOT_EVALUATED",
     }
