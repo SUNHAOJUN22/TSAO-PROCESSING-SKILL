@@ -5,6 +5,7 @@ from pathlib import Path
 
 from scripts.benchmark_performance import _process_package_digest_projection
 from scripts.compare_performance_v2 import compare_reports
+from scripts.poe_fit_parity import LEGACY_RESULT, WORKLOAD, result_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,6 +19,8 @@ def _row(
     work_units: float | None = None,
     work_unit: str | None = None,
 ) -> dict[str, object]:
+    if name == WORKLOAD and digest == name:
+        digest = result_digest(LEGACY_RESULT)
     row: dict[str, object] = {
         "name": name,
         "median_s_per_call": time_s,

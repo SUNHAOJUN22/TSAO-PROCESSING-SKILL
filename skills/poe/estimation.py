@@ -134,7 +134,7 @@ def finite_difference_jacobian(
         minus = params.copy()
         plus[index] = upper_value
         minus[index] = lower_value
-        upper = _finite_vector(model(plus), "model output")
+        upper = _finite_vector(model(plus), "model output").copy()
         lower = _finite_vector(model(minus), "model output")
         if upper.shape != baseline.shape or lower.shape != baseline.shape:
             raise ValueError("model output shape changed during finite differences")

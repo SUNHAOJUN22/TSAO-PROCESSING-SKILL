@@ -166,12 +166,18 @@ def _measure(case: BenchmarkCase, *, repeats: int) -> dict[str, object]:
     for _ in range(case.warmups):
         case.function()
     result = case.function()
+    witness = (
+        json.loads(json.dumps(result, allow_nan=False))
+        if case.name == "poe_one_parameter_fit_401_points"
+        else None
+    )
     timer = timeit.Timer(case.function)
     samples = [
         elapsed / case.number for elapsed in timer.repeat(number=case.number, repeat=active_repeats)
     ]
     return {
         "name": case.name,
+        **({"result_witness": witness} if witness is not None else {}),
         "number_per_repeat": case.number,
         "repeats": active_repeats,
         "warmups": case.warmups,

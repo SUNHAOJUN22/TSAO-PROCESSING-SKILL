@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.poe_fit_parity import WORKLOAD, compare_fit_results  # noqa: E402
 
 COMMON_MINIMUM_RATIO = {
     "epdm_three_level_64_site_families": 0.90,
@@ -215,6 +222,9 @@ def _common_comparisons(
         digest_match = before.get("result_sha256") == after.get("result_sha256")
         parity_policy = PARITY_POLICIES.get(name, "exact structured SHA-256")
         semantic_parity = name in PARITY_POLICIES
+        fit_evidence = compare_fit_results(before, after) if name == WORKLOAD else None
+        if fit_evidence is not None:
+            parity_policy = "SHA-256-bound result witness and analytical first-order fit"
         timing_ratio, baseline_units, current_units, unit_error = _work_unit_ratio(
             name, before, after, raw_ratio
         )
@@ -240,12 +250,17 @@ def _common_comparisons(
         else:
             if unit_error is not None:
                 errors.append(unit_error)
-            parity_pass = semantic_parity or digest_match
+            parity_pass = (
+                fit_evidence["pass"] is True
+                if fit_evidence is not None
+                else semantic_parity or digest_match
+            )
             timing_pass = unit_error is None and timing_ratio >= minimum
             passed = parity_pass and timing_pass
             status = "PASS" if passed else "FAIL"
             if not parity_pass:
-                errors.append(f"{name}: numerical result digest changed")
+                detail = fit_evidence.get("error") if fit_evidence is not None else "digest changed"
+                errors.append(f"{name}: numerical result {detail}")
             if unit_error is None and timing_ratio < minimum:
                 qualifier = "work-unit-normalized " if work_unit is not None else ""
                 errors.append(
@@ -268,6 +283,7 @@ def _common_comparisons(
                 "baseline_peak_memory_bytes": _memory(before),
                 "optimized_peak_memory_bytes": _memory(after),
                 "result_digest_match": digest_match,
+                **({"numerical_result_evidence": fit_evidence} if fit_evidence is not None else {}),
                 "parity_policy": parity_policy,
                 "parity_verified_by_tests": semantic_parity,
                 "historical_status": status,
