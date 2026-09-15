@@ -159,13 +159,35 @@ def assess_identifiability(
     if not math.isfinite(condition_limit) or condition_limit <= 1:
         raise ValueError("condition_limit must be finite and greater than one")
 
-    # Rank and the 2-norm condition number are invariant under multiplication by
-    # one positive scalar. Scaling by the largest magnitude prevents otherwise
-    # finite Jacobians from overflowing inside SVD without normalizing columns
-    # independently (which would hide genuine parameter ill-conditioning).
-    scale = float(np.max(np.abs(matrix)))
-    svd_matrix = matrix if scale == 0.0 else matrix / scale
-    singular = np.linalg.svd(svd_matrix, compute_uv=False)
+    # The ordinary path keeps the original unscaled SVD so representative
+    # Jacobians do not pay for an additional max/abs/divide pass. Some finite
+    # matrices near the IEEE-754 limits can nevertheless overflow or underflow
+    # inside SVD. Only then retry after one positive global scale; rank and the
+    # 2-norm condition number are invariant to that scale, unlike per-column
+    # normalization which could hide genuine parameter ill-conditioning.
+    try:
+        with np.errstate(over="ignore", invalid="ignore", under="ignore"):
+            singular = np.linalg.svd(matrix, compute_uv=False)
+    except np.linalg.LinAlgError:
+        singular = np.asarray([], dtype=float)
+
+    needs_scaled_retry = singular.size != min(matrix.shape) or not np.isfinite(singular).all()
+    if (
+        not needs_scaled_retry
+        and singular.size
+        and singular[-1] == 0.0
+        and np.any(matrix != 0.0)
+    ):
+        needs_scaled_retry = True
+
+    if needs_scaled_retry:
+        scale = float(np.max(np.abs(matrix)))
+        if scale == 0.0:
+            singular = np.zeros(min(matrix.shape), dtype=float)
+        else:
+            with np.errstate(over="ignore", invalid="ignore", under="ignore"):
+                singular = np.linalg.svd(matrix / scale, compute_uv=False)
+
     if not np.isfinite(singular).all():
         raise ValueError("jacobian singular values exceed the finite range")
 
