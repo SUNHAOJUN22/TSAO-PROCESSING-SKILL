@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from skills.epdm.kinetics import (
@@ -12,6 +13,7 @@ from skills.epdm.kinetics import (
     chain_moment_reference,
     three_level_kinetic_suite,
 )
+from skills.poe.estimation import assess_identifiability
 from skills.poe.kinetics import KineticParameters, KineticState, simulate_kinetics
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,3 +119,40 @@ def test_doe_index_decode_known_solution() -> None:
     assert module._row_from_index(5, levels) == ("b", 30)
     with pytest.raises(ValueError):
         module._row_from_index(6, levels)
+
+
+def test_identifiability_is_stable_for_extreme_finite_scale() -> None:
+    result = assess_identifiability([[1e308], [1e308], [1e308], [1e308]])
+    assert result["status"] == "PASS"
+    assert result["rank"] == 1
+    assert result["condition_status"] == "DEFINED"
+    assert result["condition_number"] == pytest.approx(1.0)
+    assert result["scientific_approval"] == "NOT_EVALUATED"
+
+
+def test_identifiability_scaling_does_not_hide_bad_conditioning() -> None:
+    matrix = [[1e308, 0.0], [0.0, 1e298]]
+    result = assess_identifiability(matrix)
+    assert result["rank"] == 2
+    assert result["condition_number"] == pytest.approx(1e10, rel=1e-12)
+    assert result["condition_status"] == "DEFINED"
+    assert result["status"] == "HOLD"
+
+
+def test_identifiability_preserves_rank_deficiency_at_extreme_scale() -> None:
+    result = assess_identifiability([[1e308, 1e308], [1e308, 1e308]])
+    assert result["rank"] == 1
+    assert result["condition_number"] is None
+    assert result["condition_status"] == "RANK_DEFICIENT"
+    assert result["status"] == "HOLD"
+
+
+@pytest.mark.parametrize("scale", [1e-308, 1.0, 1e308])
+def test_identifiability_is_invariant_to_one_global_positive_scale(scale: float) -> None:
+    base = np.asarray([[1.0, 0.0], [0.0, 0.5], [1.0, 1.0]])
+    result = assess_identifiability((base * scale).tolist(), condition_limit=1e12)
+    reference = assess_identifiability(base.tolist(), condition_limit=1e12)
+    assert result["rank"] == reference["rank"] == 2
+    assert result["condition_status"] == reference["condition_status"] == "DEFINED"
+    assert result["condition_number"] == pytest.approx(reference["condition_number"], rel=1e-12)
+    assert result["status"] == reference["status"] == "PASS"

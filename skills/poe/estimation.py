@@ -158,7 +158,17 @@ def assess_identifiability(
         raise ValueError("jacobian must be a non-empty finite matrix")
     if not math.isfinite(condition_limit) or condition_limit <= 1:
         raise ValueError("condition_limit must be finite and greater than one")
-    singular = np.linalg.svd(matrix, compute_uv=False)
+
+    # Rank and the 2-norm condition number are invariant under multiplication by
+    # one positive scalar. Scaling by the largest magnitude prevents otherwise
+    # finite Jacobians from overflowing inside SVD without normalizing columns
+    # independently (which would hide genuine parameter ill-conditioning).
+    scale = float(np.max(np.abs(matrix)))
+    svd_matrix = matrix if scale == 0.0 else matrix / scale
+    singular = np.linalg.svd(svd_matrix, compute_uv=False)
+    if not np.isfinite(singular).all():
+        raise ValueError("jacobian singular values exceed the finite range")
+
     tolerance = max(matrix.shape) * np.finfo(float).eps * singular[0]
     rank = int(np.sum(singular > tolerance))
     full_rank = rank == matrix.shape[1]
