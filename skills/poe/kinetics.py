@@ -165,9 +165,13 @@ def _state_add_vector(state: StateVector, derivative: StateVector, factor: float
     values: list[float] = []
     for index, name in enumerate(_STATE_FIELDS):
         value = state[index] + factor * derivative[index]
+        # Reject failed arithmetic before positivity clipping: max(0.0, NaN)
+        # would otherwise silently turn a failed stage into an all-zero state.
+        if not math.isfinite(value):
+            raise ValueError(f"integration produced non-finite {name}: {value}")
         if value < -1e-10:
             raise ValueError(f"integration produced materially negative {name}: {value}")
-        values.append(max(0.0, value))
+        values.append(value if value > 0.0 else 0.0)
     return tuple(values)  # type: ignore[return-value]
 
 
@@ -207,14 +211,19 @@ def _integrate_vectors(
     state = _state_vector(initial)
     time_s = 0.0
     history = [{"time_s": 0.0, **_state_dict_from_vector(state)}] if store_history else None
-    while time_s < duration - 1e-15:
+    # Completion is relative to the requested interval, not an absolute number
+    # of seconds. An absolute epsilon can discard an entire rescaled problem.
+    while time_s < duration:
         h = min(step, duration - time_s)
+        next_time = time_s + h
+        if next_time <= time_s:
+            raise ValueError("integration step cannot advance floating-point time")
         k1 = _kinetic_derivative_vector(state, params)
         k2 = _kinetic_derivative_vector(_state_add_vector(state, k1, h / 2.0), params)
         k3 = _kinetic_derivative_vector(_state_add_vector(state, k2, h / 2.0), params)
         k4 = _kinetic_derivative_vector(_state_add_vector(state, k3, h), params)
         state = _state_add_vector(state, _rk4_combined_vector(k1, k2, k3, k4), h)
-        time_s += h
+        time_s = next_time
         if history is not None:
             history.append({"time_s": time_s, **_state_dict_from_vector(state)})
     return state, history
