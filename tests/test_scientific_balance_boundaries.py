@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 
+import numpy as np
 import pytest
 
-from tsao.science import balance_residual, closure_fraction
+from tsao.science import balance_residual, closure_fraction, stoichiometric_rank
 
 
 def test_finite_residual_survives_intermediate_overflow() -> None:
@@ -41,3 +42,21 @@ def test_closure_ratio_rejects_overflow_without_clamping_real_imbalance() -> Non
         closure_fraction({"A": 1e308, "B": 1e308}, {})
     assert closure_fraction({"A": 1.0}, {"A": 3.0}) == -1.0
     assert closure_fraction({"A": 10.0}, {"A": 9.8}) == pytest.approx(0.98)
+
+
+@pytest.mark.parametrize("scale", [1.0, 1e308, 1e-308, np.nextafter(0.0, 1.0)])
+def test_rank_is_invariant_under_representable_common_scaling(scale: float) -> None:
+    rank_one = [[scale] * 3 for _ in range(3)]
+    diagonal = np.diag([scale] * 3).tolist()
+    assert stoichiometric_rank(rank_one) == 1
+    assert stoichiometric_rank(diagonal) == 3
+
+
+def test_zero_stoichiometric_matrix_has_rank_zero() -> None:
+    assert stoichiometric_rank([[0.0, 0.0], [0.0, 0.0]]) == 0
+
+
+def test_rank_preserves_rectangular_dependencies() -> None:
+    matrix = [[1.0, 2.0, -1.0], [2.0, 4.0, -2.0]]
+    assert stoichiometric_rank(matrix) == 1
+    assert stoichiometric_rank((np.asarray(matrix).T * 1e307).tolist()) == 1
