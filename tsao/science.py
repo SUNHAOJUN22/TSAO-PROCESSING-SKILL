@@ -71,4 +71,9 @@ def stoichiometric_rank(matrix: list[list[float]]) -> int:
         raise ValueError("non-empty 2D matrix required")
     if not np.isfinite(values).all():
         raise ValueError("matrix values must be finite")
-    return int(np.linalg.matrix_rank(values))
+    # A common nonzero scalar preserves rank while avoiding overflowing
+    # singular values (a finite 3x3 matrix of 1e308 has a singular value 3e308).
+    scale = float(np.max(np.abs(values)))
+    if scale == 0.0:
+        return 0
+    return int(np.linalg.matrix_rank(values / scale))
