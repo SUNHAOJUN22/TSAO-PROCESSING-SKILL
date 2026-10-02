@@ -19,10 +19,12 @@ def validate_flow_mapping(
     for key, raw_value in values.items():
         if not nonempty(key):
             raise ValueError(f"{label} keys must be non-empty strings")
+        if isinstance(raw_value, bool):
+            raise ValueError(f"{label}[{key!r}] must be numeric, not a boolean")
         try:
             value = float(raw_value)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"{label}[{key!r}] must be numeric") from exc
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"{label}[{key!r}] must be finite numeric") from exc
         if not math.isfinite(value):
             raise ValueError(f"{label}[{key!r}] must be finite")
         if not allow_negative and value < 0:

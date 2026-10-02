@@ -1,10 +1,28 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
+from fractions import Fraction
 
 import numpy as np
 
 from ._utils import validate_flow_mapping
+
+
+def _finite_sum(values: Iterable[float], *, label: str) -> float:
+    terms = tuple(values)
+    try:
+        result = math.fsum(terms)
+    except OverflowError:
+        # Preserve the submitted binary values under otherwise overflowing cancellation.
+        exact = sum((Fraction.from_float(value) for value in terms), Fraction())
+        try:
+            result = float(exact)
+        except OverflowError as exc:
+            raise ValueError(f"{label} exceeds the finite floating-point range") from exc
+    if not math.isfinite(result):
+        raise ValueError(f"{label} must remain finite")
+    return result
 
 
 def balance_residual(
@@ -14,12 +32,19 @@ def balance_residual(
 ) -> dict[str, float]:
     checked_inputs = validate_flow_mapping("inputs", inputs, allow_negative=False)
     checked_outputs = validate_flow_mapping("outputs", outputs, allow_negative=False)
-    checked_generation = validate_flow_mapping("generation", generation or {}, allow_negative=True)
+    checked_generation = validate_flow_mapping(
+        "generation", {} if generation is None else generation, allow_negative=True
+    )
     keys = set(checked_inputs) | set(checked_outputs) | set(checked_generation)
     return {
-        key: checked_inputs.get(key, 0.0)
-        + checked_generation.get(key, 0.0)
-        - checked_outputs.get(key, 0.0)
+        key: _finite_sum(
+            (
+                checked_inputs.get(key, 0.0),
+                checked_generation.get(key, 0.0),
+                -checked_outputs.get(key, 0.0),
+            ),
+            label=f"balance residual {key!r}",
+        )
         for key in sorted(keys)
     }
 
@@ -27,10 +52,14 @@ def balance_residual(
 def closure_fraction(inputs: dict[str, float], outputs: dict[str, float]) -> float:
     checked_inputs = validate_flow_mapping("inputs", inputs, allow_negative=False)
     checked_outputs = validate_flow_mapping("outputs", outputs, allow_negative=False)
-    total_in = math.fsum(checked_inputs.values())
+    total_in = _finite_sum(checked_inputs.values(), label="total input")
     if total_in <= 0:
         raise ValueError("input total must be positive")
-    return 1.0 - abs(total_in - math.fsum(checked_outputs.values())) / total_in
+    total_out = _finite_sum(checked_outputs.values(), label="total output")
+    result = 1.0 - abs(total_in - total_out) / total_in
+    if not math.isfinite(result):
+        raise ValueError("closure fraction exceeds the finite floating-point range")
+    return result
 
 
 def stoichiometric_rank(matrix: list[list[float]]) -> int:
