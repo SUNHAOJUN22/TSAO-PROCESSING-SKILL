@@ -184,36 +184,57 @@ The visual system extends the 21-asset historical core to a governed 32-asset ac
 `main` is the sole authoritative branch. TSAO does not replace qualified process engineering, laboratory evidence, commercial property packages, equipment or relief design, HAZOP/LOPA/SIL, legal/environmental review, customer trials or operating approval.
 
 <!-- CURRENT_MAIN_ACCEPTANCE_V2:START -->
-## Current `main`: code–mathematics–evidence loop
+## Current implementation: code, mathematics and usage
 
-<p align="center"><img src="docs/current-main/tsao-processing-current-main-en.svg" width="100%" alt="Current `main`: code–mathematics–evidence loop"></p>
+![English code and mathematical-contract concept](docs/current-main/tsao-processing-current-main-en.svg)
 
-> The figure is generated from current code contracts and is conceptual documentation, not experimental, plant or industrial-performance data.
+> The deliverable is a software-reference numerical and process-development framework; scientific, engineering, HSE, customer and industrial-performance approvals remain NOT_EVALUATED.
 
-### Core mathematical contracts
-
-$$
-dN/dt = F_in z − F_out x + V νᵀ r
-$$
+#### Finite balance residual
 
 $$
-e = ‖y₅ − y₄‖ / (atol + rtol max(‖yₙ‖, ‖y₅‖))
+r=\sum_i F_{i,\mathrm{in}}-\sum_j F_{j,\mathrm{out}}+\sum_k G_k
 $$
 
+This is the sign convention of balance_residual. All terms need the same physical quantity, time basis and units; positive G means generation and negative G consumption. A near-zero residual checks the supplied balance, not the validity of a mechanism or industrial dataset.
+
+Source mapping: [`tsao/science.py`](tsao/science.py)
+
+#### Componentwise error
+
 $$
-I(θ) = J(θ)ᵀ W J(θ)
+e=\max_i\frac{|y_i^{(5)}-y_i^{(4)}|}{a+r\max(|y_{n,i}|,|y_i^{(5)}|)}\le1
 $$
 
-### Usage strategy
+The Dormand–Prince 5(4) implementation scales each component before taking a maximum; it is not a ratio of two vector norms. Acceptance also respects nonnegative-state and conservation contracts. Step-count or minimum-step limits may return HOLD. State scales must be explicit in model and tolerance design.
 
-1. Start from Schema, units and evidence classes rather than inferring implementation from visuals.
-2. Kinetics, chain moments and integrators accept only finite dimensionally compatible inputs.
-3. Run canonical publication and full CI before six-hour active testing of an exact SHA.
-4. Any new commit invalidates long-duration evidence bound to an older SHA.
+Source mapping: [`skills/epdm/numerical_integration.py`](skills/epdm/numerical_integration.py)
 
-> **Responsibility boundary：** The deliverable is a software-reference numerical and process-development framework; scientific, engineering, HSE, customer and industrial-performance approvals remain NOT_EVALUATED.
+#### Local identifiability
 
-Execution prompt: [SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md](docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md)
+$$
+\operatorname{rank}_{\mathrm{num}}\!\left(J/\max_{ij}|J_{ij}|\right)=p
+$$
+
+A nonzero finite Jacobian is scaled by its largest absolute element before testing numerical rank against parameter-column count p; the zero matrix is handled separately. Full column rank is a local diagnostic under the supplied observables, not proof of global parameter uniqueness, good conditioning or engineering approval.
+
+Source mapping: [`tsao/science.py`](tsao/science.py)
+
+### Usage and acceptance sequence
+
+1. Check the installation environment, input structure, units, applicability and execution permissions.
+2. Use the source mappings above to distinguish native implementation, explanatory contracts and external execution requirements.
+3. Run focused regression and full quality gates before long-duration testing of pinned commits.
+4. Preserve original logs, machine-readable reports and limitations; missing evidence must never be reported as PASS.
+
+```bash
+python scripts/run_ci.py
+```
+
+Retest every changed commit. Baseline regression, two three-hour regression segments, browser visual checks and external engineering qualification are distinct evidence classes. Without original receipts, no six-hour completion is claimed.
+
+Implementation anchors: [`tsao/process_package.py`](tsao/process_package.py) · [`skills/epdm/kinetics.py`](skills/epdm/kinetics.py) · [`skills/poe/kinetics.py`](skills/poe/kinetics.py)
+
 <!-- CURRENT_MAIN_ACCEPTANCE_V2:END -->
 
 

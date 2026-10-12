@@ -184,36 +184,57 @@ CI 对 Windows 与 Ubuntu 的 Python 3.11–3.14 完整矩阵进行资格验证�
 `main` 是唯一权威分支。TSAO 不替代实验数据、商业物性包、设备与泄放设计、HAZOP/LOPA/SIL、法律与环保审查、客户试验或生产运行批准。
 
 <!-- CURRENT_MAIN_ACCEPTANCE_V2:START -->
-## 当前 `main`：代码—数学—证据闭环
+## 当前实现：代码、数学与使用策略
 
-<p align="center"><img src="docs/current-main/tsao-processing-current-main-zh.svg" width="100%" alt="当前 `main`：代码—数学—证据闭环"></p>
+![中文代码与数学合同概念图](docs/current-main/tsao-processing-current-main-zh.svg)
 
-> 该图由当前代码合同生成，是文档概念设计，不是实验、装置或工业性能数据。
+> 当前交付是软件参考数值与工艺研发框架；科学、工程、HSE、客户与工业性能批准均保持 NOT_EVALUATED。
 
-### 核心数理合同
-
-$$
-dN/dt = F_in z − F_out x + V νᵀ r
-$$
+#### 有限物料衡算残差
 
 $$
-e = ‖y₅ − y₄‖ / (atol + rtol max(‖yₙ‖, ‖y₅‖))
+r=\sum_i F_{i,\mathrm{in}}-\sum_j F_{j,\mathrm{out}}+\sum_k G_k
 $$
 
+这是通用 `balance_residual` 的符号约定。所有项必须采用相同物理量、时间基准与单位；正 G 表示生成，负 G 表示消耗。残差接近零只是给定账目的闭合检查，不能代替模型机理或工业数据验证。
+
+源码对应: [`tsao/science.py`](tsao/science.py)
+
+#### 逐分量自适应误差
+
 $$
-I(θ) = J(θ)ᵀ W J(θ)
+e=\max_i\frac{|y_i^{(5)}-y_i^{(4)}|}{a+r\max(|y_{n,i}|,|y_i^{(5)}|)}\le1
 $$
 
-### 使用策略
+Dormand–Prince 5(4) 实际实现先逐分量缩放，再取最大值；不能写成两个向量范数之比。接受步还要求状态非负约束和守恒合同成立；达到步数或最小步长边界可能返回 HOLD。不同状态尺度需要在建模与容差设置中明确。
 
-1. 从 Schema、单位与证据等级开始，不从漂亮图表反推实现。
-2. 动力学、链矩和积分器只接受有限且量纲一致的输入。
-3. 先跑 canonical publication 和完整 CI，再执行精确 SHA 的六小时活动测试。
-4. 新提交会使旧 SHA 的长期测试回执自动失效。
+源码对应: [`skills/epdm/numerical_integration.py`](skills/epdm/numerical_integration.py)
 
-> **责任边界：** 当前交付是软件参考数值与工艺研发框架；科学、工程、HSE、客户与工业性能批准均保持 NOT_EVALUATED。
+#### 局部可辨识性检查
 
-执行提示词: [SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md](docs/SIX_REPOSITORY_PARALLEL_6H_ACCEPTANCE_PROMPT_V2.md)
+$$
+\operatorname{rank}_{\mathrm{num}}\!\left(J/\max_{ij}|J_{ij}|\right)=p
+$$
+
+非零、有限雅可比先按最大绝对元素缩放，随后检查数值秩是否等于参数列数 p；零矩阵单独处理。满列秩是给定观测与局部线性化条件下的诊断，不证明全局参数唯一性、良好条件数或工程批准。
+
+源码对应: [`tsao/science.py`](tsao/science.py)
+
+### 使用与验收顺序
+
+1. 先核对安装环境、输入结构、单位、有效范围与执行权限。
+2. 按上面的源码锚点区分原生实现、解释性合同和外部执行要求。
+3. 先运行快速回归和完整质量门，再用固定提交执行长期回归。
+4. 逐项保存原始日志、机器报告和限制；任何缺失证据不得写成 PASS。
+
+```bash
+python scripts/run_ci.py
+```
+
+每次修复均须绑定新提交重新测试。基线回归、两段各三小时的重复回归、浏览器图形检查和外部工程认证是不同证据，不可互相替代。没有原始回执时，不宣称已完成六小时验收。
+
+源码锚点: [`tsao/process_package.py`](tsao/process_package.py) · [`skills/epdm/kinetics.py`](skills/epdm/kinetics.py) · [`skills/poe/kinetics.py`](skills/poe/kinetics.py)
+
 <!-- CURRENT_MAIN_ACCEPTANCE_V2:END -->
 
 
