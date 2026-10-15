@@ -94,6 +94,22 @@ jobs:
       - name: Verify permanent repository hygiene
         run: >-
           python -c "import subprocess; from pathlib import Path; tracked=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split(chr(0)) if p]; w=sorted(p for p in tracked if p.startswith('.github/workflows/')); assert w==['.github/workflows/ci.yml'],w; f=[p for p in tracked if '-once.yml' in Path(p).name or 'CANDIDATE' in Path(p).name or 'DIAGNOSTIC' in Path(p).name or p.startswith('.github/upgrade/')]; assert not f,f"
+      - name: Record governed source identities
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          for relative in (
+              '.github/workflows/ci.yml',
+              'docs/localized-vision/process-intelligence-vision-en.svg',
+              'docs/localized-vision/process-intelligence-vision-zh.svg',
+          ):
+              data = Path(relative).read_bytes()
+              print(f'GOVERNED_SHA256 {relative} {hashlib.sha256(data).hexdigest()} {len(data)}')
+          PY
       - name: Clean editable-install metadata
         run: python -c "import pathlib, shutil; [shutil.rmtree(path) for path in pathlib.Path('.').glob('*.egg-info') if path.is_dir()]"
       - name: Verify deterministic README graphics and visual contract
