@@ -129,7 +129,7 @@ def finite_difference_jacobian(
     # Snapshot each model result before the next call because a caller may
     # legally reuse one mutable output buffer. The final centered difference is
     # evaluated in two vectorized ufuncs, avoiding one error-state context and
-    # two temporary arrays per parameter column.
+    # two arithmetic temporary arrays per parameter column.
     for index, value in enumerate(params):
         step = relative_step * max(1.0, abs(float(value)))
         denominator = 2.0 * step
@@ -146,7 +146,7 @@ def finite_difference_jacobian(
         minus = params.copy()
         plus[index] = upper_value
         minus[index] = lower_value
-        upper = _finite_vector(model(plus), "model output")
+        upper = _finite_vector(model(plus), "model output").copy()
         lower = _finite_vector(model(minus), "model output")
         if upper.shape != baseline.shape or lower.shape != baseline.shape:
             raise ValueError("model output shape changed during finite differences")
