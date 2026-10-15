@@ -3,9 +3,12 @@ from __future__ import annotations
 import math
 import os
 import tempfile
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+
+_REPLACE_RETRY_DELAYS_S = (0.0, 0.001, 0.004, 0.016, 0.064)
 
 
 def nonempty(value: object) -> bool:
@@ -42,6 +45,27 @@ def required_or_default_string(data: Mapping[str, Any], key: str, default: str) 
     return value.strip()
 
 
+def _replace_with_bounded_retry(source: Path, destination: Path) -> None:
+    """Publish one completed temporary file despite transient sharing conflicts.
+
+    Windows virus scanners, indexers and a concurrent writer can briefly hold the
+    destination while ``os.replace`` is attempted. PermissionError is therefore
+    retried for a small, bounded interval. Other publication failures propagate
+    immediately and the caller removes its private temporary file.
+    """
+
+    last_attempt = len(_REPLACE_RETRY_DELAYS_S) - 1
+    for attempt, delay_s in enumerate(_REPLACE_RETRY_DELAYS_S):
+        if delay_s:
+            time.sleep(delay_s)
+        try:
+            os.replace(source, destination)
+            return
+        except PermissionError:
+            if attempt == last_attempt:
+                raise
+
+
 def atomic_write_text(path: Path, text: str) -> None:
     # The temporary belongs to this writer and resides on the target filesystem.
     # A shared `<name>.tmp` lets parallel writers replace or remove each other's data.
@@ -60,7 +84,7 @@ def atomic_write_text(path: Path, text: str) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, path)
+        _replace_with_bounded_retry(temporary, path)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)

@@ -123,9 +123,17 @@ def finite_difference_jacobian(
         raise ValueError("relative_step must be finite and positive")
     baseline = _finite_vector(model(params.copy()), "model output")
     jacobian = np.empty((baseline.size, params.size), dtype=float)
+    lower_outputs = np.empty((params.size, baseline.size), dtype=float)
+    denominators = np.empty(params.size, dtype=float)
+
+    # Snapshot each model result before the next call because a caller may
+    # legally reuse one mutable output buffer. The final centered difference is
+    # evaluated in two vectorized ufuncs, avoiding one error-state context and
+    # two temporary arrays per parameter column.
     for index, value in enumerate(params):
         step = relative_step * max(1.0, abs(float(value)))
-        if not math.isfinite(step) or not math.isfinite(2.0 * step):
+        denominator = 2.0 * step
+        if not math.isfinite(step) or not math.isfinite(denominator):
             raise ValueError("finite-difference step exceeds the finite range")
         scalar = float(value)
         upper_value = scalar + step
@@ -138,15 +146,20 @@ def finite_difference_jacobian(
         minus = params.copy()
         plus[index] = upper_value
         minus[index] = lower_value
-        upper = _finite_vector(model(plus), "model output").copy()
+        upper = _finite_vector(model(plus), "model output")
         lower = _finite_vector(model(minus), "model output")
         if upper.shape != baseline.shape or lower.shape != baseline.shape:
             raise ValueError("model output shape changed during finite differences")
-        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
-            column = (upper - lower) / (2.0 * step)
-        if not np.isfinite(column).all():
-            raise ValueError("finite-difference derivative exceeds the finite range")
-        jacobian[:, index] = column
+        jacobian[:, index] = upper
+        lower_outputs[index] = lower
+        denominators[index] = denominator
+
+    transposed = jacobian.T
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        np.subtract(transposed, lower_outputs, out=transposed)
+        np.divide(transposed, denominators[:, None], out=transposed)
+    if not np.isfinite(jacobian).all():
+        raise ValueError("finite-difference derivative exceeds the finite range")
     return jacobian
 
 
