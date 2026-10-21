@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import codecs
 import csv
 import hashlib
 import os
@@ -34,6 +35,7 @@ _SELF_MANIFESTS = {
     "SBOM.json",
     "SOURCE_SNAPSHOT_IDENTITY.json",
 }
+_IDENTITY_CHUNK_BYTES = 64 * 1024
 
 
 def _safe_manifest_relative(value: str) -> Path:
@@ -54,9 +56,7 @@ def _safe_manifest_relative(value: str) -> Path:
     return Path(*parts)
 
 
-def canonical_bytes(path: Path) -> bytes:
-    """Return a platform-stable identity for text and exact bytes for binaries."""
-    data = Path(path).read_bytes()
+def _canonical_data(data: bytes) -> bytes:
     if b"\r" not in data:
         return data
     try:
@@ -66,10 +66,56 @@ def canonical_bytes(path: Path) -> bytes:
     return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
+def canonical_bytes(path: Path) -> bytes:
+    """Return a platform-stable identity for text and exact bytes for binaries."""
+    return _canonical_data(Path(path).read_bytes())
+
+
 def canonical_identity(path: Path) -> tuple[str, int]:
-    """Return SHA-256 and canonical byte count after one file read."""
-    data = canonical_bytes(path)
-    return hashlib.sha256(data).hexdigest(), len(data)
+    """Return canonical SHA-256 and size in one pass with bounded read buffers.
+
+    A late UTF-8 error makes the *entire* file binary.  Keep the raw identity
+    alongside the normalized identity until UTF-8 validity is known, instead
+    of rereading the file or relying on filename extensions.
+    """
+    with Path(path).open("rb") as source:
+        chunk = source.read(_IDENTITY_CHUNK_BYTES)
+        if len(chunk) < _IDENTITY_CHUNK_BYTES:
+            data = _canonical_data(chunk)
+            return hashlib.sha256(data).hexdigest(), len(data)
+
+        raw_digest = hashlib.sha256()
+        text_digest = hashlib.sha256()
+        decoder = codecs.getincrementaldecoder("utf-8")()
+        raw_size = text_size = 0
+        valid_utf8 = True
+        previous_cr = False
+        while chunk:
+            raw_digest.update(chunk)
+            raw_size += len(chunk)
+            if valid_utf8:
+                try:
+                    decoder.decode(chunk, final=False)
+                except UnicodeDecodeError:
+                    valid_utf8 = False
+                else:
+                    # CR/LF are single-byte code points in UTF-8.  A CR at the
+                    # previous boundary already emitted LF; consume a following
+                    # LF once, even when its UTF-8 chunk begins a new read.
+                    normalized = chunk[1:] if previous_cr and chunk.startswith(b"\n") else chunk
+                    previous_cr = chunk.endswith(b"\r")
+                    normalized = normalized.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+                    text_digest.update(normalized)
+                    text_size += len(normalized)
+            chunk = source.read(_IDENTITY_CHUNK_BYTES)
+        if valid_utf8:
+            try:
+                decoder.decode(b"", final=True)
+            except UnicodeDecodeError:
+                valid_utf8 = False
+        if valid_utf8:
+            return text_digest.hexdigest(), text_size
+        return raw_digest.hexdigest(), raw_size
 
 
 def sha256_file(path: Path) -> str:

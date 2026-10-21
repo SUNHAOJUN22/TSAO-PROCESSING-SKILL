@@ -164,16 +164,16 @@ def test_manifest_build_and_verify_read_each_source_once(
         path.write_text(f"row={index}\r\n", encoding="utf-8")
         sources.append(path)
     target = tmp_path / "reports/SOURCE_CORE_MANIFEST.tsv"
-    original = Path.read_bytes
+    original = Path.open
     reads: dict[Path, int] = {}
 
-    def counted(path: Path):
+    def counted(path: Path, *args, **kwargs):
         resolved = path.resolve()
         if resolved in {item.resolve() for item in sources}:
             reads[resolved] = reads.get(resolved, 0) + 1
-        return original(path)
+        return original(path, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "read_bytes", counted)
+    monkeypatch.setattr(Path, "open", counted)
     assert build_manifest(tmp_path, target) == len(sources)
     assert set(reads.values()) == {1}
     reads.clear()
@@ -196,3 +196,47 @@ def test_doctor_reuses_one_repository_rglob(monkeypatch: pytest.MonkeyPatch):
     result = diagnose(ROOT, profile="core")
     assert result["pass"], result["issues"]
     assert calls == 1
+
+
+@pytest.mark.parametrize("strict_source_clean", [False, True])
+def test_doctor_inventory_preserves_link_and_cache_failures(tmp_path, strict_source_clean):
+    root = tmp_path / "repository"
+    docs = root / "docs"
+    docs.mkdir(parents=True)
+    (docs / "guide.MD").write_text(
+        "[broken](missing.md)\n[escape](../../outside.md)\n", encoding="utf-8"
+    )
+    (docs / "directory.md").mkdir()
+    for directory in (root / ".venv" / "nested", root / ".git"):
+        directory.mkdir(parents=True)
+        (directory / "ignored.md").write_text("[ignored](missing.md)", encoding="utf-8")
+
+    result = diagnose(root, profile="core", strict_source_clean=strict_source_clean)
+    issues = result["checks"]["repository"]["issues"]
+    assert "broken Markdown link: docs/guide.MD -> missing.md" in issues
+    assert "Markdown link escapes root: docs/guide.MD -> ../../outside.md" in issues
+    assert not any("ignored.md ->" in issue or "directory.md" in issue for issue in issues)
+    cache_issues = [issue for issue in issues if "source tree contains cache path:" in issue]
+    assert cache_issues == (
+        [
+            "source tree contains cache path: .venv",
+            "source tree contains cache path: .venv/nested",
+            "source tree contains cache path: .venv/nested/ignored.md",
+        ]
+        if strict_source_clean
+        else []
+    )
+
+
+def test_doctor_inventory_retains_symlink_reporting(tmp_path):
+    root = tmp_path / "repository"
+    root.mkdir()
+    target = root / "source.txt"
+    target.write_text("source", encoding="utf-8")
+    link = root / "linked.txt"
+    try:
+        link.symlink_to(target)
+    except OSError:
+        pytest.skip("host does not permit symlink creation")
+    result = diagnose(root, profile="core")
+    assert "repository contains symlink: linked.txt" in result["checks"]["repository"]["issues"]

@@ -105,17 +105,18 @@ def _repository_issues(
     markdown_paths: tuple[Path, ...],
 ) -> list[str]:
     issues = [f"missing required path: {item}" for item in _REQUIRED if not (root / item).exists()]
+    root_parts = len(root.parts)
     for path in entries:
-        relative_parts = path.relative_to(root).parts
+        # Entries come from this root's single rglob; slicing the known prefix
+        # avoids reparsing every absolute path while retaining every check.
+        relative_parts = path.parts[root_parts:]
         cache_hit = next((part for part in relative_parts if part in _CACHE_PARTS), None)
         if cache_hit:
             if strict_source_clean:
-                issues.append(
-                    f"source tree contains cache path: {path.relative_to(root).as_posix()}"
-                )
+                issues.append(f"source tree contains cache path: {'/'.join(relative_parts)}")
             continue
         if path.is_symlink():
-            issues.append(f"repository contains symlink: {path.relative_to(root).as_posix()}")
+            issues.append(f"repository contains symlink: {'/'.join(relative_parts)}")
     readme = root / "README.md"
     if readme.is_file():
         text = readme.read_text(encoding="utf-8")
@@ -175,12 +176,13 @@ def diagnose(
         active_profile = "full" if _has_full_distribution_markers(root) else "core"
 
     entries = tuple(sorted(root.rglob("*")))
+    root_parts = len(root.parts)
     markdown_paths = tuple(
         path
         for path in entries
-        if path.is_file()
-        and path.suffix.casefold() == ".md"
-        and not any(part in _CACHE_PARTS or part == ".git" for part in path.relative_to(root).parts)
+        if path.suffix.casefold() == ".md"
+        and not any(part in _CACHE_PARTS or part == ".git" for part in path.parts[root_parts:])
+        and path.is_file()
     )
     schemas = tuple(sorted((root / "schemas").glob("*.schema.json")))
     checks: dict[str, list[str]] = {
