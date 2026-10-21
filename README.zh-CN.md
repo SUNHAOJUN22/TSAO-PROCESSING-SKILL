@@ -186,7 +186,7 @@ python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
 python scripts/export_source_snapshot.py --root . --out dist/source.zip
 ```
 
-原分支覆盖率门槛保持 75%。新增入口测试涵盖各域非通过状态、空拓扑、溢出/下溢、非法软件结果、证据文件篡改和重复 JSON 键。测试中的历史/新增夹具属于合成软件例，不是实际工程批准。请读取实际提交对应的 CI 结果，不引用旧徽章作为本次验收。
+原 75% 门槛保持不变，衡量的是 `coverage.py` 启用分支跟踪后报告的语句与分支综合覆盖率。[`scripts/run_ci.py`](scripts/run_ci.py) 将统计范围限定为 `skills.poe`、`skills.epdm`、`tsao.process_package` 和 `tsao.skillpacks`，并排除 `skills/poe/scripts/*` 与 `skills/epdm/scripts/*`。新增入口测试涵盖各域非通过状态、空拓扑、溢出/下溢、非法软件结果、证据文件篡改和重复 JSON 键。测试中的历史/新增夹具属于合成软件例，不是实际工程批准。请读取实际提交对应的 CI 结果，不引用旧徽章作为本次验收。
 
 [七仓验收执行 Prompt](https://github.com/SUNHAOJUN22/TsaoSciResearcher/blob/main/docs/SEVEN_REPOSITORY_ACCEPTANCE_PROMPT.md) 规定每仓两段各三小时的成功测试进程时间。本地回归完成不表示已经取得六小时凭证；分段软件回归与连续装置运行、在线服务稳定性和外部求解器认证应分别报告。
 

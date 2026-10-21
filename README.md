@@ -188,7 +188,7 @@ python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
 python scripts/export_source_snapshot.py --root . --out dist/source.zip
 ```
 
-The existing branch-coverage threshold remains 75%. New entrypoint regressions exercise negative decision states, empty topology, arithmetic overflow/underflow, malformed software results, local artifact tampering and duplicate JSON keys. Historical fixtures are synthetic software tests. Current results must be read from CI for the exact commit, not copied from an old badge.
+The unchanged 75% gate applies to the combined statement-and-branch percentage reported by `coverage.py` with branch tracing enabled. In [`scripts/run_ci.py`](scripts/run_ci.py), the measured scope is `skills.poe`, `skills.epdm`, `tsao.process_package`, and `tsao.skillpacks`; `skills/poe/scripts/*` and `skills/epdm/scripts/*` are omitted. New entrypoint regressions exercise negative decision states, empty topology, arithmetic overflow/underflow, malformed software results, local artifact tampering and duplicate JSON keys. Historical fixtures are synthetic software tests. Current results must be read from CI for the exact commit, not copied from an old badge.
 
 The coordinating [seven-repository acceptance prompt](https://github.com/SUNHAOJUN22/TsaoSciResearcher/blob/main/docs/SEVEN_REPOSITORY_ACCEPTANCE_PROMPT.md) defines two three-hour successful-test-process segments per repository. A completed local regression does not mean that six-hour receipts exist. Segmented software regression is distinct from continuous plant/service operation or external solver certification.
 
