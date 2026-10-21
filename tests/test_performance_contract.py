@@ -213,8 +213,9 @@ def test_doctor_inventory_preserves_link_and_cache_failures(tmp_path, strict_sou
 
     result = diagnose(root, profile="core", strict_source_clean=strict_source_clean)
     issues = result["checks"]["repository"]["issues"]
-    assert "broken Markdown link: docs/guide.MD -> missing.md" in issues
-    assert "Markdown link escapes root: docs/guide.MD -> ../../outside.md" in issues
+    guide_path = str(Path("docs") / "guide.MD")
+    assert f"broken Markdown link: {guide_path} -> missing.md" in issues
+    assert f"Markdown link escapes root: {guide_path} -> ../../outside.md" in issues
     assert not any("ignored.md ->" in issue or "directory.md" in issue for issue in issues)
     cache_issues = [issue for issue in issues if "source tree contains cache path:" in issue]
     assert cache_issues == (
