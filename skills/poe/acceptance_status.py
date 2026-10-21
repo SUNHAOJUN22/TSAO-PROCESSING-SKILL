@@ -7,11 +7,14 @@ named approver. Missing or intermediate records remain HOLD/NOT_EVALUATED.
 
 from __future__ import annotations
 
-import json
+import hashlib
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
+
+from tsao.decision_status import aggregate_status
+from tsao.json_contract import loads_strict
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _INTERMEDIATE = frozenset({"HOLD", "CONDITIONAL", "NOT_EVALUATED"})
@@ -31,24 +34,29 @@ def _string_list(value: object) -> list[str]:
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
-def _evidence_index(ledger: object) -> dict[str, Mapping[str, Any]]:
-    if not isinstance(ledger, Mapping):
-        return {}
-    rows = ledger.get("evidence")
-    if not isinstance(rows, list):
-        return {}
+def _evidence_index(ledger: object) -> tuple[dict[str, Mapping[str, Any]], set[str]]:
+    if ledger is None:
+        return {}, set()
+    if not isinstance(ledger, Mapping) or not isinstance(ledger.get("evidence"), list):
+        return {}, {"INVALID_EVIDENCE_LEDGER"}
     index: dict[str, Mapping[str, Any]] = {}
-    for row in rows:
+    errors: set[str] = set()
+    for row in ledger["evidence"]:
         if not isinstance(row, Mapping):
+            errors.add("INVALID_EVIDENCE_RECORD")
             continue
         evidence_id = row.get("evidence_id")
-        if isinstance(evidence_id, str) and evidence_id.strip() and evidence_id not in index:
-            index[evidence_id] = row
-    return index
+        if not isinstance(evidence_id, str) or not evidence_id.strip():
+            errors.add("INVALID_EVIDENCE_ID")
+        elif evidence_id.strip() in index:
+            errors.add("DUPLICATE_EVIDENCE_ID")
+        else:
+            index[evidence_id.strip()] = row
+    return index, errors
 
 
 def _qualified_evidence(
-    evidence_id: str, index: Mapping[str, Mapping[str, Any]]
+    evidence_id: str, index: Mapping[str, Mapping[str, Any]], artifact_root: Path | None
 ) -> tuple[bool, str | None]:
     record = index.get(evidence_id)
     if record is None:
@@ -63,6 +71,17 @@ def _qualified_evidence(
     approver = record.get("approver")
     if not isinstance(approver, str) or not approver.strip():
         return False, "EVIDENCE_HAS_NO_NAMED_APPROVER"
+    if artifact_root is None:
+        return False, "EVIDENCE_ARTIFACT_NOT_VERIFIED"
+    artifact = _safe_record_path(artifact_root, record.get("artifact_path"))
+    if artifact is None:
+        return False, "EVIDENCE_ARTIFACT_UNAVAILABLE"
+    try:
+        digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    except OSError:
+        return False, "EVIDENCE_ARTIFACT_UNAVAILABLE"
+    if digest != artifact_sha256:
+        return False, "EVIDENCE_ARTIFACT_HASH_MISMATCH"
     return True, None
 
 
@@ -71,6 +90,7 @@ def _evaluate_rows(
     *,
     track: str,
     evidence_index: Mapping[str, Mapping[str, Any]],
+    artifact_root: Path | None,
 ) -> tuple[str, set[str], set[str]]:
     reasons: set[str] = set()
     evidence_refs: set[str] = set()
@@ -78,9 +98,28 @@ def _evaluate_rows(
         return "NOT_EVALUATED", {f"{track}_RECORDS_MISSING"}, evidence_refs
 
     observed: list[str] = []
+    row_ids: set[str] = set()
     for _index, row in enumerate(rows, start=1):
         if not isinstance(row, Mapping):
             reasons.add(f"{track}_ROW_NOT_OBJECT")
+            observed.append("FAIL")
+            continue
+        id_field = (
+            "requirement_id"
+            if track == "REQUIREMENT"
+            else "hazard_id"
+            if track == "HSE"
+            else "criterion_id"
+        )
+        row_id = row.get(id_field)
+        if row_id is not None:
+            if not isinstance(row_id, str) or not row_id.strip() or row_id.strip() in row_ids:
+                reasons.add(f"{track}_INVALID_OR_DUPLICATE_ID")
+                observed.append("FAIL")
+                continue
+            row_ids.add(row_id.strip())
+        if "status" in row and "result" in row and _status(row["status"]) != _status(row["result"]):
+            reasons.add(f"{track}_CONFLICTING_STATUS")
             observed.append("FAIL")
             continue
         row_status = _status(row.get("status") if "status" in row else row.get("result"))
@@ -94,13 +133,22 @@ def _evaluate_rows(
             if not isinstance(approver, str) or not approver.strip():
                 reasons.add(f"{track}_PASS_HAS_NO_APPROVER")
                 observed[-1] = "HOLD"
-            refs = _string_list(row.get("evidence_ids"))
+            raw_refs = row.get("evidence_ids")
+            refs = _string_list(raw_refs)
+            if (
+                not isinstance(raw_refs, list)
+                or len(refs) != len(raw_refs)
+                or len(set(refs)) != len(refs)
+            ):
+                reasons.add(f"{track}_INVALID_EVIDENCE_REFERENCES")
+                observed[-1] = "FAIL"
+                continue
             if not refs:
                 reasons.add(f"{track}_PASS_HAS_NO_EVIDENCE")
                 observed[-1] = "HOLD"
             for ref in refs:
                 evidence_refs.add(ref)
-                qualified, reason = _qualified_evidence(ref, evidence_index)
+                qualified, reason = _qualified_evidence(ref, evidence_index, artifact_root)
                 if not qualified:
                     reasons.add(reason or f"{track}_EVIDENCE_INVALID")
                     observed[-1] = "HOLD"
@@ -109,30 +157,46 @@ def _evaluate_rows(
         else:
             reasons.add(f"{track}_{row_status}")
 
-    if "FAIL" in observed:
-        return "FAIL", reasons, evidence_refs
-    if any(value in _INTERMEDIATE for value in observed):
-        return "HOLD", reasons, evidence_refs
-    return "PASS", reasons, evidence_refs
+    result = aggregate_status(observed)
+    return ("HOLD" if result in _INTERMEDIATE else result), reasons, evidence_refs
+
+
+def _software_status(result: object) -> tuple[str, set[str]]:
+    if result is None or result == {}:
+        return "NOT_EVALUATED", {"SOFTWARE_RESULT_MISSING"}
+    if not isinstance(result, Mapping):
+        return "FAIL", {"SOFTWARE_RESULT_INVALID"}
+    state = _status(result.get("status"))
+    errors, holds = result.get("errors"), result.get("holds")
+    if state is None or not isinstance(errors, list) or not isinstance(holds, list):
+        return "FAIL", {"SOFTWARE_RESULT_INVALID"}
+    if any(not isinstance(value, str) or not value.strip() for value in (*errors, *holds)):
+        return "FAIL", {"SOFTWARE_RESULT_INVALID"}
+    if "pass" in result and not isinstance(result["pass"], bool):
+        return "FAIL", {"SOFTWARE_RESULT_INVALID"}
+    if state == "FAIL" or errors or result.get("pass") is False and state == "PASS":
+        return "FAIL", {"SOFTWARE_INTEGRITY_ERRORS"}
+    if holds or state in _INTERMEDIATE:
+        return ("NOT_EVALUATED" if state == "NOT_EVALUATED" and not holds else "HOLD"), {
+            "SOFTWARE_NOT_PASSED"
+        }
+    return "PASS", set()
 
 
 def derive_decision_tracks(
     *,
-    software_result: Mapping[str, Any],
+    software_result: object,
     requirement_trace: object,
     acceptance: object,
     evidence_ledger: object,
     hse: object = None,
+    artifact_root: Path | None = None,
 ) -> dict[str, Any]:
     """Derive independent status tracks from machine evidence."""
 
-    errors = software_result.get("errors")
-    software_integrity_status = "FAIL" if isinstance(errors, list) and errors else "PASS"
-    reasons: set[str] = set()
-    if software_integrity_status == "FAIL":
-        reasons.add("SOFTWARE_INTEGRITY_ERRORS")
-
-    evidence_index = _evidence_index(evidence_ledger)
+    software_integrity_status, reasons = _software_status(software_result)
+    evidence_index, evidence_errors = _evidence_index(evidence_ledger)
+    reasons.update(evidence_errors)
     requirements = (
         requirement_trace.get("requirements") if isinstance(requirement_trace, Mapping) else None
     )
@@ -140,13 +204,15 @@ def derive_decision_tracks(
         requirements,
         track="REQUIREMENT",
         evidence_index=evidence_index,
+        artifact_root=artifact_root,
     )
 
     acceptance_rows: object
     if isinstance(acceptance, Mapping):
         acceptance_rows = [
             {
-                "status": acceptance.get("result"),
+                **acceptance,
+                "status": acceptance.get("status", acceptance.get("result")),
                 "approver": acceptance.get("approver"),
                 "evidence_ids": acceptance.get("evidence_ids"),
             }
@@ -157,32 +223,26 @@ def derive_decision_tracks(
         acceptance_rows,
         track="ACCEPTANCE",
         evidence_index=evidence_index,
+        artifact_root=artifact_root,
     )
 
     reasons.update(requirement_reasons)
     reasons.update(acceptance_reasons)
-    if "FAIL" in {requirement_status, acceptance_status}:
-        engineering_status = "FAIL"
-    elif "NOT_EVALUATED" in {requirement_status, acceptance_status}:
-        engineering_status = "NOT_EVALUATED"
-    elif "HOLD" in {requirement_status, acceptance_status}:
-        engineering_status = "HOLD"
-    else:
-        engineering_status = "PASS"
+    engineering_status = aggregate_status(
+        (requirement_status, acceptance_status, "FAIL" if evidence_errors else "PASS")
+    )
 
     hse_rows = hse.get("hazards") if isinstance(hse, Mapping) else hse
     hse_status, hse_reasons, hse_refs = _evaluate_rows(
         hse_rows,
         track="HSE",
         evidence_index=evidence_index,
+        artifact_root=artifact_root,
     )
     reasons.update(hse_reasons)
 
-    if software_integrity_status == "FAIL" or "FAIL" in {engineering_status, hse_status}:
-        overall = "FAIL"
-    elif engineering_status == "PASS" and hse_status == "PASS":
-        overall = "PASS"
-    else:
+    overall = aggregate_status((software_integrity_status, engineering_status, hse_status))
+    if overall in _INTERMEDIATE:
         overall = "HOLD"
 
     evidence_refs = sorted(requirement_refs | acceptance_refs | hse_refs)
@@ -201,6 +261,9 @@ def derive_decision_tracks(
         "evidence_refs": evidence_refs,
         "overall_status": overall,
         "pass": overall == "PASS",
+        "artifact_verification": "LOCAL_BYTES_SHA256"
+        if artifact_root is not None
+        else "NOT_EVALUATED",
         "truth_boundary": "SOFTWARE_PASS_DOES_NOT_IMPLY_ENGINEERING_OR_HSE_APPROVAL",
     }
 
@@ -209,9 +272,14 @@ def _safe_record_path(root: Path, value: object) -> Path | None:
     if not isinstance(value, str) or not value or "\\" in value or value.startswith("/"):
         return None
     pure = PurePosixPath(value)
-    if pure.is_absolute() or ".." in pure.parts or pure.parts[0].endswith(":"):
+    if not pure.parts or pure.is_absolute() or ".." in pure.parts or pure.parts[0].endswith(":"):
         return None
-    candidate = (root / pure).resolve()
+    candidate = root
+    for part in pure.parts:
+        candidate /= part
+        if candidate.is_symlink():
+            return None
+    candidate = candidate.resolve()
     try:
         candidate.relative_to(root.resolve())
     except ValueError:
@@ -223,8 +291,8 @@ def _load(path: Path | None) -> object:
     if path is None:
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
+        return loads_strict(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
         return None
 
 
@@ -256,4 +324,5 @@ def derive_decision_tracks_from_root(
         acceptance=record("acceptance"),
         evidence_ledger=record("evidence_ledger"),
         hse=record("hse"),
+        artifact_root=root,
     )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -59,14 +60,26 @@ def passing_records() -> tuple[
     return requirements, acceptance, evidence, hse
 
 
-def test_all_tracks_must_pass_for_overall_pass() -> None:
+def bind_artifacts(evidence, root):
+    for record in evidence["evidence"]:
+        artifact = root / (record["evidence_id"] + ".txt")
+        artifact.write_text("synthetic software fixture", encoding="utf-8")
+        record.update(
+            artifact_path=artifact.name,
+            artifact_sha256=hashlib.sha256(artifact.read_bytes()).hexdigest(),
+        )
+
+
+def test_all_tracks_must_pass_for_overall_pass(tmp_path: Path) -> None:
     requirements, acceptance, evidence, hse = passing_records()
+    bind_artifacts(evidence, tmp_path)
     result = derive_decision_tracks(
         software_result={"status": "PASS", "errors": [], "holds": []},
         requirement_trace=requirements,
         acceptance=acceptance,
         evidence_ledger=evidence,
         hse=hse,
+        artifact_root=tmp_path,
     )
     assert result["software_integrity_status"] == "PASS"
     assert result["engineering_acceptance_status"] == "PASS"
@@ -135,6 +148,7 @@ def test_software_errors_fail_overall_even_when_decisions_pass() -> None:
 
 def test_root_loader_fails_closed_for_missing_hse(tmp_path: Path) -> None:
     requirements, acceptance, evidence, _ = passing_records()
+    bind_artifacts(evidence, tmp_path)
     records = {
         "requirement_trace": requirements,
         "acceptance": acceptance,

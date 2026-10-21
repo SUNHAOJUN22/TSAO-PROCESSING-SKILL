@@ -5,6 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+from tsao.json_contract import loads_strict
+
 from .core import (
     audit_project,
     bootstrap_project,
@@ -229,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.package_command == "template":
                 _print(process_package_template(args.family))
                 return 0
-            payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+            payload = loads_strict(Path(args.file).read_text(encoding="utf-8"))
             result = validate_process_package(payload)
             _print(result)
             return 0 if result["pass"] else 2
@@ -249,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
                     if args.file
                     else Path("skills/epdm/fixtures/reference_cases.json")
                 )
-                payload = json.loads(source.read_text(encoding="utf-8"))
+                payload = loads_strict(source.read_text(encoding="utf-8"))
                 if not args.file:
                     payload = payload["valid_package"]
                 result = audit_epdm_process_package(payload)
@@ -258,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.epdm_command == "validate-v2":
                 from skills.epdm.validation_v2 import validate_v2_project
 
-                payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+                payload = loads_strict(Path(args.file).read_text(encoding="utf-8"))
                 result = validate_v2_project(payload)
                 result_payload = result.as_dict()
                 _print(result_payload)

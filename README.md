@@ -2,87 +2,199 @@
 
 [简体中文](README.zh-CN.md) · [Architecture](ARCHITECTURE.md) · [Capability matrix](docs/CAPABILITY_MATRIX.md) · [Visual system](docs/README_VISUAL_SYSTEM.md)
 
+![From process quantities to traceable decisions — English concept illustration](docs/assets/vision-en.png)
 
-<!-- CLOSURE_STATUS_START -->
-## Current qualification and distribution boundary
+TSAO is a Python 3.11+ toolkit for chemical process development, dimensioned balances, EPDM/POE reference models, evidence records and conservative acceptance decisions. Four installable Skills share a CLI and source identity contract: `process-general`, `epdm`, `poe`, and `polymer-general`. The repository contains calculation and validation code, not an authenticated web service or a plant control system.
 
-- The canonical `ci.yml` qualifies the source checkout, numerical kernels, tests, coverage, CLI and performance paths across Windows/Linux and Python 3.11–3.14.
-- Public wheel and public source-snapshot creation are intentionally expected to fail while the tracked registry remains `CONTROLLED`. CI treats the verified fail-closed block as a successful containment result and emits no public artifact.
-- `artifact_software_qualification=PASS` does not reclassify source metadata and does not imply scientific, engineering, HSE, customer or industrial approval.
-- Public distribution stays `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` until an authorized owner/legal/IP/security decision changes the evidence basis.
-<!-- CLOSURE_STATUS_END -->
+The illustration expresses the project vision. Its curves and molecules are conceptual, not measurements, calibrated predictions, or proof of industrial performance. The equations below identify their actual implementation and assumptions.
 
-**Fail-closed software delivery for chemical-process Skills, governed mathematics, evidence, provenance and acceptance.**
+## What the code delivers
 
-<!-- LOCALIZED_VISION_EN:START -->
-## Project vision: from reaction mechanisms to grades and process windows
+| Capability | Entry point | Result and limitation |
+|---|---|---|
+| Process-package review | [`validate_process_package`](tsao/process_package.py) | Topology, compositions, mass/component/energy residuals, decisions and evidence references; supplied-package software review |
+| Quantity-aware material balance | [`evaluate_material_balance`](skills/poe/material_balance.py) | Explicit mass/molar basis, conversion, reactions, accumulation and componentwise tolerances |
+| Decision tracks | [`derive_decision_tracks_from_root`](skills/poe/acceptance_status.py) | Separate software, engineering and HSE states; local artifact bytes must match declared SHA-256 |
+| EPDM model contracts | [`canonical_loader.py`](skills/epdm/canonical_loader.py), [`numerical_integration.py`](skills/epdm/numerical_integration.py) | Versioned canonical records, reaction/state linkage and adaptive integration |
+| POE reference kinetics | [`kinetics.py`](skills/poe/kinetics.py), [`estimation.py`](skills/poe/estimation.py) | RK4 trajectories and bounded one-parameter reference fitting; not industrial parameter release |
+| Reproducibility and packaging | [`provenance.py`](tsao/provenance.py), [`skillpacks.py`](tsao/skillpacks.py) | Canonical source identities, four-Skill inventory and distribution containment |
 
-<p align="center">
-  <img src="docs/localized-vision/process-intelligence-vision-en.svg" width="100%" alt="TSAO Process Intelligence OS English vision and mathematical architecture">
-</p>
+### Current qualification and distribution boundary
 
-> The formulas map to the implemented process, EPDM, POE and polymer-general Skill contracts. This is not plant calibration, customer-grade certification or an HSE decision.
+`artifact_software_qualification=PASS` qualifies the tested source checkout and software contracts. Scientific, engineering, HSE, customer and industrial approvals require their own evidence. A matching hash proves file identity, not the truth of a measurement or the identity/authority of an approver.
 
-<!-- LOCALIZED_VISION_EN:END -->
+The tracked historical source metadata remains controlled. Public wheel, sdist and source-snapshot generation is intentionally blocked with `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION`; no classification is changed by this repair. CI tests that these commands fail without emitting a distributable artifact. Use the authorized source checkout until the relevant owner/legal/IP/security classification decision is recorded.
 
-## Delivered system
+## Install and run
 
-TSAO installs four Skills: `process-general`, `epdm`, `poe`, and `polymer-general`. The governed source checkout exposes the modules, schemas, reports, CLI, tests and **32 deterministic SVG diagrams**. A future distributable Wheel must preserve that inventory, but the current public Wheel is intentionally blocked by controlled historical metadata. `PASS` qualifies software behavior only; scientific, engineering, HSE, customer and industrial approvals remain `NOT_EVALUATED`.
-
-## Acceptance commands
+Use a standard virtual environment with no inherited system site packages. The existing CI matrix covers Python 3.11–3.14 on Windows and Ubuntu; results apply to the exact tested commit.
 
 ```bash
-python -m pip install -e .[dev]
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -e '.[dev]'
+python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
 python -m tsao.cli doctor --root . --profile core
-python -m tsao.cli delivery-report --root .
 python -m tsao.skillpacks --root .
 python -m tsao.cli init --brief examples/generic-process/brief.yaml --out work/demo
 python -m tsao.cli audit project --root work/demo
-python -m tsao.cli epdm validate-v2 --file skills/epdm/fixtures/v2_phase_a2_reference_project.json
-python -m tsao.cli epdm canonicalize --file skills/epdm/fixtures/v2_phase_a2_reference_project.json --out work/canonical.json
-python -m tsao.cli epdm qualify-acceptance --project skills/epdm/fixtures/v2_phase_a1_reference_project.json --output reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json --load-samples 7
 ```
 
-Source identity is bound by `SHA256` over canonical bytes. The EPDM V2 path is transactional: strict JSON → explicit version → Schema → frozen dataclasses → temporary `ContractRegistry` → cross-reference closure → immutable publication. Duplicate keys, non-finite values, type confusion, duplicate IDs and unresolved references fail closed.
+The generated project and template are starting records, not approved designs. Inspect their `status`, `errors`, `holds` and `reason_codes` before continuing.
 
-## Governed mathematical program
+```bash
+python -m tsao.cli package template --family generic
+python -m tsao.cli package audit --file path/to/process-package.json
+python -m tsao.cli epdm validate-v2 --file skills/epdm/fixtures/v2_phase_a2_reference_project.json
+python -m tsao.cli epdm canonicalize --file skills/epdm/fixtures/v2_phase_a2_reference_project.json --out work/canonical.json
+```
 
-The following equations are transparent calculated-reference contracts. They do not replace qualified process engineering or calibrated industrial models.
+`package audit` returns nonzero for a failed or held package. Duplicate JSON keys and non-finite JSON numbers are rejected rather than silently overwriting evidence. The default `STEADY_PROCESS` profile requires nonempty equipment/streams and explicit incoming/outgoing boundaries. `METADATA_ONLY` permits a document scaffold but reports `balance_status=NOT_EVALUATED` and cannot return overall `PASS`.
+
+## Mathematical contracts mapped to code
+
+### 1. Composition and process topology
+
+For each stream, mass fractions obey
 
 $$
-\frac{d\mathbf{N}}{dt}=F_{in}\mathbf{z}-F_{out}\mathbf{x}+V\boldsymbol{\nu}^{\mathsf T}\mathbf{r}
-$$
-$$
-mC_p\frac{dT}{dt}=\sum F_i h_i-V\sum_j\Delta H_jr_j-UA(T-T_c)
-$$
-$$
-k_j(T)=A_j\exp\!\left(-\frac{E_j}{RT}\right),\qquad r_j=k_j(T)a_s\prod_i C_i^{\alpha_{ij}}
-$$
-$$
-f_m=\frac{r_m}{\sum_n r_n},\qquad \sum_m f_m=1
-$$
-$$
-\mu_k=\sum_{p=0}^{\infty}p^kn_p,\quad M_n\propto\frac{\mu_1}{\mu_0},\quad M_w\propto\frac{\mu_2}{\mu_1},\quad Đ=\frac{\mu_0\mu_2}{\mu_1^2}
-$$
-$$
-\frac{\Delta G_{mix}}{RT}=\frac{\phi_1}{N_1}\ln\phi_1+\frac{\phi_2}{N_2}\ln\phi_2+\chi\phi_1\phi_2
-$$
-$$
-\mathrm{Da}_v=k_v\tau,\qquad \dot S_{gen}=\dot Q\left(\frac1{T_c}-\frac1{T_h}\right)\ge0
-$$
-$$
-e_i=\frac{y_i^{(5)}-y_i^{(4)}}{\mathrm{atol}_i+\mathrm{rtol}_i\max(|y_i|,|y_i^{(5)}|)},\qquad \|\mathbf e\|_2\le1
-$$
-$$
-J(\boldsymbol\theta)=\sum_iw_i[y_i-\hat y_i(\boldsymbol\theta)]^2,\qquad \mathbf{F}=\mathbf{S}^\mathsf{T}\mathbf{W}\mathbf{S}
-$$
-$$
-\operatorname{Cov}(\hat{\boldsymbol\theta})\approx\sigma^2\mathbf F^{-1},\qquad \operatorname{Var}[g]\approx\nabla g^\mathsf T\operatorname{Cov}(\boldsymbol\theta)\nabla g
+0\le w_i\le1,\qquad \left|\sum_iw_i-1\right|\le\varepsilon_w,
+\qquad \dot m_i=\dot m\,w_i.
 $$
 
-DOPRI5(4) accepts a step only when the scaled error, conservation, finiteness and monotonic-time Gates pass. Singular Fisher information, unresolved evidence or out-of-domain prediction returns `HOLD`, not false confidence.
+Every stream references a declared equipment item or an explicit boundary. Equipment inlet/outlet references must agree with the stream direction and must not duplicate a physical connection. See [`process_package.py`](tsao/process_package.py).
 
-## Accepted performance evidence
+### 2. Steady mass and component closure
+
+The generic package uses kg/h for mass flow and kW for enthalpy flow/duty. A component generation term must be supported by a declared reaction basis.
+
+$$
+r_m=\sum_{in}\dot m-\sum_{out}\dot m,
+\qquad
+r_i=\sum_{in}\dot m_i+G_i-\sum_{out}\dot m_i-C_i.
+$$
+
+The implemented relative residuals use an explicit reference floor of one in the canonical numeric basis:
+
+$$
+e_m=\frac{|r_m|}{\max(|\dot m_{in}|,|\dot m_{out}|,1)},
+\qquad
+e_i=\frac{|r_i|}{\max(\dot m_{i,in}+G_i,\dot m_{i,out}+C_i,1)}.
+$$
+
+The numeric floor is a scaling convention, not a dimensionless physical constant. Choose tolerances relative to the intended process scale; a zero residual does not establish that the supplied data are accurate.
+
+### 3. Steady energy closure
+
+$$
+r_H=\sum_{in}\dot H+Q-\sum_{out}\dot H,
+\qquad
+e_H=\frac{|r_H|}{\max(|\dot H_{in}|+|Q|,|\dot H_{out}|,1)}.
+$$
+
+Positive duty adds heat under this convention. The reference model omits kinetic/potential energy unless represented consistently in the supplied enthalpy terms.
+
+### 4. Dimensioned POE balance and units
+
+The material-balance API accepts explicit `{value, unit, basis}` quantities, then converts mass to kg/s or amount of substance to mol/s. For molecular weight in g/mol,
+
+$$
+\dot n_i=\frac{1000\dot m_i}{M_i},\qquad
+\dot m_i=\frac{M_i\dot n_i}{1000}.
+$$
+
+A reaction must satisfy the declared molar-mass contract when evaluated on a mass basis:
+
+$$
+\sum_i\nu_{ij}M_i\approx0,
+\qquad R_i=\sum_j\nu_{ij}\dot\xi_j.
+$$
+
+This is a check against supplied molecular weights, not an elemental chemistry proof. Missing cross-basis molecular weights are an error.
+
+$$
+r_i=\dot N_{i,acc}-(F_{i,in}-F_{i,out}+G_i-C_i),
+\qquad |r_i|\le a_i+r\,s_i.
+$$
+
+Here $a_i$ has the same flow unit as the residual, $r$ is dimensionless and $s_i>0$ is the declared component reference scale. Every component must pass; opposite component errors cannot cancel into overall acceptance. Steady mode requires an explicit steady-state declaration and exactly zero accumulation. Dynamic mode requires measured/modelled accumulation quantities.
+
+### 5. Numerical range
+
+[`numeric_contract.py`](tsao/numeric_contract.py) validates inputs and computed sums/products/quotients. Finite inputs can still overflow during aggregation. Nonzero conversions that underflow to zero are rejected. An unrepresentable result returns a structured failure, never a substituted physical zero or JSON NaN/Infinity.
+
+$$
+\operatorname{isfinite}(x_{input})\ \not\Rightarrow\
+\operatorname{isfinite}\!\left(\sum_i x_i\right).
+$$
+
+### 6. Adaptive integration and fitting
+
+EPDM's Dormand–Prince pair compares each component before taking the maximum:
+
+$$
+e=\max_i\frac{|y_i^{(5)}-y_i^{(4)}|}
+{a+r\max(|y_{n,i}|,|y_i^{(5)}|)}\le1.
+$$
+
+Step acceptance also requires valid linkage, finite states, nonnegative-state and conservation checks; time/step budgets can return `HOLD`. This is not a ratio of vector norms. POE reference kinetics uses the classical RK4 update
+
+$$
+y_{n+1}=y_n+\frac{h}{6}(k_1+2k_2+2k_3+k_4).
+$$
+
+The reference single-rate fit uses
+
+$$
+X(t;k)=1-e^{-kt}=-\operatorname{expm1}(-kt),\qquad
+J(k)=\sum_i w_i[X(t_i;k)-X_i]^2,
+\quad k_{min}\le k\le k_{max}.
+$$
+
+A local sensitivity/information diagnostic is
+
+$$
+S_i=t_i e^{-kt_i},\qquad I=\sum_iw_iS_i^2.
+$$
+
+Identifiability is conditional on the chosen model, observations and numerical threshold. It does not prove a globally unique kinetic mechanism or an externally qualified industrial parameter set.
+
+## Decision and evidence strategy
+
+The same conservative ordering is used for applicable decision records: explicit `FAIL` survives aggregation; `HOLD`, `CONDITIONAL`, unknown or unevaluated records cannot become `PASS`. The package reports both declared and recomputed states and a mismatch reason when appropriate.
+
+For POE engineering/HSE evidence, a record needs `QUALIFIED`, `decision_use=true`, a named approver, a repository-relative artifact path and a matching SHA-256. Missing files, symlinks, path escapes, duplicate evidence IDs, conflicting `status/result` and malformed references do not qualify. Pure in-memory declarations without an artifact root remain unevaluated/held. Software result `status`, `errors`, `holds` and optional boolean `pass` must agree.
+
+Use this sequence:
+
+1. Register the source, original unit, method, uncertainty and applicability of each input.
+2. Select the narrowest Skill and an explicit process profile; resolve topology and unit conversion first.
+3. Close every component and energy balance before fitting or optimizing.
+4. Fit against identified observations; reserve independent validation data and record parameter uncertainty.
+5. Keep software checks, scientific model validation, engineering review and HSE review as separate decisions.
+6. Repeat the full quality gates after any code/data change, retaining the commit and raw logs.
+
+## Tests and delivery
+
+```bash
+python scripts/run_ci.py
+python skills/epdm/scripts/audit_epdm.py
+python skills/poe/scripts/audit_p0.py --root .
+python skills/poe/scripts/audit_p1.py --root .
+python scripts/sync_readme_visuals.py --check
+# Expected containment failures while historical source metadata remains controlled:
+python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
+python scripts/export_source_snapshot.py --root . --out dist/source.zip
+```
+
+The existing branch-coverage threshold remains 75%. New entrypoint regressions exercise negative decision states, empty topology, arithmetic overflow/underflow, malformed software results, local artifact tampering and duplicate JSON keys. Historical fixtures are synthetic software tests. Current results must be read from CI for the exact commit, not copied from an old badge.
+
+The coordinating [seven-repository acceptance prompt](https://github.com/SUNHAOJUN22/TsaoSciResearcher/blob/main/docs/SEVEN_REPOSITORY_ACCEPTANCE_PROMPT.md) defines two three-hour successful-test-process segments per repository. A completed local regression does not mean that six-hour receipts exist. Segmented software regression is distinct from continuous plant/service operation or external solver certification.
+
+## Historical performance reference
+
+The following table is retained for its versioned historical comparison only. It is not a new measurement of this repair. Current CI reruns numerical parity and same-runner comparisons against its configured baseline, with all thresholds unchanged. See [performance evidence](reports/PERFORMANCE_TECHNOLOGY_REVIEW.md).
 
 <!-- PERFORMANCE_RESULTS_START -->
 | Workload | Baseline median | Optimized median | Ratio | Peak memory | Parity |
@@ -115,36 +227,12 @@ DOPRI5(4) accepts a step only when the scaled error, conservation, finiteness an
 | Source identity, 300 files build + verify → Source identity, 3,000 files build + verify | 0.924 | 1.25 | PASS |
 <!-- PERFORMANCE_RESULTS_END -->
 
-## Use strategy
-
-1. Route the brief to the narrowest Skill.
-2. Register evidence and applicability before parameters.
-3. Close material and energy balances before optimization.
-4. Publish canonical contracts before A2/A3/A4 execution.
-5. Separate parameter fitting from scientific qualification.
-6. Use uncertainty and identifiability to select the next experiment.
-7. Keep public Wheel and source-snapshot creation blocked until classification is authorized; after authorization, build them only from the exact qualified tree.
-8. Advance approval states only with named accountable evidence.
-
-## Verification
-
-```bash
-python scripts/verify_dependency_lock.py requirements.lock --pyproject pyproject.toml
-python scripts/run_ci.py
-python skills/epdm/scripts/audit_epdm.py
-python skills/poe/scripts/audit_p0.py --root .
-python skills/poe/scripts/audit_p1.py --root .
-# Current controlled tree: both commands below must fail closed and emit no artifact.
-python -m pip wheel --no-deps --no-build-isolation . -w wheelhouse
-python scripts/export_source_snapshot.py --root . --out dist/source.zip
-# Run wheel/runtime verifiers only after an authorized classification enables a distributable artifact.
-```
-
-CI qualifies Windows and Ubuntu with Python 3.11–3.14. Installation is checked through `pip install --target` and a standard virtual environment with no inherited system site packages.
-
-The visual system extends the 21-asset historical core to a governed 32-asset acceptance atlas.
-
 ## Governed visual atlas
+
+The 32 existing deterministic SVGs remain an engineering/reference catalog. They describe architecture and contracts; they are separate from the language-specific AI concept image above and do not certify a calculation.
+
+<details>
+<summary>Open the source-controlled reference diagrams</summary>
 
 ![Acceptance Readiness Map](docs/assets/readme/acceptance-readiness-map.svg)
 ![Agentic Qualification Orchestrator](docs/assets/readme/agentic-qualification-orchestrator.svg)
@@ -179,75 +267,8 @@ The visual system extends the 21-asset historical core to a governed 32-asset ac
 ![Universal Process Package](docs/assets/readme/universal-process-package.svg)
 ![Verification Pipeline](docs/assets/readme/verification-pipeline.svg)
 
-## Responsibility boundary
+</details>
 
-`main` is the sole authoritative branch. TSAO does not replace qualified process engineering, laboratory evidence, commercial property packages, equipment or relief design, HAZOP/LOPA/SIL, legal/environmental review, customer trials or operating approval.
+## Responsibility
 
-<!-- CURRENT_MAIN_ACCEPTANCE_V2:START -->
-## Current implementation: code, mathematics and usage
-
-![English code and mathematical-contract concept](docs/current-main/tsao-processing-current-main-en.svg)
-
-> The deliverable is a software-reference numerical and process-development framework; scientific, engineering, HSE, customer and industrial-performance approvals remain NOT_EVALUATED.
-
-#### Finite balance residual
-
-$$
-r=\sum_i F_{i,\mathrm{in}}-\sum_j F_{j,\mathrm{out}}+\sum_k G_k
-$$
-
-This is the sign convention of balance_residual. All terms need the same physical quantity, time basis and units; positive G means generation and negative G consumption. A near-zero residual checks the supplied balance, not the validity of a mechanism or industrial dataset.
-
-Source mapping: [`tsao/science.py`](tsao/science.py)
-
-#### Componentwise error
-
-$$
-e=\max_i\frac{|y_i^{(5)}-y_i^{(4)}|}{a+r\max(|y_{n,i}|,|y_i^{(5)}|)}\le1
-$$
-
-The Dormand–Prince 5(4) implementation scales each component before taking a maximum; it is not a ratio of two vector norms. Acceptance also respects nonnegative-state and conservation contracts. Step-count or minimum-step limits may return HOLD. State scales must be explicit in model and tolerance design.
-
-Source mapping: [`skills/epdm/numerical_integration.py`](skills/epdm/numerical_integration.py)
-
-#### Local identifiability
-
-$$
-\operatorname{rank}_{\mathrm{num}}\!\left(J/\max_{ij}|J_{ij}|\right)=p
-$$
-
-A nonzero finite Jacobian is scaled by its largest absolute element before testing numerical rank against parameter-column count p; the zero matrix is handled separately. Full column rank is a local diagnostic under the supplied observables, not proof of global parameter uniqueness, good conditioning or engineering approval.
-
-Source mapping: [`tsao/science.py`](tsao/science.py)
-
-### Usage and acceptance sequence
-
-1. Check the installation environment, input structure, units, applicability and execution permissions.
-2. Use the source mappings above to distinguish native implementation, explanatory contracts and external execution requirements.
-3. Run focused regression and full quality gates before long-duration testing of pinned commits.
-4. Preserve original logs, machine-readable reports and limitations; missing evidence must never be reported as PASS.
-
-```bash
-python scripts/run_ci.py
-```
-
-Retest every changed commit. Baseline regression, two three-hour regression segments, browser visual checks and external engineering qualification are distinct evidence classes. Without original receipts, no six-hour completion is claimed.
-
-Implementation anchors: [`tsao/process_package.py`](tsao/process_package.py) · [`skills/epdm/kinetics.py`](skills/epdm/kinetics.py) · [`skills/poe/kinetics.py`](skills/poe/kinetics.py)
-
-<!-- CURRENT_MAIN_ACCEPTANCE_V2:END -->
-
-
-## Historical performance qualification boundary
-
-Current blocking performance qualification compares the current source tree with the alpha.14 parent on the same runner and Python interpreter. Numerical parity, same-path timing, optimized-path benefit retention, scale checks, and all unexpected missing workloads remain fail-closed.
-
-The alpha.10 `wheel_content_verification` timing is recorded as `NOT_APPLICABLE` only when that historical workload is absent because public wheel generation is intentionally blocked by `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION`. Source qualification and distribution-containment regressions replace that retired public-artifact workload. This exception does not permit a wheel or source snapshot to be emitted, does not relax any current performance threshold, and does not convert software qualification into scientific, engineering, HSE, customer, or industrial approval.
-
-
-<!-- closure:qualification-boundary -->
-## Qualification and controlled-distribution boundary
-
-The performance gate annotates repository-scale work units through a tested, fail-closed helper before comparing like-for-like runs. Missing, non-finite, zero, or mismatched work-unit metadata is rejected rather than converted into a favorable timing result.
-
-Software qualification is evaluated from the exact source tree. A successful test, doctor, coverage, or performance result does **not** authorize a public wheel, sdist, or source snapshot. While controlled historical metadata remains classified as project-controlled, public artifacts must continue to fail with `BLOCKED_CONTROLLED_METADATA_CLASSIFICATION` and must leave no distributable artifact behind.
+`main` is the authoritative branch. This toolkit supports reproducible calculations and review. Qualified process engineering, external property packages, experiments, equipment/relief design, HAZOP/LOPA/SIL, operating approval and customer acceptance remain independent requirements.

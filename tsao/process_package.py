@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import math
 from copy import deepcopy
 from typing import Any
+
+from tsao.decision_status import aggregate_status
+from tsao.numeric_contract import finite, finite_product, finite_sum
 
 _BOUNDARY_NODES = {"BOUNDARY_IN", "BOUNDARY_OUT", "ENVIRONMENT"}
 _ACCEPTANCE_STATES = {"NOT_EVALUATED", "HOLD", "CONDITIONAL", "PASS", "FAIL"}
@@ -10,15 +12,17 @@ _EVIDENCE_STATES = {"REPORTED", "CALCULATED", "QUALIFIED", "HOLD", "SUPERSEDED",
 
 
 def _finite(value: object, label: str) -> float:
-    if isinstance(value, bool):
-        raise ValueError(f"{label} must be numeric")
-    try:
-        result = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be numeric") from exc
-    if not math.isfinite(result):
-        raise ValueError(f"{label} must be finite")
-    return result
+    return finite(value, label)
+
+
+def _decision(record, field, label, errors, holds):
+    state = record.get(field, "NOT_EVALUATED")
+    if not isinstance(state, str) or state not in _ACCEPTANCE_STATES:
+        errors.append(f"{label} has invalid {field}")
+    elif state == "FAIL":
+        errors.append(f"{label} explicitly failed")
+    elif state != "PASS":
+        holds.append(f"{label} is {state}")
 
 
 def _records(value: object, label: str, errors: list[str]) -> list[dict[str, Any]]:
@@ -84,6 +88,7 @@ def process_package_template(process_family: str) -> dict[str, Any]:
     return {
         "package_id": "TEMPLATE-NOT-A-DESIGN-BASIS",
         "process_family": process_family.strip(),
+        "profile": "METADATA_ONLY",
         "status": "NOT_EVALUATED",
         "tolerances": {
             "composition_abs": 1e-6,
@@ -108,7 +113,7 @@ def process_package_template(process_family: str) -> dict[str, Any]:
     }
 
 
-def validate_process_package(package: object) -> dict[str, Any]:
+def _validate_process_package(package: object) -> dict[str, Any]:
     errors: list[str] = []
     holds: list[str] = []
     reason_codes: set[str] = set()
@@ -121,6 +126,11 @@ def validate_process_package(package: object) -> dict[str, Any]:
             "reason_codes": ["INVALID_PACKAGE_ROOT"],
         }
 
+    profile = package.get("profile", "STEADY_PROCESS")
+    if profile not in ("METADATA_ONLY", "STEADY_PROCESS"):
+        errors.append("profile must be METADATA_ONLY or STEADY_PROCESS")
+    if profile == "METADATA_ONLY":
+        holds.append("metadata-only scope does not qualify physical balances")
     package_id = package.get("package_id")
     process_family = package.get("process_family")
     declared_status = package.get("status", "NOT_EVALUATED")
@@ -130,7 +140,7 @@ def validate_process_package(package: object) -> dict[str, Any]:
     if not isinstance(process_family, str) or not process_family.strip():
         errors.append("process_family is required")
         reason_codes.add("MISSING_PROCESS_FAMILY")
-    if declared_status not in _ACCEPTANCE_STATES:
+    if not isinstance(declared_status, str) or declared_status not in _ACCEPTANCE_STATES:
         errors.append("package status is invalid")
         reason_codes.add("INVALID_DECLARED_STATUS")
     if package_id == "TEMPLATE-NOT-A-DESIGN-BASIS":
@@ -191,6 +201,14 @@ def validate_process_package(package: object) -> dict[str, Any]:
     evidence = _records(package.get("evidence_ledger", []), "evidence_ledger", errors)
     acceptance = _records(package.get("acceptance", []), "acceptance", errors)
 
+    if profile != "METADATA_ONLY":
+        if not streams or not equipment:
+            errors.append("steady process requires nonempty streams and equipment")
+        if not any(row.get("source") == "BOUNDARY_IN" for row in streams) or not any(
+            row.get("destination") in ("BOUNDARY_OUT", "ENVIRONMENT") for row in streams
+        ):
+            errors.append("steady process needs explicit incoming and outgoing boundaries")
+
     _unique_ids(streams, "stream_id", "stream", errors)
     equipment_ids = _unique_ids(equipment, "equipment_id", "equipment", errors)
     _unique_ids(utilities, "utility_id", "utility", errors)
@@ -204,7 +222,7 @@ def validate_process_package(package: object) -> dict[str, Any]:
         identifier = record.get("evidence_id")
         state = record.get("status")
         if isinstance(identifier, str):
-            if state not in _EVIDENCE_STATES:
+            if not isinstance(state, str) or state not in _EVIDENCE_STATES:
                 errors.append(f"evidence {identifier} has invalid status")
             else:
                 evidence_status[identifier] = state
@@ -259,13 +277,15 @@ def validate_process_package(package: object) -> dict[str, Any]:
                     errors.append(f"stream {identifier} uses undeclared component: {component}")
                 try:
                     value = _finite(fraction, f"stream {identifier} composition {component}")
-                    if value < 0:
+                    if not 0 <= value <= 1:
                         errors.append(
-                            f"stream {identifier} composition {component} must be non-negative"
+                            f"stream {identifier} composition {component} must be in [0, 1]"
                         )
-                    total_fraction += value
+                    total_fraction = finite_sum((total_fraction, value), label="composition sum")
                     if index is not None:
-                        component_mass[index] = total_mass * value
+                        component_mass[index] = finite_product(
+                            total_mass, value, label="component mass"
+                        )
                 except ValueError as exc:
                     errors.append(str(exc))
             if abs(total_fraction - 1.0) > composition_tol:
@@ -301,6 +321,7 @@ def validate_process_package(package: object) -> dict[str, Any]:
         identifier = item.get("equipment_id")
         if not isinstance(identifier, str):
             continue
+        _decision(item, "design_status", f"equipment {identifier}", errors, holds)
         inlet_ids = item.get("inlet_stream_ids")
         outlet_ids = item.get("outlet_stream_ids")
         if not isinstance(inlet_ids, list) or not isinstance(outlet_ids, list):
@@ -345,10 +366,12 @@ def validate_process_package(package: object) -> dict[str, Any]:
         if not references_valid:
             continue
 
-        mass_in = sum(data[0] for data in inlet_data)
-        mass_out = sum(data[0] for data in outlet_data)
+        mass_in = finite_sum((data[0] for data in inlet_data), label="inlet mass")
+        mass_out = finite_sum((data[0] for data in outlet_data), label="outlet mass")
         mass_scale = max(abs(mass_in), abs(mass_out), 1.0)
-        mass_error = abs(mass_in - mass_out) / mass_scale
+        mass_error = finite_product(
+            abs(finite_sum((mass_in, -mass_out))), divisor=mass_scale, label="relative mass error"
+        )
         if mass_error > max_mass_error:
             max_mass_error = mass_error
         if mass_error > mass_tol:
@@ -395,15 +418,21 @@ def validate_process_package(package: object) -> dict[str, Any]:
         for component_position, component in enumerate(component_names):
             component_in = 0.0
             for data in inlet_data:
-                component_in += data[2][component_position]
+                component_in = finite_sum((component_in, data[2][component_position]))
             component_out = 0.0
             for data in outlet_data:
-                component_out += data[2][component_position]
+                component_out = finite_sum((component_out, data[2][component_position]))
             generated = generation.get(component, 0.0)
             consumed = consumption.get(component, 0.0)
-            residual = component_in + generated - component_out - consumed
-            scale = max(component_in + generated, component_out + consumed, 1.0)
-            relative = abs(residual) / scale
+            residual = finite_sum(
+                (component_in, generated, -component_out, -consumed), label="component residual"
+            )
+            scale = max(
+                finite_sum((component_in, generated)), finite_sum((component_out, consumed)), 1.0
+            )
+            relative = finite_product(
+                abs(residual), divisor=scale, label="component relative error"
+            )
             if relative > max_component_error:
                 max_component_error = relative
             if relative != 0.0:
@@ -425,15 +454,19 @@ def validate_process_package(package: object) -> dict[str, Any]:
         if per_component is not None:
             component_balance_errors[identifier] = per_component
 
-        enthalpy_in = sum(data[1] for data in inlet_data)
-        enthalpy_out = sum(data[1] for data in outlet_data)
+        enthalpy_in = finite_sum((data[1] for data in inlet_data), label="inlet enthalpy")
+        enthalpy_out = finite_sum((data[1] for data in outlet_data), label="outlet enthalpy")
         try:
             duty = _finite(item.get("duty_kW", 0.0), f"equipment {identifier} duty")
         except ValueError as exc:
             errors.append(str(exc))
             duty = 0.0
-        energy_scale = max(abs(enthalpy_in) + abs(duty), abs(enthalpy_out), 1.0)
-        energy_error = abs(enthalpy_in + duty - enthalpy_out) / energy_scale
+        energy_scale = max(finite_sum((abs(enthalpy_in), abs(duty))), abs(enthalpy_out), 1.0)
+        energy_error = finite_product(
+            abs(finite_sum((enthalpy_in, duty, -enthalpy_out))),
+            divisor=energy_scale,
+            label="relative energy error",
+        )
         if energy_error > max_energy_error:
             max_energy_error = energy_error
         if energy_error > energy_tol:
@@ -441,9 +474,6 @@ def validate_process_package(package: object) -> dict[str, Any]:
                 f"equipment {identifier} energy balance relative error {energy_error:.6g} exceeds {energy_tol:.6g}"
             )
             reason_codes.add("ENERGY_BALANCE_FAILURE")
-        if item.get("design_status") not in _ACCEPTANCE_STATES:
-            holds.append(f"equipment {identifier} design_status is not evaluated")
-            reason_codes.add("EQUIPMENT_STATUS_NOT_EVALUATED")
 
     for stream_id, stream_data in stream_data_by_id.items():
         source = stream_data[3]
@@ -484,6 +514,7 @@ def validate_process_package(package: object) -> dict[str, Any]:
 
     for loop in controls:
         identifier = loop.get("loop_id")
+        _decision(loop, "status", f"control {identifier}", errors, holds)
         for field in (
             "controlled_variable",
             "manipulated_variable",
@@ -493,11 +524,10 @@ def validate_process_package(package: object) -> dict[str, Any]:
             if not isinstance(loop.get(field), str) or not loop[field].strip():
                 holds.append(f"control {identifier} lacks {field}")
                 reason_codes.add("CONTROL_DEFINITION_INCOMPLETE")
-        if loop.get("status") not in _ACCEPTANCE_STATES:
-            holds.append(f"control {identifier} status is not evaluated")
 
     for hazard in hazards:
         identifier = hazard.get("hazard_id")
+        _decision(hazard, "status", f"hazard {identifier}", errors, holds)
         safeguards = hazard.get("safeguards")
         if not isinstance(safeguards, list) or not safeguards:
             errors.append(f"hazard {identifier} has no safeguards")
@@ -511,8 +541,9 @@ def validate_process_package(package: object) -> dict[str, Any]:
         reason_codes.add("ACCEPTANCE_MISSING")
     for criterion in acceptance:
         identifier = criterion.get("criterion_id")
+        _decision(criterion, "status", f"acceptance {identifier}", errors, holds)
         state = criterion.get("status")
-        if state not in _ACCEPTANCE_STATES:
+        if not isinstance(state, str) or state not in _ACCEPTANCE_STATES:
             errors.append(f"acceptance {identifier} has invalid status")
             continue
         refs = criterion.get("evidence_ids")
@@ -541,7 +572,11 @@ def validate_process_package(package: object) -> dict[str, Any]:
                 holds.append(f"package approval missing: {role}")
                 reason_codes.add("PACKAGE_APPROVALS_MISSING")
 
-    computed_status = "FAIL" if errors else "HOLD" if holds else "PASS"
+    evaluated_status = "FAIL" if errors else "HOLD" if holds else "PASS"
+    if declared_status != evaluated_status:
+        reason_codes.add("DECLARED_COMPUTED_STATUS_MISMATCH")
+    _decision(package, "status", "package declaration", errors, holds)
+    computed_status = aggregate_status(("FAIL" if errors else "HOLD" if holds else "PASS",))
     if declared_status == "PASS" and computed_status != "PASS":
         message = f"package declares PASS but computed audit status is {computed_status}"
         reason_codes.add("FALSE_PASS_DECLARATION")
@@ -553,6 +588,15 @@ def validate_process_package(package: object) -> dict[str, Any]:
     return {
         "status": computed_status,
         "declared_status": declared_status,
+        "evaluated_status": evaluated_status,
+        "profile": profile,
+        "balance_status": "NOT_EVALUATED"
+        if profile == "METADATA_ONLY" or not equipment
+        else "FAIL"
+        if errors
+        else "PASS",
+        "scientific_technical_approval": "NOT_EVALUATED",
+        "engineering_design_approval": "NOT_EVALUATED",
         "pass": computed_status == "PASS",
         "errors": sorted(set(errors)),
         "holds": sorted(set(holds)),
@@ -568,6 +612,28 @@ def validate_process_package(package: object) -> dict[str, Any]:
             "max_energy_balance_relative_error": max_energy_error,
         },
     }
+
+
+def validate_process_package(package: object) -> dict[str, Any]:
+    """Validate supplied quantities; representability defects fail without NaN output."""
+    try:
+        return _validate_process_package(package)
+    except (ValueError, TypeError, OverflowError) as exc:
+        return {
+            "status": "FAIL",
+            "pass": False,
+            "errors": [str(exc)],
+            "holds": [],
+            "reason_codes": ["INVALID_NUMERIC_OR_TYPED_CONTRACT"],
+            "balance_status": "NOT_EVALUATED",
+            "scientific_technical_approval": "NOT_EVALUATED",
+            "engineering_design_approval": "NOT_EVALUATED",
+            "metrics": {
+                "max_mass_balance_relative_error": None,
+                "max_component_balance_relative_error": None,
+                "max_energy_balance_relative_error": None,
+            },
+        }
 
 
 def normalized_package_copy(package: dict[str, Any]) -> dict[str, Any]:

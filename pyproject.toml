@@ -82,6 +82,7 @@ namespaces = true
   "CITATION.cff",
 ]
 "share/tsao-processing-skill/docs" = ["docs/*.md"]
+"share/tsao-processing-skill/docs/assets" = ["docs/assets/*.png", "docs/assets/*.md"]
 "share/tsao-processing-skill/docs/assets/readme" = ["docs/assets/readme/*.svg"]
 "share/tsao-processing-skill/reports" = [
   "reports/QUALIFICATION_BOUNDARY.md",

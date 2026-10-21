@@ -15,6 +15,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from tsao.numeric_contract import finite, finite_product, finite_sum
+
 SCHEMA_VERSION = "tsao.material-balance.v2"
 _ALLOWED_BASES = frozenset({"mass", "molar"})
 _ALLOWED_DESTINATIONS = frozenset({"EXTERNAL", "EMISSION", "LOSS"})
@@ -92,23 +94,12 @@ def _normalize_unit(value: str) -> str:
 
 
 def _finite_real(value: object, label: str, *, allow_string: bool = False) -> float:
-    if isinstance(value, bool):
-        raise MaterialBalanceContractError(f"{label} must be a finite real number, not Bool")
-    if isinstance(value, (int, float)):
-        number = float(value)
-    elif allow_string and isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            raise MaterialBalanceContractError(f"{label} must not be empty")
-        try:
-            number = float(stripped)
-        except ValueError as exc:
-            raise MaterialBalanceContractError(f"{label} must be numeric") from exc
-    else:
+    if not allow_string and isinstance(value, str):
         raise MaterialBalanceContractError(f"{label} must be a finite real number")
-    if not math.isfinite(number):
-        raise MaterialBalanceContractError(f"{label} must be finite")
-    return number
+    try:
+        return finite(value, label)
+    except ValueError as exc:
+        raise MaterialBalanceContractError(str(exc)) from exc
 
 
 def _positive_finite(value: object, label: str, *, allow_zero: bool = False) -> float:
@@ -149,7 +140,9 @@ def _quantity_to_canonical(
     value = _finite_real(quantity.get("value"), f"{label}.value", allow_string=allow_string)
     if non_negative and value < 0:
         raise MaterialBalanceContractError(f"{label}.value must be non-negative")
-    return value * _unit_factor(expected_basis, quantity.get("unit"), label)
+    return finite_product(
+        value, _unit_factor(expected_basis, quantity.get("unit"), label), label=label
+    )
 
 
 def _normalize_components(value: object) -> tuple[str, ...]:
@@ -204,7 +197,7 @@ def _validate_composition(
                 f"stream {stream_id} composition.{component} must be in [0, 1]"
             )
         composition[str(component)] = number
-    total = math.fsum(composition.values())
+    total = finite_sum(composition.values())
     if not math.isclose(total, 1.0, rel_tol=0.0, abs_tol=1.0e-9):
         raise MaterialBalanceContractError(
             f"stream {stream_id} composition must sum to one; found {total:.17g}"
@@ -228,9 +221,13 @@ def _convert_component_rate(
             f"cross-basis conversion for {component} requires molecular_weights_g_mol.{component}"
         )
     if from_basis == "mass" and to_basis == "molar":
-        return value * 1000.0 / molecular_weight
+        return finite_product(
+            value, 1000.0, divisor=molecular_weight, label="mass-to-molar conversion"
+        )
     if from_basis == "molar" and to_basis == "mass":
-        return value * molecular_weight / 1000.0
+        return finite_product(
+            value, molecular_weight, divisor=1000.0, label="molar-to-mass conversion"
+        )
     raise MaterialBalanceContractError(f"unsupported basis conversion: {from_basis} -> {to_basis}")
 
 
@@ -256,7 +253,7 @@ def _stream_component_rates(
             f"stream {stream_id}.flow must declare value, unit, and basis"
         )
     basis = flow.get("basis")
-    if basis not in _ALLOWED_BASES:
+    if not isinstance(basis, str) or basis not in _ALLOWED_BASES:
         raise MaterialBalanceContractError(f"stream {stream_id}.flow.basis must be mass or molar")
     native_rate = _quantity_to_canonical(
         flow,
@@ -267,7 +264,7 @@ def _stream_component_rates(
     composition = _validate_composition(stream, components, stream_id, str(basis))
     rates = {
         component: _convert_component_rate(
-            native_rate * composition[component],
+            finite_product(native_rate, composition[component], label="component flow"),
             from_basis=str(basis),
             to_basis=selected_basis,
             component=component,
@@ -275,7 +272,10 @@ def _stream_component_rates(
         )
         for component in components
     }
-    return stream_id, stream.get("from"), stream.get("to"), rates
+    source, target = stream.get("from"), stream.get("to")
+    if any(not isinstance(node, str) or not node.strip() for node in (source, target)):
+        raise MaterialBalanceContractError(f"stream {stream_id} needs explicit source and target")
+    return stream_id, source, target, rates
 
 
 def _reaction_rates(
@@ -331,12 +331,12 @@ def _reaction_rates(
                 raise MaterialBalanceContractError(
                     f"reaction {reaction_id} mass-basis verification needs molecular weights for {missing}"
                 )
-            molar_mass_residual = math.fsum(
-                coefficient * molecular_weights[component]
+            molar_mass_residual = finite_sum(
+                finite_product(coefficient, molecular_weights[component])
                 for component, coefficient in coefficients.items()
             )
-            scale = math.fsum(
-                abs(coefficient * molecular_weights[component])
+            scale = finite_sum(
+                abs(finite_product(coefficient, molecular_weights[component]))
                 for component, coefficient in coefficients.items()
             )
             if not math.isclose(
@@ -346,14 +346,15 @@ def _reaction_rates(
                     f"reaction {reaction_id} stoichiometry is not mass-consistent with declared molecular weights"
                 )
         for component, coefficient in coefficients.items():
-            native_molar = coefficient * extent
-            totals[component] += _convert_component_rate(
+            native_molar = finite_product(coefficient, extent, label="reaction molar rate")
+            rate = _convert_component_rate(
                 native_molar,
                 from_basis="molar",
                 to_basis=selected_basis,
                 component=component,
                 molecular_weights=molecular_weights,
             )
+            totals[component] = finite_sum((totals[component], rate), label="reaction sum")
     return totals
 
 
@@ -447,7 +448,7 @@ def evaluate_material_balance(case: Mapping[str, Any]) -> dict[str, Any]:
             raise MaterialBalanceContractError("process case must be an object")
         components = _normalize_components(case.get("components"))
         basis_value = case.get("balance_basis")
-        if basis_value not in _ALLOWED_BASES:
+        if not isinstance(basis_value, str) or basis_value not in _ALLOWED_BASES:
             raise MaterialBalanceContractError("balance_basis must be mass or molar")
         basis = str(basis_value)
         canonical_unit = _CANONICAL_UNIT[basis]
@@ -478,10 +479,14 @@ def evaluate_material_balance(case: Mapping[str, Any]) -> dict[str, Any]:
                 )
             if source == "EXTERNAL":
                 for component, value in rates.items():
-                    incoming[component] += value
+                    incoming[component] = finite_sum(
+                        (incoming[component], value), label="incoming sum"
+                    )
             if target in _ALLOWED_DESTINATIONS:
                 for component, value in rates.items():
-                    outgoing[component] += value
+                    outgoing[component] = finite_sum(
+                        (outgoing[component], value), label="outgoing sum"
+                    )
 
         net_reaction = _reaction_rates(
             case,
@@ -529,15 +534,24 @@ def evaluate_material_balance(case: Mapping[str, Any]) -> dict[str, Any]:
         )
         failed_components: list[str] = []
         for component in components:
-            right_hand_side = (
-                incoming[component]
-                - outgoing[component]
-                + generation[component]
-                - consumption[component]
+            right_hand_side = finite_sum(
+                (
+                    incoming[component],
+                    -outgoing[component],
+                    generation[component],
+                    -consumption[component],
+                ),
+                label="balance rhs",
             )
-            residual = accumulation[component] - right_hand_side
-            allowed = (
-                absolute_tolerances[component] + relative_tolerance * reference_scales[component]
+            residual = finite_sum(
+                (accumulation[component], -right_hand_side), label="balance residual"
+            )
+            allowed = finite_sum(
+                (
+                    absolute_tolerances[component],
+                    finite_product(relative_tolerance, reference_scales[component]),
+                ),
+                label="balance tolerance",
             )
             passed = abs(residual) <= allowed
             if not passed:
@@ -561,14 +575,23 @@ def evaluate_material_balance(case: Mapping[str, Any]) -> dict[str, Any]:
                     component_pass=passed,
                 )
             )
-        total_in = math.fsum(item.incoming for item in components_result)
-        total_out = math.fsum(item.outgoing for item in components_result)
-        total_gen = math.fsum(item.generation for item in components_result)
-        total_cons = math.fsum(item.consumption for item in components_result)
-        total_acc = math.fsum(item.accumulation for item in components_result)
-        total_residual = total_acc - (total_in - total_out + total_gen - total_cons)
-        total_allowed = math.fsum(item.absolute_tolerance for item in components_result) + (
-            relative_tolerance * math.fsum(item.reference_scale for item in components_result)
+        total_in = finite_sum(item.incoming for item in components_result)
+        total_out = finite_sum(item.outgoing for item in components_result)
+        total_gen = finite_sum(item.generation for item in components_result)
+        total_cons = finite_sum(item.consumption for item in components_result)
+        total_acc = finite_sum(item.accumulation for item in components_result)
+        total_residual = finite_sum(
+            (total_acc, -total_in, total_out, -total_gen, total_cons), label="total residual"
+        )
+        total_allowed = finite_sum(
+            (
+                finite_sum(item.absolute_tolerance for item in components_result),
+                finite_product(
+                    relative_tolerance,
+                    finite_sum(item.reference_scale for item in components_result),
+                ),
+            ),
+            label="total allowed residual",
         )
         total_pass = abs(total_residual) <= total_allowed
         total_result = {
@@ -604,7 +627,7 @@ def evaluate_material_balance(case: Mapping[str, Any]) -> dict[str, Any]:
         payload = asdict(result)
         payload["pass"] = payload.pop("passed")
         return payload
-    except MaterialBalanceContractError as exc:
+    except (ValueError, TypeError, OverflowError) as exc:
         errors.append(str(exc))
         reason_codes.add("INVALID_MATERIAL_BALANCE_CONTRACT")
         result = MaterialBalanceResult(
@@ -732,15 +755,15 @@ def check_component_rows(rows: Sequence[Mapping[str, object]]) -> dict[str, Any]
     if declared_basis is None:  # guarded by the non-empty rows check
         raise MaterialBalanceContractError("balance basis is missing")
 
-    total_in = math.fsum(item.incoming for item in component_results)
-    total_out = math.fsum(item.outgoing for item in component_results)
-    total_generation = math.fsum(item.generation for item in component_results)
-    total_consumption = math.fsum(item.consumption for item in component_results)
-    total_accumulation = math.fsum(item.accumulation for item in component_results)
+    total_in = finite_sum(item.incoming for item in component_results)
+    total_out = finite_sum(item.outgoing for item in component_results)
+    total_generation = finite_sum(item.generation for item in component_results)
+    total_consumption = finite_sum(item.consumption for item in component_results)
+    total_accumulation = finite_sum(item.accumulation for item in component_results)
     total_residual = total_accumulation - (
         total_in - total_out + total_generation - total_consumption
     )
-    total_allowed = math.fsum(item.absolute_tolerance for item in component_results) + math.fsum(
+    total_allowed = finite_sum(item.absolute_tolerance for item in component_results) + finite_sum(
         item.relative_tolerance * item.reference_scale for item in component_results
     )
     total_pass = abs(total_residual) <= total_allowed
