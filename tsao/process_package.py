@@ -4,15 +4,12 @@ from copy import deepcopy
 from typing import Any
 
 from tsao.decision_status import aggregate_status
-from tsao.numeric_contract import finite, finite_product, finite_sum
+from tsao.numeric_contract import finite as _finite
+from tsao.numeric_contract import finite_product, finite_sum
 
 _BOUNDARY_NODES = {"BOUNDARY_IN", "BOUNDARY_OUT", "ENVIRONMENT"}
 _ACCEPTANCE_STATES = {"NOT_EVALUATED", "HOLD", "CONDITIONAL", "PASS", "FAIL"}
 _EVIDENCE_STATES = {"REPORTED", "CALCULATED", "QUALIFIED", "HOLD", "SUPERSEDED", "RETRACTED"}
-
-
-def _finite(value: object, label: str) -> float:
-    return finite(value, label)
 
 
 def _decision(record, field, label, errors, holds):
@@ -270,7 +267,7 @@ def _validate_process_package(package: object) -> dict[str, Any]:
         if not isinstance(composition, dict) or not composition:
             errors.append(f"stream {identifier} composition must be a non-empty object")
         else:
-            total_fraction = 0.0
+            fractions: list[float] = []
             for component, fraction in composition.items():
                 index = component_index.get(component)
                 if index is None:
@@ -281,13 +278,14 @@ def _validate_process_package(package: object) -> dict[str, Any]:
                         errors.append(
                             f"stream {identifier} composition {component} must be in [0, 1]"
                         )
-                    total_fraction = finite_sum((total_fraction, value), label="composition sum")
+                    fractions.append(value)
                     if index is not None:
                         component_mass[index] = finite_product(
                             total_mass, value, label="component mass"
                         )
                 except ValueError as exc:
                     errors.append(str(exc))
+            total_fraction = finite_sum(fractions, label="composition sum")
             if abs(total_fraction - 1.0) > composition_tol:
                 errors.append(
                     f"stream {identifier} composition sum is {total_fraction:.12g}, expected 1"
@@ -366,20 +364,6 @@ def _validate_process_package(package: object) -> dict[str, Any]:
         if not references_valid:
             continue
 
-        mass_in = finite_sum((data[0] for data in inlet_data), label="inlet mass")
-        mass_out = finite_sum((data[0] for data in outlet_data), label="outlet mass")
-        mass_scale = max(abs(mass_in), abs(mass_out), 1.0)
-        mass_error = finite_product(
-            abs(finite_sum((mass_in, -mass_out))), divisor=mass_scale, label="relative mass error"
-        )
-        if mass_error > max_mass_error:
-            max_mass_error = mass_error
-        if mass_error > mass_tol:
-            errors.append(
-                f"equipment {identifier} mass balance relative error {mass_error:.6g} exceeds {mass_tol:.6g}"
-            )
-            reason_codes.add("MASS_BALANCE_FAILURE")
-
         generation_raw = item.get("generation_kg_h", item.get("generation"))
         consumption_raw = item.get("consumption_kg_h", item.get("consumption"))
         generation = (
@@ -414,14 +398,51 @@ def _validate_process_package(package: object) -> dict[str, Any]:
                 )
                 reason_codes.add("REACTION_BASIS_INCOMPLETE")
 
+        try:
+            duty = _finite(item.get("duty_kW", 0.0), f"equipment {identifier} duty")
+        except ValueError as exc:
+            errors.append(str(exc))
+            duty = 0.0
+
+        # A single unchanged stream with no reaction source/sink or heat duty
+        # has exactly zero residual in every balance.  All stream quantities,
+        # products, decisions and topology have already been validated above;
+        # no additions can overflow on this path.  Do not cache this decision:
+        # a later audit must validate a mutated package afresh.
+        if (
+            len(inlet_data) == 1
+            and len(outlet_data) == 1
+            and not generation
+            and not consumption
+            and duty == 0.0
+            and inlet_data[0][0] == outlet_data[0][0]
+            and inlet_data[0][1] == outlet_data[0][1]
+            and inlet_data[0][2] == outlet_data[0][2]
+        ):
+            continue
+
+        mass_in = finite_sum((data[0] for data in inlet_data), label="inlet mass")
+        mass_out = finite_sum((data[0] for data in outlet_data), label="outlet mass")
+        mass_scale = max(abs(mass_in), abs(mass_out), 1.0)
+        mass_error = finite_product(
+            abs(finite_sum((mass_in, -mass_out))), divisor=mass_scale, label="relative mass error"
+        )
+        if mass_error > max_mass_error:
+            max_mass_error = mass_error
+        if mass_error > mass_tol:
+            errors.append(
+                f"equipment {identifier} mass balance relative error {mass_error:.6g} exceeds {mass_tol:.6g}"
+            )
+            reason_codes.add("MASS_BALANCE_FAILURE")
+
         per_component: dict[str, float] | None = None
         for component_position, component in enumerate(component_names):
-            component_in = 0.0
-            for data in inlet_data:
-                component_in = finite_sum((component_in, data[2][component_position]))
-            component_out = 0.0
-            for data in outlet_data:
-                component_out = finite_sum((component_out, data[2][component_position]))
+            component_in = finite_sum(
+                (data[2][component_position] for data in inlet_data), label="inlet component"
+            )
+            component_out = finite_sum(
+                (data[2][component_position] for data in outlet_data), label="outlet component"
+            )
             generated = generation.get(component, 0.0)
             consumed = consumption.get(component, 0.0)
             residual = finite_sum(
@@ -456,11 +477,6 @@ def _validate_process_package(package: object) -> dict[str, Any]:
 
         enthalpy_in = finite_sum((data[1] for data in inlet_data), label="inlet enthalpy")
         enthalpy_out = finite_sum((data[1] for data in outlet_data), label="outlet enthalpy")
-        try:
-            duty = _finite(item.get("duty_kW", 0.0), f"equipment {identifier} duty")
-        except ValueError as exc:
-            errors.append(str(exc))
-            duty = 0.0
         energy_scale = max(finite_sum((abs(enthalpy_in), abs(duty))), abs(enthalpy_out), 1.0)
         energy_error = finite_product(
             abs(finite_sum((enthalpy_in, duty, -enthalpy_out))),

@@ -9,6 +9,12 @@ from fractions import Fraction
 
 
 def finite(value: object, label: str = "quantity") -> float:
+    # Physical arithmetic reuses checked binary floats.  Preserve the full
+    # coercion contract for external values without repeating it on this path.
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError(f"{label} must be finite")
+        return value
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         raise ValueError(f"{label} must be a finite real number")
     try:
@@ -43,6 +49,22 @@ def finite_product(*values: float, divisor: float = 1.0, label: str = "product")
     denominator = finite(divisor, label)
     if denominator == 0:
         raise ValueError(f"{label} has a zero divisor")
+    # A single IEEE-754 operation is already correctly rounded.  These common
+    # paths need no Decimal context, but still reject overflow and loss of a
+    # nonzero result to underflow.  Validate both factors even when one is zero.
+    if len(values) == 1:
+        numerator = finite(values[0], label)
+        result = numerator / denominator
+        if not math.isfinite(result) or result == 0 and numerator != 0:
+            raise ValueError(f"{label} is outside the representable nonzero finite range")
+        return result
+    if len(values) == 2 and denominator == 1.0:
+        left = finite(values[0], label)
+        right = finite(values[1], label)
+        result = left * right
+        if not math.isfinite(result) or result == 0 and left != 0 and right != 0:
+            raise ValueError(f"{label} is outside the representable nonzero finite range")
+        return result
     with localcontext() as context:
         context.prec = 80
         product = Decimal(1)
