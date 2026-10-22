@@ -4,12 +4,19 @@ import math
 import re
 from typing import Any
 
+from tsao.numeric_contract import finite_product, finite_sum
+
 _ALLOWED_PROPERTY_METHODS = {"PC-SAFT", "SRK", "REFPROP", "STEAMNBS", "CUSTOM"}
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 def _finite_number(value: object) -> bool:
-    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def _range(
@@ -223,7 +230,9 @@ def validate_process_case(case: dict[str, Any]) -> dict[str, Any]:
         errors.append("streams must be non-empty")
         streams = []
     seen_streams: set[str] = set()
-    external_feed = external_product = declared_loss = 0.0
+    external_feed_terms: list[float] = []
+    external_product_terms: list[float] = []
+    declared_loss_terms: list[float] = []
     for index, item in enumerate(streams, start=1):
         if not isinstance(item, dict):
             errors.append(f"stream entry {index} must be an object")
@@ -258,22 +267,35 @@ def validate_process_case(case: dict[str, Any]) -> dict[str, Any]:
         if item.get("is_recycle") and item.get("closed") is not True:
             holds.append(f"recycle stream {sid} is not closed")
         if source == "EXTERNAL":
-            external_feed += float(flow)
+            external_feed_terms.append(float(flow))
         if target == "EXTERNAL":
-            external_product += float(flow)
+            external_product_terms.append(float(flow))
         if target in {"EMISSION", "LOSS"}:
-            declared_loss += float(flow)
+            declared_loss_terms.append(float(flow))
     tolerance = case.get("mass_balance_tolerance_fraction", 0.001)
     if not _finite_number(tolerance) or tolerance < 0 or tolerance > 0.1:
         errors.append("mass_balance_tolerance_fraction must be finite and between 0 and 0.1")
         tolerance = 0.001
-    residual = None
-    if external_feed > 0:
-        residual = abs(external_feed - external_product - declared_loss) / external_feed
-        if residual > tolerance:
-            holds.append(f"mass balance residual {residual:.6g} exceeds {tolerance:.6g}")
-    else:
-        holds.append("no positive external feed was declared")
+    external_feed = external_product = declared_loss = residual = None
+    try:
+        external_feed = finite_sum(external_feed_terms, label="external feed")
+        external_product = finite_sum(external_product_terms, label="external product")
+        declared_loss = finite_sum(declared_loss_terms, label="declared loss")
+        if external_feed > 0:
+            imbalance = finite_sum(
+                (external_feed, -external_product, -declared_loss), label="mass imbalance"
+            )
+            residual = finite_product(
+                abs(imbalance), divisor=external_feed, label="mass balance residual fraction"
+            )
+            if residual > tolerance:
+                holds.append(f"mass balance residual {residual:.6g} exceeds {tolerance:.6g}")
+        else:
+            holds.append("no positive external feed was declared")
+    except ValueError as exc:
+        # Invalid arithmetic must never become PASS through NaN comparisons;
+        # unavailable metrics remain JSON null rather than Infinity or NaN.
+        errors.append(f"mass balance arithmetic: {exc}")
     property_result = qualify_property_method(
         case.get("property_method", {}), case.get("property_query")
     )

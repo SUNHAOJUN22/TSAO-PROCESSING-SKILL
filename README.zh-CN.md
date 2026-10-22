@@ -125,7 +125,30 @@ $$
 \operatorname{isfinite}\!\left(\sum_i x_i\right).
 $$
 
-非零单位转换若下溢为零会被拒绝；不可表示的结果产生结构化失败。程序不能用物理零替换未知量、NaN 或 Infinity，也不能用非有限容差放行不闭合的衡算。
+非零单位转换若下溢为零会被拒绝。公开工况/工艺包审计入口返回 `FAIL`，不可用指标保留为 JSON `null`；直接数理函数抛出 `ValueError`，v16 衡算使用其子类 `ContractError`。不可表示的受审衡算不能被替换为物理零或 JSON NaN/Infinity，也不能用非有限容差放行。
+
+公开 [`validate_process_case`](skills/poe/qualification.py) 先检查外部进料、外部产品和声明损失的聚合值，再计算：
+
+$$
+e_{case}=\frac{|F_{external}-P_{external}-L_{declared}|}{F_{external}},
+\qquad F_{external}>0.
+$$
+
+总量或残差不可表示时返回 `FAIL`；有限残差超过声明容差时返回 `HOLD`。POE 工艺包先核对实际文件字节数与 SHA-256，再调用同一数理入口，因此文件完整性通过不能掩盖衡算错误。v16/v17 兼容入口也检查单位换算、残差求和和实际容差；两版已有的规范单位参考尺度下限分别保持 $10^{-30}$ 与 $1$。调用方应按规范单位选择有量纲的绝对容差与无量纲的相对容差；这些工程约定不能直接当作可任意缩放计量系数的守恒检验。
+
+[`process_general.py`](tsao/process_general.py) 提供以下有界参考计算：
+
+$$
+A=\frac{\mathrm{MTBF}}{\mathrm{MTBF}+\mathrm{MTTR}},\qquad
+X_{CSTR}=\frac{k\tau}{1+k\tau},\qquad
+\eta_F=\frac{n z F}{I t},\quad F=96485.33212\ \mathrm{C\,mol^{-1}}.
+$$
+
+可用率先缩放时间再相加；CSTR 转化率和法拉第效率避免中间乘积溢出破坏仍可表示的比值。相等的正 MTBF/MTTR 始终给出 $A=0.5$，包括大数值压力用例。最终非零结果若低于浮点可表示范围会被拒绝。CSTR/PFR 在极大正暴露量下的有界转化率可以正确舍入为一，这与把不可表示流量静默变成零有明确区别。法拉第效率仍要求电子数、电流和时间为正，并拒绝超过 $1+10^{-9}$ 的效率；这些函数保留各自模型假设，不能代替设备可靠性或电化学实验认证。
+
+严格 CSV 入口 [`check_balance.py`](skills/polymer-general/scripts/check_balance.py) 对每个组分和总量采用相同的有限换算与求和规则：大数流量抵消时保留小残差，非零 kg/h 换算后若成为零 kg/s 则拒绝继续。运行 `python skills/polymer-general/scripts/check_balance.py your-balance.csv`；非法数值合同退出码为 2，有限但不闭合的衡算输出 `FAIL`，同样退出 2。
+
+[`tests/test_public_numeric_boundaries.py`](tests/test_public_numeric_boundaries.py) 从上述公开入口与真实 CSV 命令回归，包括修改数理工况后重新计算真实文件摘要的 POE 包、大数有限抵消、溢出/下溢拒绝、合法物理零以及既有容差约定。
 
 ### 6. 自适应积分与参数拟合
 

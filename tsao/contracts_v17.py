@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from math import expm1, fsum, isfinite
 
+from .numeric_contract import finite, finite_product, finite_sum
+
 STATUS_RANK: dict[str, int] = {
     "PASS": 0,
     "NOT_EVALUATED": 1,
@@ -24,13 +26,12 @@ class Quantity:
         for name, raw in (("value", self.value), ("scale_to_si", self.scale_to_si)):
             if isinstance(raw, bool) or not isinstance(raw, (int, float)):
                 raise TypeError(f"{name} must be a non-boolean real number")
-            if not isfinite(float(raw)):
-                raise ValueError(f"{name} must be finite")
+            finite(raw, name)
         if self.scale_to_si <= 0.0:
             raise ValueError("scale_to_si must be positive")
         if not self.unit or not self.dimension:
             raise ValueError("unit and dimension are required")
-        return float(self.value) * float(self.scale_to_si)
+        return finite_product(self.value, self.scale_to_si, label="canonical quantity")
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,7 @@ def component_balance(
     ):
         if isinstance(raw, bool) or not isinstance(raw, (int, float)):
             raise TypeError(f"{name} must be a non-boolean real number")
-        if not isfinite(float(raw)) or float(raw) < 0.0:
+        if finite(raw, name) < 0.0:
             raise ValueError(f"{name} must be finite and non-negative")
     source_map = sources or {}
     quantities = [*inputs.values(), *outputs.values(), *source_map.values()]
@@ -78,10 +79,16 @@ def component_balance(
         inlet = inputs[component].canonical() if component in inputs else 0.0
         outlet = outputs[component].canonical() if component in outputs else 0.0
         source = source_map[component].canonical() if component in source_map else 0.0
-        residual = fsum((inlet, source, -outlet))
+        residual = finite_sum((inlet, source, -outlet), label=f"component {component} residual")
         residuals[component] = residual
         scale = max(abs(inlet), abs(outlet), abs(source), 1.0)
-        threshold = float(absolute_tolerance) + float(relative_tolerance) * scale
+        threshold = finite_sum(
+            (
+                float(absolute_tolerance),
+                finite_product(relative_tolerance, scale, label="relative tolerance"),
+            ),
+            label="balance tolerance",
+        )
         if abs(residual) > threshold:
             reasons.append(f"COMPONENT_RESIDUAL:{component}")
     return BalanceDecision("PASS" if not reasons else "FAIL", residuals, tuple(reasons))

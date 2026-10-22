@@ -122,12 +122,35 @@ Here $a_i$ has the same flow unit as the residual, $r$ is dimensionless and $s_i
 
 ### 5. Numerical range
 
-[`numeric_contract.py`](tsao/numeric_contract.py) validates inputs and computed sums/products/quotients. Finite inputs can still overflow during aggregation. Nonzero conversions that underflow to zero are rejected. An unrepresentable result returns a structured failure, never a substituted physical zero or JSON NaN/Infinity.
+[`numeric_contract.py`](tsao/numeric_contract.py) validates inputs and computed sums/products/quotients. Finite inputs can still overflow during aggregation. Nonzero conversions that underflow to zero are rejected. Public process-case/package auditors return `FAIL`; unavailable metrics remain JSON `null`. Direct numerical helpers raise `ValueError` (the v16 balance API uses its `ContractError` subclass). They do not substitute physical zero or emit JSON NaN/Infinity for an unrepresentable audited balance.
 
 $$
 \operatorname{isfinite}(x_{input})\ \not\Rightarrow\
 \operatorname{isfinite}\!\left(\sum_i x_i\right).
 $$
+
+The public [`validate_process_case`](skills/poe/qualification.py) entry point checks the external-feed, external-product and declared-loss totals before evaluating
+
+$$
+e_{case}=\frac{|F_{external}-P_{external}-L_{declared}|}{F_{external}},
+\qquad F_{external}>0.
+$$
+
+A non-representable total or residual is `FAIL`; a finite residual above the declared tolerance is `HOLD`. A content-qualified POE package passes its stored bytes and SHA-256 checks before this same numerical validator runs, so intact files cannot conceal an invalid balance. The v16/v17 compatibility balances also check unit conversion, residual summation and computed tolerances. Their existing canonical reference floors remain $10^{-30}$ and $1$, respectively; callers must choose dimensional absolute tolerance and dimensionless relative tolerance for the stated canonical units. These engineering conventions are not arbitrary-scale stoichiometric conservation tests.
+
+[`process_general.py`](tsao/process_general.py) includes bounded reference calculations:
+
+$$
+A=\frac{\mathrm{MTBF}}{\mathrm{MTBF}+\mathrm{MTTR}},\qquad
+X_{CSTR}=\frac{k\tau}{1+k\tau},\qquad
+\eta_F=\frac{n z F}{I t},\quad F=96485.33212\ \mathrm{C\,mol^{-1}}.
+$$
+
+Availability scales the times before addition; CSTR conversion and Faradaic efficiency evaluate representable ratios without overflowing intermediate products. Equal positive MTBF/MTTR values therefore give $A=0.5$, including large numerical stress cases. A final nonzero result below floating-point range is rejected. Very large positive exposure in bounded CSTR/PFR conversion can legitimately round to one; this is distinct from silently replacing an unrepresentable flow with zero. Faradaic efficiency still requires positive electron count, current and time and rejects values above $1+10^{-9}$. These helpers retain their model assumptions and do not certify equipment reliability or electrochemical experiments.
+
+The strict CSV entry point [`check_balance.py`](skills/polymer-general/scripts/check_balance.py) applies the same checked conversion and summation to every component and the total. It preserves a small residual through large cancelling flows and rejects a nonzero kg/h value that would become zero kg/s. Run `python skills/polymer-general/scripts/check_balance.py your-balance.csv`; invalid numerical contracts exit with code 2, while finite evaluated imbalances report `FAIL` and also exit 2.
+
+[`tests/test_public_numeric_boundaries.py`](tests/test_public_numeric_boundaries.py) exercises these public calls and the real CSV command, including a POE package whose real file digest is updated after numerical damage, overflow/underflow failures, large finite cancellations, normal zero results and unchanged tolerance conventions.
 
 ### 6. Adaptive integration and fitting
 

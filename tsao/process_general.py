@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import math
+from decimal import Decimal, localcontext
+
+from .numeric_contract import finite, finite_product, finite_sum
 
 FARADAY_C_MOL = 96485.33212
 
 
 def _finite(value: float, label: str) -> float:
-    try:
-        result = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be numeric") from exc
-    if not math.isfinite(result):
-        raise ValueError(f"{label} must be finite")
+    return finite(value, label)
+
+
+def _decimal_result(value: Decimal, label: str) -> float:
+    result = finite(float(value), label)
+    if result == 0.0 and value != 0:
+        raise ValueError(f"{label} underflows the nonzero floating-point range")
     return result
 
 
@@ -20,8 +24,11 @@ def cstr_first_order_conversion(k_s: float, residence_s: float) -> float:
     residence_s = _finite(residence_s, "residence time")
     if k_s < 0 or residence_s < 0:
         raise ValueError("rate constant and residence time must be non-negative")
-    da = k_s * residence_s
-    return da / (1.0 + da)
+    # The bounded conversion can be representable even when k*tau is not.
+    with localcontext() as context:
+        context.prec = 80
+        da = Decimal.from_float(k_s) * Decimal.from_float(residence_s)
+        return _decimal_result(da / (1 + da), "CSTR conversion")
 
 
 def pfr_first_order_conversion(k_s: float, residence_s: float) -> float:
@@ -29,7 +36,13 @@ def pfr_first_order_conversion(k_s: float, residence_s: float) -> float:
     residence_s = _finite(residence_s, "residence time")
     if k_s < 0 or residence_s < 0:
         raise ValueError("rate constant and residence time must be non-negative")
-    return -math.expm1(-k_s * residence_s)
+    exposure = k_s * residence_s
+    if math.isinf(exposure):
+        # Positive exposure beyond float range rounds exp(-exposure) to zero;
+        # the final bounded conversion is exactly representable as 1.0.
+        return 1.0
+    exposure = finite_product(k_s, residence_s, label="PFR exposure")
+    return -math.expm1(-exposure)
 
 
 def oxygen_transfer_rate(kla_s: float, saturation: float, bulk: float) -> float:
@@ -40,7 +53,11 @@ def oxygen_transfer_rate(kla_s: float, saturation: float, bulk: float) -> float:
         raise ValueError("kLa and concentrations must be non-negative")
     if bulk > saturation:
         raise ValueError("bulk concentration exceeds saturation; use a stripping model")
-    return kla_s * (saturation - bulk)
+    return finite_product(
+        kla_s,
+        finite_sum((saturation, -bulk), label="oxygen concentration difference"),
+        label="oxygen transfer rate",
+    )
 
 
 def faradaic_efficiency(
@@ -57,7 +74,17 @@ def faradaic_efficiency(
         or time_s == 0
     ):
         raise ValueError("amount/current/time must be positive and electron number positive")
-    efficiency = product_mol * electron_number * FARADAY_C_MOL / (current_A * time_s)
+    # Evaluate the ratio before conversion to float: both charge products may
+    # overflow independently while their dimensionless ratio remains finite.
+    with localcontext() as context:
+        context.prec = 80
+        charge = (
+            Decimal.from_float(product_mol)
+            * Decimal.from_float(electron_number)
+            * Decimal.from_float(FARADAY_C_MOL)
+        )
+        supplied = Decimal.from_float(current_A) * Decimal.from_float(time_s)
+        efficiency = _decimal_result(charge / supplied, "Faradaic efficiency")
     if efficiency > 1.0 + 1e-9:
         raise ValueError("calculated Faradaic efficiency exceeds unity")
     return efficiency
@@ -68,7 +95,9 @@ def supersaturation_ratio(concentration: float, saturation_concentration: float)
     saturation_concentration = _finite(saturation_concentration, "saturation concentration")
     if concentration < 0 or saturation_concentration <= 0:
         raise ValueError("concentration must be non-negative and saturation concentration positive")
-    return concentration / saturation_concentration
+    return finite_product(
+        concentration, divisor=saturation_concentration, label="supersaturation ratio"
+    )
 
 
 def recycle_impurity_steady_state(
@@ -79,10 +108,10 @@ def recycle_impurity_steady_state(
     purge_fraction = _finite(purge_fraction, "purge fraction")
     if fresh_input < 0 or not 0 <= recycle_fraction < 1 or not 0 <= purge_fraction <= 1:
         raise ValueError("invalid fresh input, recycle fraction or purge fraction")
-    retained = recycle_fraction * (1.0 - purge_fraction)
+    retained = finite_product(recycle_fraction, 1.0 - purge_fraction, label="retained fraction")
     if retained >= 1.0:
         raise ValueError("recycle impurity network has no finite steady state")
-    return fresh_input / (1.0 - retained)
+    return finite_product(fresh_input, divisor=1.0 - retained, label="recycle impurity")
 
 
 def semibatch_accumulation(feed_rate: float, consumption_rate: float, duration_s: float) -> float:
@@ -91,7 +120,11 @@ def semibatch_accumulation(feed_rate: float, consumption_rate: float, duration_s
     duration_s = _finite(duration_s, "duration")
     if feed_rate < 0 or consumption_rate < 0 or duration_s < 0:
         raise ValueError("rates and duration must be non-negative")
-    return (feed_rate - consumption_rate) * duration_s
+    return finite_product(
+        finite_sum((feed_rate, -consumption_rate), label="net semibatch rate"),
+        duration_s,
+        label="semibatch accumulation",
+    )
 
 
 def availability(mtbf_h: float, mttr_h: float) -> float:
@@ -99,7 +132,12 @@ def availability(mtbf_h: float, mttr_h: float) -> float:
     mttr_h = _finite(mttr_h, "MTTR")
     if mtbf_h <= 0 or mttr_h < 0:
         raise ValueError("MTBF must be positive and MTTR non-negative")
-    return mtbf_h / (mtbf_h + mttr_h)
+    # Divide by the larger time before adding, so an overflowing sum cannot
+    # turn equal finite MTBF/MTTR values into zero availability.
+    if mtbf_h >= mttr_h:
+        return 1.0 / (1.0 + mttr_h / mtbf_h)
+    ratio = finite_product(mtbf_h, divisor=mttr_h, label="availability ratio")
+    return finite_product(ratio, divisor=1.0 + ratio, label="availability")
 
 
 def weibull_reliability(time: float, characteristic_life: float, shape: float) -> float:
@@ -108,7 +146,25 @@ def weibull_reliability(time: float, characteristic_life: float, shape: float) -
     shape = _finite(shape, "shape")
     if time < 0 or characteristic_life <= 0 or shape <= 0:
         raise ValueError("time must be non-negative; life and shape positive")
-    return math.exp(-((time / characteristic_life) ** shape))
+    if time == 0.0:
+        return 1.0
+    # Work in logarithms so a large/small lifetime ratio can still yield a
+    # representable hazard when the shape compensates. Near unity, log1p
+    # preserves the difference between adjacent floating-point lifetimes.
+    ratio = time / characteristic_life
+    log_ratio = (
+        math.log1p((time - characteristic_life) / characteristic_life)
+        if 0.5 <= ratio <= 2.0
+        else math.log(time) - math.log(characteristic_life)
+    )
+    log_hazard = shape * log_ratio
+    if log_hazard > math.log(746.0):
+        raise ValueError("Weibull reliability underflows the nonzero range")
+    hazard = math.exp(log_hazard)
+    reliability = math.exp(-hazard)
+    if reliability == 0.0:
+        raise ValueError("Weibull reliability underflows the nonzero range")
+    return reliability
 
 
 def process_capability_index(mean: float, sigma: float, lower: float, upper: float) -> float:
@@ -118,4 +174,12 @@ def process_capability_index(mean: float, sigma: float, lower: float, upper: flo
     upper = _finite(upper, "upper specification")
     if sigma <= 0 or lower >= upper:
         raise ValueError("sigma must be positive and lower specification below upper")
-    return min((upper - mean) / (3.0 * sigma), (mean - lower) / (3.0 * sigma))
+    with localcontext() as context:
+        context.prec = 80
+        center = Decimal.from_float(mean)
+        width = 3 * Decimal.from_float(sigma)
+        index = min(
+            (Decimal.from_float(upper) - center) / width,
+            (center - Decimal.from_float(lower)) / width,
+        )
+        return _decimal_result(index, "process capability index")

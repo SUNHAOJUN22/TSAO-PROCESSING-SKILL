@@ -6,6 +6,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from math import expm1, isfinite
 
+from .numeric_contract import finite, finite_product, finite_sum
+
 
 class ContractError(ValueError):
     """Raised for invalid process-system contract inputs."""
@@ -34,7 +36,10 @@ def aggregate_status(statuses: Iterable[str]) -> str:
 def _real(value: object, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError(f"{name} must be a non-Boolean real")
-    number = float(value)
+    try:
+        number = finite(value, name)
+    except ValueError as exc:
+        raise ContractError(str(exc)) from exc
     if not isfinite(number):
         raise ContractError(f"{name} must be finite")
     return number
@@ -52,7 +57,10 @@ class Flow:
         scale = _real(self.scale_to_canonical, "scale_to_canonical")
         if self.basis not in {"mass", "molar"} or scale <= 0.0 or not self.unit:
             raise ContractError("invalid flow metadata")
-        return number * scale
+        try:
+            return finite_product(number, scale, label="canonical flow")
+        except ValueError as exc:
+            raise ContractError(str(exc)) from exc
 
 
 def component_balance(
@@ -89,10 +97,20 @@ def component_balance(
             -(outputs[component].canonical() if component in outputs else 0.0),
             -(inventory_rate[component].canonical() if component in inventory_rate else 0.0),
         )
-        residual = sum(terms)
+        try:
+            residual = finite_sum(terms, label=f"component {component} residual")
+            scale = max(*(abs(term) for term in terms), 1.0e-30)
+            threshold = finite_sum(
+                (
+                    absolute_tolerance,
+                    finite_product(relative_tolerance, scale, label="relative tolerance"),
+                ),
+                label="balance tolerance",
+            )
+        except ValueError as exc:
+            raise ContractError(str(exc)) from exc
         residuals[component] = residual
-        scale = max(*(abs(term) for term in terms), 1.0e-30)
-        if abs(residual) > absolute_tolerance + relative_tolerance * scale:
+        if abs(residual) > threshold:
             failed.append(component)
     return {
         "status": "PASS" if not failed else "FAIL",

@@ -702,12 +702,12 @@ def check_component_rows(rows: Sequence[Mapping[str, object]]) -> dict[str, Any]
             )
             if non_negative and value < 0:
                 raise MaterialBalanceContractError(f"row {row_number} {name} must be non-negative")
-            converted = value * unit_factor
-            if not math.isfinite(converted):
-                raise MaterialBalanceContractError(
-                    f"row {row_number} {name} conversion is non-finite"
+            try:
+                return finite_product(
+                    value, unit_factor, label=f"row {row_number} {name} conversion"
                 )
-            return converted
+            except ValueError as exc:
+                raise MaterialBalanceContractError(str(exc)) from exc
 
         incoming = term("in", non_negative=True)
         outgoing = term("out", non_negative=True)
@@ -726,12 +726,22 @@ def check_component_rows(rows: Sequence[Mapping[str, object]]) -> dict[str, Any]
         if reference_scale <= 0:
             raise MaterialBalanceContractError(f"row {index}: reference_scale must be positive")
 
-        residual = accumulation - (incoming - outgoing + generation - consumption)
-        if not math.isfinite(residual):
-            raise MaterialBalanceContractError(f"row {index}: residual is non-finite")
-        allowed = absolute_tolerance + relative_tolerance * reference_scale
-        if not math.isfinite(allowed):
-            raise MaterialBalanceContractError(f"row {index}: allowed residual is non-finite")
+        try:
+            residual = finite_sum(
+                (accumulation, -incoming, outgoing, -generation, consumption),
+                label=f"row {index} residual",
+            )
+            allowed = finite_sum(
+                (
+                    absolute_tolerance,
+                    finite_product(
+                        relative_tolerance, reference_scale, label=f"row {index} relative tolerance"
+                    ),
+                ),
+                label=f"row {index} allowed residual",
+            )
+        except ValueError as exc:
+            raise MaterialBalanceContractError(str(exc)) from exc
         component_results.append(
             ComponentBalance(
                 component=component,
@@ -760,11 +770,12 @@ def check_component_rows(rows: Sequence[Mapping[str, object]]) -> dict[str, Any]
     total_generation = finite_sum(item.generation for item in component_results)
     total_consumption = finite_sum(item.consumption for item in component_results)
     total_accumulation = finite_sum(item.accumulation for item in component_results)
-    total_residual = total_accumulation - (
-        total_in - total_out + total_generation - total_consumption
+    total_residual = finite_sum(
+        (total_accumulation, -total_in, total_out, -total_generation, total_consumption),
+        label="total component-row residual",
     )
-    total_allowed = finite_sum(item.absolute_tolerance for item in component_results) + finite_sum(
-        item.relative_tolerance * item.reference_scale for item in component_results
+    total_allowed = finite_sum(
+        (item.allowed_residual for item in component_results), label="total allowed residual"
     )
     total_pass = abs(total_residual) <= total_allowed
     failed_components = tuple(
