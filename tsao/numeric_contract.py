@@ -3,9 +3,23 @@
 from __future__ import annotations
 
 import math
+import unicodedata
 from collections.abc import Iterable
 from decimal import Decimal, localcontext
 from fractions import Fraction
+from numbers import Number
+
+
+def _underflows_nonzero(value: object, converted: float) -> bool:
+    """Inspect the source significand without bounding its decimal exponent."""
+    if converted != 0:
+        return False
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        value = bytes(value).decode("ascii")
+    if isinstance(value, str):
+        significand = value.strip().lower().split("e", 1)[0]
+        return any(unicodedata.decimal(char, 0) != 0 for char in significand)
+    return isinstance(value, (Number, Decimal)) and bool(value != 0)
 
 
 def finite(value: object, label: str = "quantity") -> float:
@@ -23,7 +37,7 @@ def finite(value: object, label: str = "quantity") -> float:
         raise ValueError(f"{label} is outside the finite numeric range") from exc
     if not math.isfinite(number):
         raise ValueError(f"{label} must be finite")
-    if isinstance(value, str) and number == 0 and Decimal(value.strip()) != 0:
+    if _underflows_nonzero(value, number):
         raise ValueError(f"{label} underflows the nonzero floating-point range")
     return number
 

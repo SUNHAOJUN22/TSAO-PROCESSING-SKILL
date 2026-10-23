@@ -10,6 +10,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from tsao.json_contract import loads_strict
+
 from .contracts import (
     ContractValidationError,
     EnergyFormulation,
@@ -191,7 +193,7 @@ class GeneratedStateDefinition:
 
 def load_state_catalog(path: Path | None = None) -> dict[str, Any]:
     source = path or _DEFAULT_CATALOG_PATH
-    payload = json.loads(source.read_text(encoding="utf-8"))
+    payload = loads_strict(source.read_text(encoding="utf-8"))
     if payload.get("schema") != "TSAO-EPDM-V2-STATE-CATALOG-1":
         raise ContractValidationError("unsupported state catalog schema")
     items = payload.get("items")

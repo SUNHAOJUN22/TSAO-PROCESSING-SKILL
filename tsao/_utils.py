@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from .numeric_contract import _underflows_nonzero
+
 _REPLACE_RETRY_DELAYS_S = (0.0, 0.001, 0.004, 0.016, 0.064)
 
 
@@ -32,6 +34,8 @@ def validate_flow_mapping(
             raise ValueError(f"{label}[{key!r}] must be finite numeric") from exc
         if not math.isfinite(value):
             raise ValueError(f"{label}[{key!r}] must be finite")
+        if _underflows_nonzero(raw_value, value):
+            raise ValueError(f"{label}[{key!r}] underflows the nonzero floating-point range")
         if not allow_negative and value < 0:
             raise ValueError(f"{label}[{key!r}] must be non-negative")
         checked[key] = value

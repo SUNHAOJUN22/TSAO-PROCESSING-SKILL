@@ -39,3 +39,21 @@ def test_generated_build_trees_are_not_source_identity(tmp_path: Path) -> None:
 @pytest.mark.parametrize("directory", ["build", "dist", "wheelhouse", "work"])
 def test_source_checkout_has_no_generated_release_directory(directory: str) -> None:
     assert not (ROOT / directory).exists()
+
+
+@pytest.mark.parametrize("relative", [".", "nested"])
+def test_worktree_git_metadata_is_not_part_of_source_identity(
+    tmp_path: Path, relative: str
+) -> None:
+    directory = tmp_path / relative
+    directory.mkdir(exist_ok=True)
+    metadata = directory / ".git"
+    metadata.write_text("gitdir: /private/worktrees/first\n", encoding="utf-8")
+    (tmp_path / "source.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (tmp_path / ".gitignore").write_text("__pycache__/\n", encoding="utf-8")
+    paths = {relative for _, relative in iter_source_files(tmp_path)}
+    assert paths == {"source.py", ".gitignore"}
+    manifest = tmp_path / "reports/SOURCE_CORE_MANIFEST.tsv"
+    build_manifest(tmp_path, manifest)
+    metadata.write_text("gitdir: /private/worktrees/second\n", encoding="utf-8")
+    assert verify_manifest(tmp_path, manifest) == []

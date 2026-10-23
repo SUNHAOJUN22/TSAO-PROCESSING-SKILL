@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from fractions import Fraction
 from math import expm1, fsum, isfinite
 
-from .numeric_contract import finite, finite_product, finite_sum
+from .numeric_contract import _underflows_nonzero, finite, finite_product, finite_sum
 
 STATUS_RANK: dict[str, int] = {
     "PASS": 0,
@@ -110,10 +111,34 @@ def mean_absolute_percentage_error(observed: list[float], predicted: list[float]
     for actual, estimate in zip(observed, predicted, strict=True):
         if isinstance(actual, bool) or isinstance(estimate, bool):
             raise TypeError("series values must be non-boolean real numbers")
-        actual = float(actual)
-        estimate = float(estimate)
+        source_actual, source_estimate = actual, estimate
+        try:
+            actual = float(actual)
+            estimate = float(estimate)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("series values must be finite numeric") from exc
         if not isfinite(actual) or not isfinite(estimate):
             raise ValueError("series values must be finite")
+        if _underflows_nonzero(source_actual, actual) or _underflows_nonzero(
+            source_estimate, estimate
+        ):
+            raise ValueError("series value underflows the nonzero floating-point range")
         if actual != 0.0:
-            terms.append(abs((actual - estimate) / actual))
-    return None if not terms else fsum(terms) / len(terms)
+            relative_error = abs((actual - estimate) / actual)
+            if not isfinite(relative_error):
+                # A difference may overflow although its dimensionless ratio is
+                # representable. Preserve the submitted binary values exactly.
+                try:
+                    relative_error = float(
+                        abs((Fraction(actual) - Fraction(estimate)) / Fraction(actual))
+                    )
+                except OverflowError as exc:
+                    raise ValueError("relative error exceeds the finite numeric range") from exc
+            terms.append(relative_error)
+    if not terms:
+        return None
+    try:
+        return fsum(terms) / len(terms)
+    except OverflowError:
+        # The mean of finite non-negative terms is finite even if their sum is not.
+        return float(sum((Fraction(value) for value in terms), Fraction()) / len(terms))

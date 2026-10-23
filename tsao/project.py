@@ -18,6 +18,7 @@ from .gates import (
     validate_gate_events,
     validate_gate_sequence,
 )
+from .json_contract import loads_strict
 from .routing import route
 
 PROJECT_DIRS = (
@@ -169,12 +170,12 @@ def _load_gate_events(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             if not line.strip():
                 continue
-            value = json.loads(line)
+            value = loads_strict(line)
             if not isinstance(value, dict):
                 issues.append(f"gate event line {line_number} must be an object")
             else:
                 events.append(value)
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, ValueError) as exc:
         issues.append(f"invalid gate event ledger: {exc}")
     return events, issues
 
@@ -210,7 +211,7 @@ def audit_project(root: Path, mode: str = "initialization") -> list[str]:
     work_packages_path = root / "00_governance/work_packages.json"
     if work_packages_path.is_file():
         try:
-            packages = json.loads(work_packages_path.read_text(encoding="utf-8"))
+            packages = loads_strict(work_packages_path.read_text(encoding="utf-8"))
             if not isinstance(packages, list) or len(packages) != 19 * 14:
                 issues.append("work package matrix must contain 266 records")
             elif mode == "initialization" and any(
@@ -224,15 +225,15 @@ def audit_project(root: Path, mode: str = "initialization") -> list[str]:
                         issues.append(f"work package {index} must be an object")
                     elif item.get("approval_status") not in valid_approvals:
                         issues.append(f"work package {index} has invalid approval_status")
-        except (OSError, UnicodeError, json.JSONDecodeError, AttributeError) as exc:
+        except (OSError, UnicodeError, ValueError, AttributeError) as exc:
             issues.append(f"invalid work package matrix: {exc}")
 
     manifest_path = root / "project_manifest.json"
     if not manifest_path.is_file():
         return sorted(set(issues + ["missing project_manifest.json"]))
     try:
-        data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        data = loads_strict(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
         return sorted(set(issues + [f"invalid project manifest: {exc}"]))
     if not isinstance(data, dict):
         return sorted(set(issues + ["project manifest must be an object"]))

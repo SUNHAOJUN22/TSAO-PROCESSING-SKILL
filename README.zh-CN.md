@@ -150,6 +150,19 @@ $$
 
 [`tests/test_public_numeric_boundaries.py`](tests/test_public_numeric_boundaries.py) 从上述公开入口与真实 CSV 命令回归，包括修改数理工况后重新计算真实文件摘要的 POE 包、大数有限抵消、溢出/下溢拒绝、合法物理零以及既有容差约定。
 
+JSON 解码也属于数值边界。项目清单、工作包矩阵、关口事件台账、POE 工艺包记录、调用方提供的 EPDM 状态目录，以及 EPDM 文件审计和规范化命令，均拒绝重复键、非有限数和转换后会变成零的非零十进制数。测量不确定度或声明损失不能在语义校验之前被静默抹去。真正的带符号零、`5e-324` 等可表示次正规数和精确 JSON 整数保持有效。超出浮点范围时应同时调整物理量的尺度和声明单位，不能直接填零；如果调用方已经把原始数值舍入为 Python 浮点零，程序无法恢复其十进制来源。
+
+兼容函数 [`mean_absolute_percentage_error`](tsao/contracts_v17.py) 只使用非零观测值：
+
+$$
+I=\{i:y_i\ne0\},\qquad
+\mathrm{MAPE}_{fraction}=\frac{1}{|I|}\sum_{i\in I}\left|\frac{y_i-\hat y_i}{y_i}\right|.
+$$
+
+当 $I$ 为空时返回 `None`。返回值是比例（`0.1` 表示 10%）；零观测直接排除，不使用任意小量代替。只有中间差值或求和溢出时，仍保留可表示的有限比值与均值；最终比值不可表示时抛出 `ValueError`。用于模型选择前，应检查非零观测数量及其代表性。[输入边界回归](tests/test_decision_input_integrity.py)和 [MAPE 回归](tests/test_mape_range_integrity.py)包含实际命令行拒绝与合法输入对照。
+
+源码身份审计同时支持普通 Git 检出与链接工作树。Git 的 `.git` 目录和指针文件采用一致的排除规则，`.gitignore` 等受版本管理的源码配置仍进入清单。因此，本地工作树指针改变不会改变受审软件身份。
+
 ### 6. 自适应积分与参数拟合
 
 EPDM 的 Dormand–Prince 5(4) 使用逐分量缩放后取最大值：

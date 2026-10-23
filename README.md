@@ -152,6 +152,19 @@ The strict CSV entry point [`check_balance.py`](skills/polymer-general/scripts/c
 
 [`tests/test_public_numeric_boundaries.py`](tests/test_public_numeric_boundaries.py) exercises these public calls and the real CSV command, including a POE package whose real file digest is updated after numerical damage, overflow/underflow failures, large finite cancellations, normal zero results and unchanged tolerance conventions.
 
+JSON decoding is part of this numerical boundary. Project manifests, work-package matrices, gate ledgers, POE package records, caller-supplied EPDM state catalogs and both EPDM file-audit/canonicalization commands reject duplicate keys, non-finite numbers and nonzero decimal numbers that would become zero. In particular, a nonzero measurement uncertainty or declared loss cannot disappear before its semantic checks. True signed zeros, representable subnormals such as `5e-324`, and exact JSON integers remain valid. Rescale the physical quantity and its declared unit when an input is outside the supported floating-point range; do not replace it with zero. An already rounded Python float cannot reveal its original decimal source.
+
+The compatibility helper [`mean_absolute_percentage_error`](tsao/contracts_v17.py) uses only nonzero observations:
+
+$$
+I=\{i:y_i\ne0\},\qquad
+\mathrm{MAPE}_{fraction}=\frac{1}{|I|}\sum_{i\in I}\left|\frac{y_i-\hat y_i}{y_i}\right|.
+$$
+
+It returns `None` when $I$ is empty. The return value is a fraction (`0.1` means 10%), and zero observations are excluded rather than replaced by an arbitrary epsilon. Finite ratios and means are preserved when only an intermediate difference or sum overflows; an unrepresentable ratio raises `ValueError`. Check the number and relevance of nonzero observations before using this diagnostic for model selection. The new [decision-input](tests/test_decision_input_integrity.py) and [MAPE](tests/test_mape_range_integrity.py) regressions include actual CLI rejection and valid-input controls.
+
+Source-identity audits support ordinary Git checkouts and linked worktrees. Git's `.git` directory or pointer file is excluded consistently, while tracked source configuration such as `.gitignore` remains in the inventory. Changing a local worktree pointer therefore cannot alter the audited software identity.
+
 ### 6. Adaptive integration and fitting
 
 EPDM's Dormand–Prince pair compares each component before taking the maximum:

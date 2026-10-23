@@ -7,6 +7,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from tsao.json_contract import loads_strict
+
 from .governance import blocking_conflicts
 from .model_passport import validate_model_passport_registry
 from .qualification import qualify_property_method, validate_process_case
@@ -91,8 +93,8 @@ def _legacy_discovery(root: Path) -> dict[str, list[str]]:
 
 def _load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        data = loads_strict(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
         return None, str(exc)
     if not isinstance(data, dict):
         return None, "JSON root must be an object"

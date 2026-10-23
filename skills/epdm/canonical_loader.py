@@ -20,6 +20,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar, Union, get_args, get_origin, get_type_hints
 
+from tsao.numeric_contract import finite
+
 from . import _validation_v2_core as _validation
 from .contracts import (
     ApplicabilityDomain,
@@ -203,6 +205,13 @@ def _reject_nonfinite_constant(value: str) -> None:
     raise _error("json_parse", "$", f"non-finite JSON token is prohibited: {value}")
 
 
+def _parse_finite_json_number(value: str) -> float:
+    try:
+        return finite(value, "JSON numeric value")
+    except ValueError as exc:
+        raise _error("json_parse", "$", str(exc)) from exc
+
+
 def parse_project_json(text: str) -> dict[str, Any]:
     if not isinstance(text, str):
         raise _error("json_parse", "$", "JSON input must be text")
@@ -211,6 +220,7 @@ def parse_project_json(text: str) -> dict[str, Any]:
             text,
             object_pairs_hook=_reject_duplicate_object_keys,
             parse_constant=_reject_nonfinite_constant,
+            parse_float=_parse_finite_json_number,
         )
     except CanonicalProjectLoadError:
         raise

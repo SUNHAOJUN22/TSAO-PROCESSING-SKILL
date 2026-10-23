@@ -179,6 +179,10 @@ def iter_source_files(root: Path):
             kept_directories.append(name)
         directory_names[:] = kept_directories
         for file_name in sorted(file_names):
+            # Linked worktrees and submodules store Git metadata in a file;
+            # exclude it consistently with an ordinary checkout's .git directory.
+            if file_name == ".git":
+                continue
             path_string = os.path.join(directory, file_name)
             if os.path.islink(path_string):
                 continue

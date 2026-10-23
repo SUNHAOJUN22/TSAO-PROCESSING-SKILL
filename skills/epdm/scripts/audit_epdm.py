@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from skills.epdm.package_audit import audit_epdm_process_package  # noqa: E402
 from skills.epdm.qualification import validate_epdm_case  # noqa: E402
+from tsao.json_contract import loads_strict  # noqa: E402
 
 
 def release_audit(root: Path) -> dict[str, object]:
@@ -70,7 +71,11 @@ def main(argv: list[str] | None = None) -> int:
             )
             payload = data["valid_case"]
         else:
-            payload = json.loads(args.file.read_text(encoding="utf-8"))
+            try:
+                payload = loads_strict(args.file.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, ValueError) as exc:
+                print(f"TSAO error: {exc}", file=sys.stderr)
+                return 2
         result = (
             validate_epdm_case(payload) if args.case_only else audit_epdm_process_package(payload)
         )
