@@ -165,6 +165,8 @@ It returns `None` when $I$ is empty. The return value is a fraction (`0.1` means
 
 Source-identity audits support ordinary Git checkouts and linked worktrees. Git's `.git` directory or pointer file is excluded consistently, while tracked source configuration such as `.gitignore` remains in the inventory. Changing a local worktree pointer therefore cannot alter the audited software identity.
 
+Manifest paths must stay relative to the audited root. Absolute paths, parent traversal, UNC paths and Windows drive-relative forms such as `C:outside.txt` are rejected before file reads. Every verification reads the current file contents and recomputes canonical sizes and SHA-256 digests; a same-size edit must still fail its identity check. [Path and content regressions](tests/test_provenance_path_equivalence.py) cover Unicode names, relative roots, newline equivalence, binary mutations, missing files and unlisted additions.
+
 ### 6. Adaptive integration and fitting
 
 EPDM's Dormand–Prince pair compares each component before taking the maximum:

@@ -12,6 +12,7 @@ import pytest
 from tsao import provenance
 
 
+@pytest.mark.parametrize("path_kind", [Path, str])
 @pytest.mark.parametrize("chunk_bytes", [1, 2, 3, 7, 65536])
 @pytest.mark.parametrize(
     "payload, canonical",
@@ -28,25 +29,28 @@ from tsao import provenance
     ],
 )
 def test_identity_is_independent_of_utf8_and_newline_chunk_boundaries(
-    tmp_path, monkeypatch, chunk_bytes, payload, canonical
+    tmp_path, monkeypatch, path_kind, chunk_bytes, payload, canonical
 ):
     # The extension must not decide whether the contents are text or binary.
     path = tmp_path / "ambiguous.png"
     path.write_bytes(payload)
     monkeypatch.setattr(provenance, "_IDENTITY_CHUNK_BYTES", chunk_bytes)
     expected = hashlib.sha256(canonical).hexdigest(), len(canonical)
-    assert provenance.canonical_identity(path) == expected
+    assert provenance.canonical_identity(path_kind(path)) == expected
     assert provenance.canonical_bytes(path) == canonical
 
 
+@pytest.mark.parametrize("path_kind", [Path, str])
 @pytest.mark.parametrize("invalid_tail", [b"", b"\xff", b"\xe4\xb8"])
-def test_large_text_and_late_binary_fallback_match_whole_file_contract(tmp_path, invalid_tail):
+def test_large_text_and_late_binary_fallback_match_whole_file_contract(
+    tmp_path, path_kind, invalid_tail
+):
     block = provenance._IDENTITY_CHUNK_BYTES
     payload = (b"a" * (block - 1) + b"\r\n" + "中文🙂\r".encode()) * 3 + invalid_tail
     path = tmp_path / "large.dat"
     path.write_bytes(payload)
     canonical = payload if invalid_tail else payload.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    assert provenance.canonical_identity(path) == (
+    assert provenance.canonical_identity(path_kind(path)) == (
         hashlib.sha256(canonical).hexdigest(),
         len(canonical),
     )

@@ -51,7 +51,7 @@ def _safe_manifest_relative(value: str) -> Path:
     # Match PurePosixPath normalization for redundant separators and ``.``
     # components while rejecting traversal and Windows-drive-like prefixes.
     parts = tuple(part for part in value.split("/") if part not in {"", "."})
-    if ".." in parts or (parts and parts[0].endswith(":")):
+    if ".." in parts or (parts and (parts[0].endswith(":") or parts[0][1:2] == ":")):
         raise ValueError(f"unsafe manifest path: {value}")
     return Path(*parts)
 
@@ -71,14 +71,21 @@ def canonical_bytes(path: Path) -> bytes:
     return _canonical_data(Path(path).read_bytes())
 
 
-def canonical_identity(path: Path) -> tuple[str, int]:
+def canonical_identity(path: Path | str) -> tuple[str, int]:
     """Return canonical SHA-256 and size in one pass with bounded read buffers.
 
     A late UTF-8 error makes the *entire* file binary.  Keep the raw identity
     alongside the normalized identity until UTF-8 validity is known, instead
     of rereading the file or relying on filename extensions.
     """
-    with Path(path).open("rb") as source:
+    # Preserve public Path normalization, including redundant trailing separators
+    # and dot components, even when the caller supplies a string.
+    return _canonical_path_identity(Path(path))
+
+
+def _canonical_path_identity(path: Path) -> tuple[str, int]:
+    """Hash a normalized internal path without reconstructing a Path per file."""
+    with path.open("rb") as source:
         chunk = source.read(_IDENTITY_CHUNK_BYTES)
         if len(chunk) < _IDENTITY_CHUNK_BYTES:
             data = _canonical_data(chunk)
@@ -162,7 +169,7 @@ def _relative_directory(directory: str, root_string: str) -> str:
     return os.path.relpath(directory, root_string).replace(os.sep, "/")
 
 
-def iter_source_files(root: Path):
+def _iter_source_paths(root: Path):
     root_path = Path(root)
     root_string = os.path.abspath(os.fspath(root_path))
     for directory, directory_names, file_names in os.walk(
@@ -188,7 +195,13 @@ def iter_source_files(root: Path):
                 continue
             relative = f"{relative_directory}/{file_name}" if relative_directory else file_name
             if not _excluded_relative(relative):
-                yield Path(path_string), relative
+                yield path_string, relative
+
+
+def iter_source_files(root: Path):
+    """Yield the public Path interface without imposing it on internal scans."""
+    for path_string, relative in _iter_source_paths(root):
+        yield Path(path_string), relative
 
 
 def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None = None) -> int:
@@ -199,7 +212,7 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
         if allowed_paths is not None and relative not in allowed_paths:
             continue
         specialist, artifact_class, license_scope = classify_path(relative)
-        digest, size = canonical_identity(path)
+        digest, size = _canonical_path_identity(path)
         rows.append(
             {
                 "path": relative,
@@ -287,18 +300,20 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
     # manifest (and any overlays) were parsed. Re-validating each key here used
     # to double the path-normalization work in large-manifest verification.
     for relative, row in records.items():
+        # Reuse this normalized Path, including its cached filesystem string,
+        # for both the metadata check and the single content read below.
         path = root / relative
         if not path.is_file():
             issues.append(f"manifest lists missing file: {relative}")
             continue
         expected_size = int(row["bytes"])
-        digest, size = canonical_identity(path)
+        digest, size = _canonical_path_identity(path)
         if size != expected_size:
             issues.append(f"manifest size mismatch: {relative}")
         if digest != row["sha256"].strip():
             issues.append(f"manifest hash mismatch: {relative}")
 
-    actual = {relative for _, relative in iter_source_files(root)}
+    actual = {relative for _, relative in _iter_source_paths(root)}
     seen = set(records)
     for relative in sorted(actual - seen):
         issues.append(f"unlisted source file: {relative}")
