@@ -169,10 +169,12 @@ def finite_difference_jacobian(
         limits.eps <= relative_step_value <= 1.0
         and float(np.max(np.abs(params))) <= limits.max / 4.0
     )
+    lower_values = np.empty_like(jacobian)
+    denominators = np.empty(params.size, dtype=float)
 
-    # Copy the upper result into the private Jacobian before asking the model
-    # for the lower result. This preserves correctness when the model reuses a
-    # mutable output buffer, without retaining a second output matrix.
+    # Snapshot callback results because models may reuse mutable output buffers.
+    # Retaining lower outputs lets derivative arithmetic run once after every
+    # callback, outside the callbacks' NumPy error-policy context.
     for index, value in enumerate(params):
         scalar = float(value)
         step = relative_step_value * max(1.0, abs(scalar))
@@ -201,11 +203,14 @@ def finite_difference_jacobian(
         lower = _finite_vector(model(minus), "model output")
         if lower.shape != baseline.shape:
             raise ValueError("model output shape changed during finite differences")
-        # Only our derivative arithmetic is converted to a checked ValueError.
-        # Model callbacks must inherit the caller's NumPy error policy unchanged.
-        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
-            np.subtract(column, lower, out=column)
-            np.divide(column, denominator, out=column)
+        np.copyto(lower_values[:, index], lower)
+        denominators[index] = denominator
+    # Apply derivative arithmetic after callbacks so they observe the caller's
+    # NumPy error policy. One vectorized block also avoids a context switch per
+    # parameter while retaining the existing fail-closed finite-result check.
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        np.subtract(jacobian, lower_values, out=jacobian)
+        np.divide(jacobian, denominators, out=jacobian)
     if not np.isfinite(jacobian).all():
         raise ValueError("finite-difference derivative exceeds the finite range")
     return jacobian
