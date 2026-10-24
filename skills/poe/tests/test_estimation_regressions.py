@@ -47,6 +47,22 @@ def test_boolean_values_are_not_accepted_as_scientific_numbers() -> None:
         assess_identifiability(np.array([[True, False]]))
 
 
+@pytest.mark.parametrize("shape", [(2, 2), (0,)])
+def test_array_subclasses_cannot_mask_invalid_storage_shape(shape: tuple[int, ...]) -> None:
+    class MisleadingArray(np.ndarray):
+        @property
+        def ndim(self) -> int:
+            return 1
+
+        @property
+        def size(self) -> int:
+            return 1
+
+    values = np.zeros(shape).view(MisleadingArray)
+    with pytest.raises(ValueError, match="non-empty finite one-dimensional"):
+        first_order_conversion(values, 0.5)
+
+
 @pytest.mark.parametrize("matrix", [[[0.0, 0.0]], [[1.0, 2.0], [2.0, 4.0]]])
 def test_rank_deficiency_is_strict_json(matrix: list[list[float]]) -> None:
     result = assess_identifiability(matrix)
