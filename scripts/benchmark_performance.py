@@ -491,7 +491,12 @@ def run_benchmarks(*, repeats: int, wheel_dir: Path | None = None) -> dict[str, 
                 "epdm_three_level_64_site_families", lambda: _epdm_suite_case(64), 100, 20
             ),
             BenchmarkCase(
-                "epdm_three_level_512_site_families", lambda: _epdm_suite_case(512), 10, 2
+                # This sub-millisecond workload needs longer samples to keep
+                # runner scheduling noise from dominating the measured time.
+                "epdm_three_level_512_site_families",
+                lambda: _epdm_suite_case(512),
+                1_000,
+                2,
             ),
             BenchmarkCase(
                 "epdm_semibatch_material_energy_step", _epdm_semibatch_step_case, 500, 50

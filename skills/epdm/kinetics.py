@@ -557,8 +557,6 @@ def three_level_kinetic_suite(
         ethylene = adjusted.kp_e_L_mol_s * multiplier * state.ethylene_mol_L * site
         propylene = adjusted.kp_p_L_mol_s * multiplier * state.propylene_mol_L * site
         diene = adjusted.kp_d_L_mol_s * multiplier * state.diene_mol_L * site
-        if not (math.isfinite(ethylene) and math.isfinite(propylene) and math.isfinite(diene)):
-            _raise_nonfinite_rate(ethylene, propylene, diene, transfer, deactivation)
         weighted_ethylene += weight * ethylene
         weighted_propylene += weight * propylene
         weighted_diene += weight * diene

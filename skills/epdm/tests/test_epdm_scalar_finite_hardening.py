@@ -109,6 +109,21 @@ def test_three_level_family_rate_overflow_fails_closed() -> None:
         )
 
 
+def test_three_level_zero_weight_overflow_still_fails_closed() -> None:
+    state = EpdmKineticState(1.0e308, 1.0, 1.0, 1.0)
+    parameters = EpdmKineticParameters(1.0, 1.0, 1.0, 1.0, 1.0)
+    with pytest.raises(ValueError, match="ethylene rate became non-finite"):
+        three_level_kinetic_suite(
+            state,
+            parameters,
+            _zero_energies(),
+            temperature_K=298.15,
+            residence_time_s=1.0,
+            site_family_fractions=(0.0, 1.0),
+            site_activity_multipliers=(2.0, 1.0),
+        )
+
+
 def test_reference_outputs_remain_finite() -> None:
     state = EpdmKineticState(1.2, 1.0, 0.04, 0.001, 1.0e-6)
     parameters = EpdmKineticParameters(2.0, 1.6, 0.5, 0.08, 0.02, 10.0)
