@@ -61,6 +61,34 @@ def test_fopdt_response_preserves_small_dimensionless_times() -> None:
     np.testing.assert_allclose(response, expected, rtol=2e-15, atol=0.0)
 
 
+def test_fopdt_response_preserves_precision_across_exp_branch_threshold() -> None:
+    times = np.array([3.0, np.nextafter(4.2, -np.inf), 4.2, np.nextafter(4.2, np.inf)])
+    dimensionless = np.maximum(0.0, times - 3.0) / 12.0
+    assert dimensionless[1] < 0.1
+    assert dimensionless[2] >= 0.1
+    response = fopdt_response(times, gain=2.0, time_constant_s=12.0, dead_time_s=3.0)
+    np.testing.assert_allclose(response, _decimal_dynamic_reference(times), rtol=2e-15, atol=0.0)
+
+
+def test_fopdt_response_does_not_mutate_input_times() -> None:
+    times = np.array([0.0, 1.0, 3.0, 12.0])
+    original = times.copy()
+    fopdt_response(times, gain=2.0, time_constant_s=4.0, dead_time_s=1.0)
+    np.testing.assert_array_equal(times, original)
+
+
+def test_fopdt_response_is_constant_when_dead_time_exceeds_sample_horizon() -> None:
+    times = np.array([0.0, 1.0, 3.0])
+    response = fopdt_response(
+        times,
+        gain=2.0,
+        time_constant_s=4.0,
+        dead_time_s=3.0,
+        initial_output=7.0,
+    )
+    np.testing.assert_array_equal(response, np.full(times.shape, 7.0))
+
+
 def test_dynamic_benchmark_entry_preserves_named_10000_point_workload() -> None:
     case = _poe_dynamic_10k_case()
     times = np.linspace(0.0, 200.0, 10_000)

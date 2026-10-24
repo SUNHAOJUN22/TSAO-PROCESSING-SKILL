@@ -78,25 +78,36 @@ def fopdt_response(
     checked = {label: _finite_scalar(value, label) for label, value in parameters.items()}
     if checked["time_constant_s"] <= 0 or checked["dead_time_s"] < 0:
         raise ValueError("time_constant_s must be positive and dead_time_s non-negative")
-    effective = np.maximum(0.0, times - checked["dead_time_s"])
+    response_scale = checked["gain"] * checked["input_step"]
+    if not math.isfinite(response_scale):
+        raise ValueError("FOPDT response exceeds the finite range")
     # expm1 avoids cancellation when the dimensionless time is small.  Keep
     # overflow visible as a domain error instead of returning NaN/Inf as if it
     # were a usable model response.
     with np.errstate(over="ignore", invalid="ignore", under="ignore", divide="ignore"):
-        dimensionless_time = effective / checked["time_constant_s"]
-        # Subtraction can lose relative accuracy before the result becomes
-        # zero, so use the stable form for the complete non-negative domain.
+        # Sorted input makes the dead-time plateau a prefix. Fill it once, then
+        # use the private result buffer for only the positive-time tail.
+        response = np.empty_like(times)
+        active_start = int(np.searchsorted(times, checked["dead_time_s"], side="right"))
+        response[:active_start] = checked["initial_output"]
+        dimensionless_time = response[active_start:]
+        np.subtract(times[active_start:], checked["dead_time_s"], out=dimensionless_time)
+        np.divide(dimensionless_time, checked["time_constant_s"], out=dimensionless_time)
+        # The input validation above makes dimensionless_time non-decreasing.
+        # Use expm1 for the cancellation-sensitive prefix and exp for the
+        # well-conditioned remainder, then reuse the private array throughout.
+        stable_count = int(np.searchsorted(dimensionless_time, 0.1, side="left"))
+        stable_prefix = dimensionless_time[:stable_count].copy()
         np.negative(dimensionless_time, out=dimensionless_time)
-        np.expm1(dimensionless_time, out=dimensionless_time)
-        np.negative(dimensionless_time, out=dimensionless_time)
-        np.multiply(
-            dimensionless_time,
-            checked["gain"] * checked["input_step"],
-            out=dimensionless_time,
-        )
+        np.exp(dimensionless_time, out=dimensionless_time)
+        np.subtract(1.0, dimensionless_time, out=dimensionless_time)
+        if stable_count:
+            np.negative(stable_prefix, out=stable_prefix)
+            np.expm1(stable_prefix, out=stable_prefix)
+            np.negative(stable_prefix, out=stable_prefix)
+            dimensionless_time[:stable_count] = stable_prefix
+        np.multiply(dimensionless_time, response_scale, out=dimensionless_time)
         np.add(dimensionless_time, checked["initial_output"], out=dimensionless_time)
-        response = dimensionless_time
-    response[times < checked["dead_time_s"]] = checked["initial_output"]
     if not np.isfinite(response).all():
         raise ValueError("FOPDT response exceeds the finite range")
     return response
