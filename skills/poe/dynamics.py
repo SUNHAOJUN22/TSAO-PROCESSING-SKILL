@@ -86,10 +86,16 @@ def fopdt_response(
         dimensionless_time = effective / checked["time_constant_s"]
         # Subtraction can lose relative accuracy before the result becomes
         # zero, so use the stable form for the complete non-negative domain.
-        response_fraction = -np.expm1(-dimensionless_time)
-        response = (
-            checked["initial_output"] + checked["gain"] * checked["input_step"] * response_fraction
+        np.negative(dimensionless_time, out=dimensionless_time)
+        np.expm1(dimensionless_time, out=dimensionless_time)
+        np.negative(dimensionless_time, out=dimensionless_time)
+        np.multiply(
+            dimensionless_time,
+            checked["gain"] * checked["input_step"],
+            out=dimensionless_time,
         )
+        np.add(dimensionless_time, checked["initial_output"], out=dimensionless_time)
+        response = dimensionless_time
     response[times < checked["dead_time_s"]] = checked["initial_output"]
     if not np.isfinite(response).all():
         raise ValueError("FOPDT response exceeds the finite range")

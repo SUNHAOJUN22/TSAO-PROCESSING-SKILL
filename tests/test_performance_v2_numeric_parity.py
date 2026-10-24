@@ -49,6 +49,18 @@ def test_dynamic_10000_point_response_matches_analytical_formula() -> None:
     )
 
 
+def test_fopdt_response_preserves_small_dimensionless_times() -> None:
+    times = np.array([0.0, 1e-15, 1e-12, 1e-8, 1e-4])
+    response = fopdt_response(
+        times,
+        gain=3.0,
+        time_constant_s=2.0,
+        input_step=0.5,
+    )
+    expected = np.array([1.5 * -math.expm1(-float(time) / 2.0) for time in times])
+    np.testing.assert_allclose(response, expected, rtol=2e-15, atol=0.0)
+
+
 def test_dynamic_benchmark_entry_preserves_named_10000_point_workload() -> None:
     case = _poe_dynamic_10k_case()
     times = np.linspace(0.0, 200.0, 10_000)
