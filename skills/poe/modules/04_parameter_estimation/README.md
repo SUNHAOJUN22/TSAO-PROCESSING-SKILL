@@ -38,4 +38,4 @@ Physical polymerization, commercial Aspen/Origin/MATLAB execution, CFD, equipmen
 
 ## Alpha.7 executable reference
 
-`skills.poe.estimation` provides bounded first-order fitting, finite-difference Jacobians and rank/condition-number identifiability checks. It is a transparent reference, not an approved parameter-release system.
+`skills.poe.estimation` provides bounded first-order fitting, finite-difference Jacobians and rank/condition-number identifiability checks. `finite_difference_jacobian` retains its historical unit-scale step when `parameter_scales` is omitted. For small or dimensioned SI parameters, callers should pass one finite, positive characteristic scale per parameter; the central-difference step is then `relative_step * max(abs(parameter), parameter_scale)`. Select scales and operating points so both perturbations remain inside the model's valid domain. The routine does not infer units, bounds or a physically meaningful scale. It is a transparent reference, not an approved parameter-release system.

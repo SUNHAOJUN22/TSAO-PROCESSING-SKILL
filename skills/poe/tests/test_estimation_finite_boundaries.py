@@ -45,3 +45,22 @@ def test_large_finite_bounds_have_finite_midpoint():
 def test_normal_analytic_jacobian_is_preserved():
     actual = finite_difference_jacobian(lambda x: [x[0] ** 2, 3 * x[0]], [2.0])
     np.testing.assert_allclose(actual, [[4.0], [3.0]], rtol=1e-8)
+
+
+def test_parameter_scales_support_small_si_parameters_and_positive_domains():
+    parameter = 1e-9
+    cubic = finite_difference_jacobian(
+        lambda x: [x[0] ** 3], [parameter], parameter_scales=[parameter]
+    )
+    np.testing.assert_allclose(cubic, [[3 * parameter**2]], rtol=1e-8)
+
+    logarithm = finite_difference_jacobian(
+        lambda x: [np.log(x[0])], [parameter], parameter_scales=[parameter]
+    )
+    np.testing.assert_allclose(logarithm, [[1 / parameter]], rtol=1e-6)
+
+
+@pytest.mark.parametrize("scales", [[0.0], [-1.0], [1.0, 2.0]])
+def test_parameter_scales_must_match_parameters_and_be_positive(scales):
+    with pytest.raises(ValueError, match="parameter_scales"):
+        finite_difference_jacobian(lambda x: [x[0]], [1.0], parameter_scales=scales)

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added opt-in characteristic parameter scales to POE finite-difference Jacobians, preserving legacy unit-scale behavior when omitted and supporting small SI-valued parameters.
+
 ## 0.1.0-alpha.15 — 2026-08-02
 
 - Added an opt-in adaptive Dormand–Prince 5(4) integration layer above the locked Phase A3 RHS.

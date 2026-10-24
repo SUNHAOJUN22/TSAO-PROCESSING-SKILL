@@ -178,11 +178,26 @@ def finite_difference_jacobian(
     parameters: Sequence[float],
     *,
     relative_step: float = 1e-6,
+    parameter_scales: Sequence[float] | None = None,
 ) -> np.ndarray:
+    """Compute a central-difference Jacobian using optional parameter scales.
+
+    Omitting ``parameter_scales`` preserves the historical unit-scale step.
+    Otherwise, each finite positive characteristic scale sets the floor for
+    that parameter's relative step. Callers must keep both perturbations in the
+    model's valid domain.
+    """
     params = _finite_vector(parameters, "parameters")
     relative_step_value = _finite_scalar(relative_step, "relative_step")
     if relative_step_value <= 0:
         raise ValueError("relative_step must be finite and positive")
+    scales = (
+        None
+        if parameter_scales is None
+        else _finite_vector(parameter_scales, "parameter_scales")
+    )
+    if scales is not None and (scales.shape != params.shape or np.any(scales <= 0)):
+        raise ValueError("parameter_scales must match parameters and be positive")
     baseline = _finite_model_output(model(params.copy()), "model output")
     # A model may reuse and resize its output buffer during later callbacks.
     # Freeze the dimension contract before any such mutation can affect it.
@@ -190,7 +205,8 @@ def finite_difference_jacobian(
     jacobian = np.empty((baseline_shape[0], params.size), dtype=float)
     limits = np.finfo(float)
     safe_perturbations = (
-        limits.eps <= relative_step_value <= 1.0
+        scales is None
+        and limits.eps <= relative_step_value <= 1.0
         and float(np.max(np.abs(params))) <= limits.max / 4.0
     )
     lower_values = np.empty_like(jacobian)
@@ -201,7 +217,12 @@ def finite_difference_jacobian(
     # callbacks, outside their NumPy error-policy context.
     for index, value in enumerate(params):
         scalar = float(value)
-        step = relative_step_value * max(1.0, abs(scalar))
+        reference_scale = (
+            max(1.0, abs(scalar))
+            if scales is None
+            else max(abs(scalar), float(scales[index]))
+        )
+        step = relative_step_value * reference_scale
         denominator = 2.0 * step
         if safe_perturbations:
             upper_value = scalar + step
