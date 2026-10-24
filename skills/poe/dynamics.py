@@ -79,10 +79,22 @@ def fopdt_response(
     if checked["time_constant_s"] <= 0 or checked["dead_time_s"] < 0:
         raise ValueError("time_constant_s must be positive and dead_time_s non-negative")
     effective = np.maximum(0.0, times - checked["dead_time_s"])
-    response = checked["initial_output"] + checked["gain"] * checked["input_step"] * (
-        1.0 - np.exp(-effective / checked["time_constant_s"])
-    )
+    # expm1 avoids cancellation when the dimensionless time is small.  Keep
+    # overflow visible as a domain error instead of returning NaN/Inf as if it
+    # were a usable model response.
+    with np.errstate(over="ignore", invalid="ignore", under="ignore", divide="ignore"):
+        dimensionless_time = effective / checked["time_constant_s"]
+        # Keep the established expression for compatibility; recover the
+        # positive response when subtraction cancellation erases it entirely.
+        response_fraction = 1.0 - np.exp(-dimensionless_time)
+        small = (dimensionless_time > 0.0) & (response_fraction == 0.0)
+        response_fraction[small] = -np.expm1(-dimensionless_time[small])
+        response = (
+            checked["initial_output"] + checked["gain"] * checked["input_step"] * response_fraction
+        )
     response[times < checked["dead_time_s"]] = checked["initial_output"]
+    if not np.isfinite(response).all():
+        raise ValueError("FOPDT response exceeds the finite range")
     return response
 
 
@@ -98,9 +110,12 @@ def response_metrics(
     change = target_value - initial
     if not math.isfinite(change):
         raise ValueError("target change exceeds the finite range")
-    if abs(change) < 1e-15:
+    if change == 0.0:
         raise ValueError("target must differ from initial response")
-    normalized = (values - initial) / change
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        normalized = (values - initial) / change
+    if not np.isfinite(normalized).all():
+        raise ValueError("normalized response exceeds the finite range")
 
     def first_cross(level: float) -> float | None:
         crossed = normalized >= level
