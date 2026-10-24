@@ -190,13 +190,43 @@ J(k)=\sum_i w_i[X(t_i;k)-X_i]^2,
 \quad k_{min}\le k\le k_{max}.
 $$
 
+Here `t_i` is seconds, `k` is s⁻¹, and conversion `X_i` is dimensionless. The
+objective need not be unimodal: its derivative
+
+$$
+J'(k)=2\sum_i w_i t_i e^{-kt_i}[X(t_i;k)-X_i]
+$$
+
+has no fixed sign for arbitrary observations. Golden-section search is used
+only to seed a feasible candidate. Since `J(k) >= 0`, a seed already within the
+requested objective gap of zero is certified immediately; other cases use a
+bounded branch-and-bound pass that uses the
+monotonicity of `X(t_i;k)` to lower-bound each interval by the weighted squared
+distance from each observation to its prediction interval. A Taylor lower
+bound tightens the estimate where useful. The pass reports the objective-gap
+fraction, tolerance, and split count; it sets `optimization_converged=true`
+only when the gap is within the default `1e-12` fraction of total weight. The
+default budget is 96 interval splits. If the gap remains open at that budget,
+the result is `HOLD`; its rate constant is only the best feasible candidate
+found so far. The bound includes conservative binary64/libm padding and is a
+numerical working enclosure, not formal interval arithmetic over real numbers.
+
+The bounded Brent, golden, and scalar minimization methods documented by SciPy
+are local methods; its manual directs users to global optimization when an
+objective has multiple local minima: [SciPy `minimize_scalar`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize_scalar.html).
+
 A local sensitivity/information diagnostic is
 
 $$
 S_i=t_i e^{-kt_i},\qquad I=\sum_iw_iS_i^2.
 $$
 
-Identifiability is conditional on the chosen model, observations and numerical threshold. It does not prove a globally unique kinetic mechanism or an externally qualified industrial parameter set.
+Identifiability is a local information-threshold diagnostic, separate from the
+objective-gap gate. It is conditional on the chosen model, observations and
+numerical threshold. It does not prove a globally unique kinetic mechanism or
+an externally qualified industrial parameter set. If the information value
+cannot be represented as a finite float, the result reports it as null and
+holds identifiability.
 
 ## Decision and evidence strategy
 

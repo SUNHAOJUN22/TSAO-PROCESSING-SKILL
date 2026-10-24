@@ -89,6 +89,10 @@ def test_wrong_hash_and_missing_unknown_witness_fail_closed() -> None:
     assert compare_fit_results(baseline, wrong_hash)["pass"] is False
     assert compare_fit_results(baseline, {"result_sha256": "b" * 64})["pass"] is False
 
+    missing_required = copy.deepcopy(LEGACY_RESULT)
+    del missing_required["rmse"]
+    assert compare_fit_results(baseline, row(missing_required))["pass"] is False
+
 
 def test_nonfinite_and_inconsistent_residual_witnesses_fail_closed() -> None:
     bad = copy.deepcopy(LEGACY_RESULT)

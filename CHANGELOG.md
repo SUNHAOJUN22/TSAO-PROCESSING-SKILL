@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added an objective-gap branch-and-bound gate to the bounded POE first-order fit; unresolved global search now returns `HOLD` instead of implying a global result from a local search.
 - Added opt-in characteristic parameter scales to POE finite-difference Jacobians, preserving legacy unit-scale behavior when omitted and supporting small SI-valued parameters.
 
 ## 0.1.0-alpha.15 — 2026-08-02

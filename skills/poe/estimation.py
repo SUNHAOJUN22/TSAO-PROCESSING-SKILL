@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import math
 from collections.abc import Callable, Sequence
 from numbers import Real
@@ -76,6 +77,112 @@ def _first_order_conversion_validated(times: np.ndarray, rate_constant: float) -
     return -np.expm1(-rate_constant * times)
 
 
+def _first_order_objective_interval_lower_bound(
+    times: np.ndarray,
+    observed: np.ndarray,
+    normalized_weights: np.ndarray,
+    weight_sum: float,
+    lower: float,
+    upper: float,
+) -> float:
+    """Return a conservative floating-point lower bound for one rate interval.
+
+    For non-negative times, the first-order conversion is monotone in rate, so
+    each prediction on ``[lower, upper]`` lies between the endpoint predictions.
+    The distance-to-interval bound is valid component by component. A Taylor
+    lower bound may tighten it: ``J(m) - |J'(m)| h - M h**2 / 2``, where ``M``
+    bounds ``|J''|`` on the interval. The explicit outward pads make the bound
+    conservative for ordinary binary64/libm rounding; this is not formal
+    interval arithmetic over real numbers.
+    """
+
+    epsilon = np.finfo(float).eps
+    prediction_pad = 16.0 * epsilon
+    objective_pad = 64.0 * epsilon * max(1.0, weight_sum)
+    try:
+        with np.errstate(over="ignore", under="ignore", invalid="ignore"):
+            prediction_lower = _first_order_conversion_validated(times, lower)
+            prediction_upper = _first_order_conversion_validated(times, upper)
+            prediction_lower = np.maximum(0.0, prediction_lower - prediction_pad)
+            prediction_upper = np.minimum(1.0, prediction_upper + prediction_pad)
+            residual_lower = np.nextafter(prediction_lower - observed, -np.inf)
+            residual_upper = np.nextafter(prediction_upper - observed, np.inf)
+            distance = np.maximum(0.0, np.maximum(residual_lower, -residual_upper))
+            distance_terms = normalized_weights * distance * distance
+        if not np.isfinite(distance_terms).all():
+            return 0.0
+        distance_lower_bound = max(
+            0.0,
+            math.nextafter(math.fsum(float(value) for value in distance_terms) - objective_pad, -math.inf),
+        )
+
+        midpoint = lower + (upper - lower) / 2.0
+        half_width = (upper - lower) / 2.0
+        if midpoint == lower or midpoint == upper:
+            return distance_lower_bound
+
+        with np.errstate(over="ignore", under="ignore", invalid="ignore"):
+            midpoint_prediction = _first_order_conversion_validated(times, midpoint)
+            midpoint_residual = midpoint_prediction - observed
+            midpoint_decay = np.exp(-midpoint * times)
+            midpoint_terms = normalized_weights * midpoint_residual * midpoint_residual
+            scaled_time = times * half_width
+            linear_terms = (
+                2.0 * normalized_weights * midpoint_residual * scaled_time * midpoint_decay
+            )
+            linear_scale_terms = 2.0 * normalized_weights * scaled_time * midpoint_decay
+            left_decay = np.exp(-lower * times)
+            left_decay_upper = np.minimum(1.0, left_decay + prediction_pad)
+            curvature_terms = (
+                normalized_weights
+                * scaled_time
+                * scaled_time
+                * left_decay_upper
+                * (2.0 * left_decay_upper + np.abs(1.0 - observed))
+            )
+        if not all(
+            np.isfinite(values).all()
+            for values in (
+                midpoint_terms,
+                linear_terms,
+                linear_scale_terms,
+                curvature_terms,
+            )
+        ):
+            return distance_lower_bound
+
+        midpoint_objective = math.fsum(float(value) for value in midpoint_terms)
+        linear_term = math.fsum(float(value) for value in linear_terms)
+        linear_magnitude = math.fsum(abs(float(value)) for value in linear_terms)
+        linear_scale = math.fsum(float(value) for value in linear_scale_terms)
+        curvature = math.fsum(float(value) for value in curvature_terms)
+        if not all(math.isfinite(value) for value in (midpoint_objective, linear_term, curvature)):
+            return distance_lower_bound
+
+        midpoint_error = math.fsum(
+            float(weight)
+            * (2.0 * abs(float(residual)) * prediction_pad + prediction_pad**2)
+            for weight, residual in zip(normalized_weights, midpoint_residual, strict=True)
+        ) + objective_pad
+        midpoint_lower_bound = max(0.0, midpoint_objective - midpoint_error)
+        linear_error = 64.0 * epsilon * (linear_magnitude + linear_scale)
+        linear_upper = math.nextafter(abs(linear_term) + linear_error, math.inf)
+        curvature_upper = math.nextafter(curvature * (1.0 + 64.0 * epsilon), math.inf)
+        with np.errstate(over="ignore", under="ignore", invalid="ignore"):
+            taylor_lower_bound = (
+                midpoint_lower_bound
+                - linear_upper
+                - curvature_upper
+                - objective_pad
+            )
+        if not math.isfinite(taylor_lower_bound):
+            return distance_lower_bound
+        return max(distance_lower_bound, max(0.0, taylor_lower_bound))
+    except (OverflowError, ValueError):
+        # An unusable Taylor enclosure must only make the search less decisive.
+        return 0.0
+
+
 def first_order_conversion(times_s: Sequence[float], rate_constant_s: float) -> np.ndarray:
     times = _finite_vector(times_s, "times_s")
     if np.any(times < 0):
@@ -94,11 +201,23 @@ def fit_first_order_rate(
     upper_s: float = 10.0,
     weights: Sequence[float] | None = None,
     iterations: int = 96,
+    global_search_iterations: int = 96,
+    global_objective_tolerance_fraction: float = 1e-12,
 ) -> dict[str, Any]:
     """Bounded one-parameter least-squares reference fit.
 
-    The implementation is deterministic and dependency-light. It is intended for
-    known-solution and identifiability checks, not industrial parameter release.
+    Golden-section search supplies a local candidate. Since the objective is
+    non-negative, a feasible seed already within the requested gap of zero is
+    certified immediately; otherwise a bounded branch-and-bound pass compares
+    it with interval lower bounds. The pass stops only when its floating-point
+    objective-gap fraction is within tolerance or its split budget is exhausted.
+    An unconverged result remains ``HOLD`` even when local information is positive.
+
+    ``times_s`` uses seconds, ``rate_constant_s`` uses inverse seconds, and
+    conversion is dimensionless. The objective-gap tolerance is a fraction of
+    the total positive weight, not a parameter-error or scientific-approval
+    tolerance. Floating-point pads are conservative working enclosures, not
+    formal interval arithmetic or industrial parameter release.
     """
     times = _finite_vector(times_s, "times_s")
     observed = _finite_vector(conversion, "conversion")
@@ -116,14 +235,35 @@ def fit_first_order_rate(
         raise ValueError("lower_s must be less than upper_s")
     if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < 16:
         raise ValueError("iterations must be an integer >= 16")
+    if (
+        isinstance(global_search_iterations, bool)
+        or not isinstance(global_search_iterations, int)
+        or global_search_iterations < 0
+    ):
+        raise ValueError("global_search_iterations must be an integer >= 0")
+    tolerance_fraction = _finite_scalar(
+        global_objective_tolerance_fraction, "global_objective_tolerance_fraction"
+    )
+    if not 0.0 < tolerance_fraction <= 1.0:
+        raise ValueError("global_objective_tolerance_fraction must lie in (0, 1]")
     if weights is None:
         weight_array = np.ones_like(times)
     else:
         weight_array = _finite_vector(weights, "weights")
         if weight_array.shape != times.shape or np.any(weight_array <= 0):
             raise ValueError("weights must match observations and be positive")
+    weight_scale = float(np.max(weight_array))
+    with np.errstate(under="ignore"):
+        normalized_weights = weight_array / weight_scale
+    weight_sum = (
+        float(times.size)
+        if weights is None
+        else math.fsum(float(value) for value in normalized_weights)
+    )
+    if not math.isfinite(weight_sum) or weight_sum <= 0:
+        raise ValueError("weight normalization exceeds the finite range")
 
-    def objective(rate: float) -> float:
+    def objective_values(rate: float) -> tuple[float, float]:
         residual = _first_order_conversion_validated(times, rate) - observed
         value = (
             float(np.dot(residual, residual))
@@ -132,7 +272,17 @@ def fit_first_order_rate(
         )
         if not math.isfinite(value):
             raise ValueError("weighted fit objective exceeds the finite range")
-        return value
+        normalized_value = (
+            value
+            if weights is None
+            else float(np.sum(normalized_weights * residual * residual))
+        )
+        if not math.isfinite(normalized_value):
+            raise ValueError("normalized fit objective exceeds the finite range")
+        return value, normalized_value
+
+    def objective(rate: float) -> float:
+        return objective_values(rate)[0]
 
     ratio = (math.sqrt(5.0) - 1.0) / 2.0
     left, right = lower, upper
@@ -148,27 +298,132 @@ def fit_first_order_rate(
             left, x1, f1 = x1, x2, f2
             x2 = left + ratio * (right - left)
             f2 = objective(x2)
-    fitted = (left + right) / 2.0
-    if not math.isfinite(fitted):
-        fitted = left + (right - left) / 2.0
+    fitted = left + (right - left) / 2.0
+
+    best_rate = fitted
+    best_objective, best_normalized_objective = objective_values(best_rate)
+    boundary_tolerance = 8.0 * np.finfo(float).eps * max(1.0, abs(lower), abs(upper))
+    if best_rate - lower <= boundary_tolerance:
+        candidate_objective, candidate_normalized_objective = objective_values(lower)
+        if candidate_normalized_objective <= best_normalized_objective:
+            best_rate = lower
+            best_objective = candidate_objective
+            best_normalized_objective = candidate_normalized_objective
+    if upper - best_rate <= boundary_tolerance:
+        candidate_objective, candidate_normalized_objective = objective_values(upper)
+        if candidate_normalized_objective <= best_normalized_objective:
+            best_rate = upper
+            best_objective = candidate_objective
+            best_normalized_objective = candidate_normalized_objective
+    roundoff_pad = 64.0 * np.finfo(float).eps * max(1.0, weight_sum)
+    tolerance = tolerance_fraction * weight_sum
+    search_iterations = 0
+    if best_normalized_objective + roundoff_pad <= tolerance:
+        # J(k) is non-negative everywhere. This feasible seed therefore
+        # closes the requested global gap against the exact lower bound zero.
+        # Keep the legacy exact-model hot path free of interval and heap work.
+        global_lower_bound = 0.0
+        global_gap = best_normalized_objective + roundoff_pad
+        global_gap_fraction = global_gap / weight_sum
+        optimization_converged = True
+    else:
+        for candidate in (lower, upper):
+            candidate_objective, candidate_normalized_objective = objective_values(candidate)
+            if candidate_normalized_objective < best_normalized_objective:
+                best_rate = candidate
+                best_objective = candidate_objective
+                best_normalized_objective = candidate_normalized_objective
+
+        interval_heap = [
+            (
+                _first_order_objective_interval_lower_bound(
+                    times, observed, normalized_weights, weight_sum, lower, upper
+                ),
+                lower,
+                upper,
+            )
+        ]
+        pruned_lower_bound = math.inf
+
+        def objective_gap() -> tuple[float, float, float]:
+            candidate_upper = best_normalized_objective + roundoff_pad
+            current_lower = min(
+                interval_heap[0][0] if interval_heap else math.inf,
+                pruned_lower_bound,
+            )
+            if not math.isfinite(current_lower) or current_lower > candidate_upper:
+                # Numerical enclosure inconsistency must reduce confidence, never
+                # manufacture a zero gap.
+                current_lower = 0.0
+            current_lower = max(0.0, current_lower)
+            gap = max(0.0, candidate_upper - current_lower)
+            return current_lower, gap, gap / weight_sum
+
+        while interval_heap and search_iterations < global_search_iterations:
+            _lower_bound, interval_lower, interval_upper = interval_heap[0]
+            _current_lower, _gap, gap_fraction = objective_gap()
+            if gap_fraction <= tolerance_fraction:
+                break
+            heapq.heappop(interval_heap)
+            midpoint = interval_lower + (interval_upper - interval_lower) / 2.0
+            if midpoint == interval_lower or midpoint == interval_upper:
+                heapq.heappush(interval_heap, (_lower_bound, interval_lower, interval_upper))
+                break
+
+            midpoint_objective, midpoint_normalized_objective = objective_values(midpoint)
+            if midpoint_normalized_objective < best_normalized_objective:
+                best_rate = midpoint
+                best_objective = midpoint_objective
+                best_normalized_objective = midpoint_normalized_objective
+
+            prune_threshold = best_normalized_objective + roundoff_pad - tolerance
+            for child_lower, child_upper in (
+                (interval_lower, midpoint),
+                (midpoint, interval_upper),
+            ):
+                child_bound = _first_order_objective_interval_lower_bound(
+                    times,
+                    observed,
+                    normalized_weights,
+                    weight_sum,
+                    child_lower,
+                    child_upper,
+                )
+                if child_bound >= prune_threshold:
+                    pruned_lower_bound = min(pruned_lower_bound, child_bound)
+                else:
+                    heapq.heappush(interval_heap, (child_bound, child_lower, child_upper))
+            search_iterations += 1
+
+        global_lower_bound, global_gap, global_gap_fraction = objective_gap()
+        optimization_converged = bool(global_gap_fraction <= tolerance_fraction)
+    fitted = best_rate
     predicted = _first_order_conversion_validated(times, fitted)
     residual = predicted - observed
     rmse = float(np.sqrt(np.mean(residual**2)))
-    sensitivity = times * np.exp(-fitted * times)
-    information = float(np.sum(weight_array * sensitivity * sensitivity))
-    if not math.isfinite(information):
-        raise ValueError("fit information exceeds the finite range")
-    identifiable = information > 1e-12
+    with np.errstate(over="ignore", under="ignore", invalid="ignore"):
+        sensitivity = times * np.exp(-fitted * times)
+        information_value = float(np.sum(weight_array * sensitivity * sensitivity))
+    information = information_value if math.isfinite(information_value) else None
+    identifiable = information > 1e-12 if information is not None else None
     time_design_varies = float(np.ptp(times)) > 0
     return {
-        "status": "CALCULATED_REFERENCE_ONLY" if identifiable else "HOLD",
+        "status": "CALCULATED_REFERENCE_ONLY"
+        if identifiable is True and optimization_converged
+        else "HOLD",
         "rate_constant_s": fitted,
-        "objective": objective(fitted),
+        "objective": best_objective,
         "rmse": rmse,
         "information_scalar": information,
         "identifiable": identifiable,
         "time_design_varies": time_design_varies,
         "bounds_s": [lower, upper],
+        "optimization_converged": optimization_converged,
+        "global_objective_lower_bound_fraction": float(global_lower_bound / weight_sum),
+        "global_objective_gap_fraction": float(global_gap_fraction),
+        "global_objective_tolerance_fraction": tolerance_fraction,
+        "global_search_iterations": search_iterations,
+        "global_search_iteration_budget": global_search_iterations,
         "scientific_approval": "NOT_EVALUATED",
     }
 

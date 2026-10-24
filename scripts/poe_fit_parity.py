@@ -40,7 +40,25 @@ def _witness(row: dict[str, object]) -> tuple[dict[str, Any], str]:
     if result_digest(witness) != row.get("result_sha256"):
         raise ValueError("result witness does not match the recorded SHA-256")
     expected_keys = set(LEGACY_RESULT)
-    if set(witness) not in (expected_keys, expected_keys | {"time_design_varies"}):
+    legacy_optional_keys = {"time_design_varies"}
+    optimization_keys = {
+        "optimization_converged",
+        "global_objective_lower_bound_fraction",
+        "global_objective_gap_fraction",
+        "global_objective_tolerance_fraction",
+        "global_search_iterations",
+        "global_search_iteration_budget",
+    }
+    optional_keys = legacy_optional_keys | optimization_keys
+    witness_keys = set(witness)
+    if not expected_keys <= witness_keys:
+        raise ValueError("fit result is missing required fields")
+    present_optional_keys = witness_keys - expected_keys
+    if (
+        not present_optional_keys <= optional_keys
+        or bool(present_optional_keys & optimization_keys)
+        and not optimization_keys <= present_optional_keys
+    ):
         raise ValueError("unrecognized fit-result fields")
     if witness.get("status") != "CALCULATED_REFERENCE_ONLY":
         raise ValueError("fit status changed")
@@ -50,6 +68,36 @@ def _witness(row: dict[str, object]) -> tuple[dict[str, Any], str]:
         raise ValueError("fit bounds or identifiability changed")
     if "time_design_varies" in witness and witness["time_design_varies"] is not True:
         raise ValueError("the fixed benchmark has varying observation times")
+    if "optimization_converged" in witness:
+        if witness["optimization_converged"] is not True:
+            raise ValueError("global objective-gap gate did not converge")
+        for name in (
+            "global_objective_lower_bound_fraction",
+            "global_objective_gap_fraction",
+            "global_objective_tolerance_fraction",
+        ):
+            value = witness[name]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(f"{name} must be numeric")
+            if not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be finite and non-negative")
+        if witness["global_objective_tolerance_fraction"] == 0:
+            raise ValueError("global objective-gap tolerance must be positive")
+        if witness["global_objective_gap_fraction"] > witness[
+            "global_objective_tolerance_fraction"
+        ]:
+            raise ValueError("global objective-gap tolerance was not met")
+        used = witness["global_search_iterations"]
+        budget = witness["global_search_iteration_budget"]
+        if (
+            isinstance(used, bool)
+            or not isinstance(used, int)
+            or isinstance(budget, bool)
+            or not isinstance(budget, int)
+            or used < 0
+            or budget < used
+        ):
+            raise ValueError("global search iteration accounting is invalid")
     for name in ("rate_constant_s", "objective", "rmse", "information_scalar"):
         value = witness[name]
         if isinstance(value, bool) or not isinstance(value, (int, float)):
