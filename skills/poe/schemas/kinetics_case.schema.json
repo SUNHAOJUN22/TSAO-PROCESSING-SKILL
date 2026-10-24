@@ -18,11 +18,57 @@
         "live_a_units": {"type": "number", "minimum": 0},
         "live_b_units": {"type": "number", "minimum": 0},
         "live_second_moment": {"type": "number", "minimum": 0},
+        "live_mass_second_moment": {"type": "number", "minimum": 0, "description": "Concentration-weighted squared chain molar mass, in (g/mol)^2 mol/L."},
         "dead_chains": {"type": "number", "minimum": 0},
         "dead_a_units": {"type": "number", "minimum": 0},
         "dead_b_units": {"type": "number", "minimum": 0},
-        "dead_second_moment": {"type": "number", "minimum": 0}
-      }
+        "dead_second_moment": {"type": "number", "minimum": 0},
+        "dead_mass_second_moment": {"type": "number", "minimum": 0, "description": "Concentration-weighted squared chain molar mass, in (g/mol)^2 mol/L."}
+      },
+      "allOf": [
+        {
+          "if": {"required": ["live_chains"], "properties": {"live_chains": {"exclusiveMinimum": 0}}},
+          "then": {
+            "required": ["live_mass_second_moment"],
+            "anyOf": [
+              {"required": ["live_a_units"], "properties": {"live_a_units": {"exclusiveMinimum": 0}}},
+              {"required": ["live_b_units"], "properties": {"live_b_units": {"exclusiveMinimum": 0}}}
+            ]
+          }
+        },
+        {
+          "if": {"anyOf": [{"required": ["live_a_units"], "properties": {"live_a_units": {"exclusiveMinimum": 0}}}, {"required": ["live_b_units"], "properties": {"live_b_units": {"exclusiveMinimum": 0}}}]},
+          "then": {
+            "required": ["live_chains", "live_mass_second_moment"],
+            "properties": {"live_mass_second_moment": {"exclusiveMinimum": 0}}
+          }
+        },
+        {
+          "if": {"required": ["live_mass_second_moment"], "properties": {"live_mass_second_moment": {"exclusiveMinimum": 0}}},
+          "then": {"required": ["live_chains"], "properties": {"live_chains": {"exclusiveMinimum": 0}}}
+        },
+        {
+          "if": {"required": ["dead_chains"], "properties": {"dead_chains": {"exclusiveMinimum": 0}}},
+          "then": {
+            "required": ["dead_mass_second_moment"],
+            "anyOf": [
+              {"required": ["dead_a_units"], "properties": {"dead_a_units": {"exclusiveMinimum": 0}}},
+              {"required": ["dead_b_units"], "properties": {"dead_b_units": {"exclusiveMinimum": 0}}}
+            ]
+          }
+        },
+        {
+          "if": {"anyOf": [{"required": ["dead_a_units"], "properties": {"dead_a_units": {"exclusiveMinimum": 0}}}, {"required": ["dead_b_units"], "properties": {"dead_b_units": {"exclusiveMinimum": 0}}}]},
+          "then": {
+            "required": ["dead_chains", "dead_mass_second_moment"],
+            "properties": {"dead_mass_second_moment": {"exclusiveMinimum": 0}}
+          }
+        },
+        {
+          "if": {"required": ["dead_mass_second_moment"], "properties": {"dead_mass_second_moment": {"exclusiveMinimum": 0}}},
+          "then": {"required": ["dead_chains"], "properties": {"dead_chains": {"exclusiveMinimum": 0}}}
+        }
+      ]
     },
     "parameters": {
       "type": "object", "additionalProperties": false,

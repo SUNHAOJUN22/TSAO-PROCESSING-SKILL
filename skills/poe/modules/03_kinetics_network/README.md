@@ -14,7 +14,7 @@ qualified chemistry, concentration/time units, rate constants with provenance. I
 
 ## Equations or algorithm
 
-Use the minimum model that can answer the decision. State equations, conservation basis, parameters, units, numerical tolerances, applicability domain and uncertainty. Module-specific executable reference logic is implemented in `../../core.py` where available; commercial simulation and physical experiments remain external.
+Use the minimum model that can answer the decision. State equations, conservation basis, parameters, units, numerical tolerances, applicability domain and uncertainty. Module-specific executable reference logic is implemented in `../../core.py` where available; commercial simulation and physical experiments remain external. The POE kinetic reference model carries live/dead chain molar-mass second moments in addition to degree-of-polymerization moments; seeded chain populations must provide those moments. JSON Schema performs structural preflight; runtime validation additionally enforces the parameter-dependent Cauchy lower bound `sum(c_i M_i^2) >= sum(c_i M_i)^2 / sum(c_i)`. Its reported weight-average molar mass is `sum(c_i M_i^2) / sum(c_i M_i)`, not an average repeat-unit mass multiplied by a degree-of-polymerization moment. Moment propagation assumes chain-independent insertion and loss rates; chain-mass or composition-dependent rates are outside this reference model.
 
 ## Output contract
 

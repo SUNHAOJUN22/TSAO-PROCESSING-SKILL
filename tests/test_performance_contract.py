@@ -114,7 +114,7 @@ def test_poe_rk4_preserves_baseline_result_and_validates_only_at_entry(
         duration_s=20.0,
         step_s=0.05,
     )
-    assert _digest(result) == "5a158478b8fd13c6c7ab77c6255a650f4025d8a5732a947ff2eaed47caf5acf5"
+    assert _digest(result) == "219ae5d8d45e344330551494dc6aecabe9aff3952516134e07f18963691badbd"
     assert counts == {"state": 1, "parameters": 1}
 
 

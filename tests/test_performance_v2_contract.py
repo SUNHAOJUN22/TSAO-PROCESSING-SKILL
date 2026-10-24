@@ -180,7 +180,20 @@ def _digest(value: object) -> str:
 def test_poe_fixed_state_rk4_preserves_alpha10_result_identity() -> None:
     initial, parameters = _poe_case()
     result = simulate_kinetics(initial, parameters, duration_s=20.0, step_s=0.05)
-    assert _digest(result) == "5a158478b8fd13c6c7ab77c6255a650f4025d8a5732a947ff2eaed47caf5acf5"
+    final = result["final"]
+    polymer_mass = (
+        final["live_a_units"] * parameters.molar_mass_a
+        + final["dead_a_units"] * parameters.molar_mass_a
+        + final["live_b_units"] * parameters.molar_mass_b
+        + final["dead_b_units"] * parameters.molar_mass_b
+    )
+    expected_weight_average = (
+        final["live_mass_second_moment"] + final["dead_mass_second_moment"]
+    ) / polymer_mass
+    assert result["metrics"]["weight_average_molar_mass_g_mol"] == pytest.approx(
+        expected_weight_average
+    )
+    assert _digest(result) == "219ae5d8d45e344330551494dc6aecabe9aff3952516134e07f18963691badbd"
 
 
 def test_poe_terminal_execution_matches_full_history_result() -> None:

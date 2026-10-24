@@ -11,6 +11,7 @@ from skills.poe.kinetics import (
     KineticState,
     _state_add_vector,
     kinetic_derivative,
+    kinetic_metrics,
     simulate_kinetics,
     simulate_kinetics_terminal,
 )
@@ -48,7 +49,10 @@ def test_zero_duration_remains_an_exact_noop(solver) -> None:
     initial = KineticState(1.2, 0.8, 0.01)
     parameters = KineticParameters(0.002, 0.08, 0.05, 0.003, 0.0005)
     result = solver(initial, parameters, 0.0, 0.01)
-    assert result["final"] == asdict(initial)
+    expected = asdict(initial)
+    expected["live_mass_second_moment"] = 0.0
+    expected["dead_mass_second_moment"] = 0.0
+    assert result["final"] == expected
     assert result["metrics"]["mass_balance_residual_mol_L"] == 0.0
 
 
@@ -64,17 +68,17 @@ def test_finite_inputs_with_nonfinite_stages_do_not_publish_a_result(solver) -> 
 
 @pytest.mark.parametrize("invalid", [math.nan, math.inf])
 def test_stage_guard_rejects_nonfinite_values_before_clipping(invalid: float) -> None:
-    state = (0.0,) * 11
-    derivative = (invalid,) + (0.0,) * 10
+    state = (0.0,) * 13
+    derivative = (invalid,) + (0.0,) * 12
     with pytest.raises(ValueError, match="non-finite monomer_a"):
         _state_add_vector(state, derivative, 1.0)
 
 
 def test_existing_negative_state_tolerance_is_not_relaxed() -> None:
-    state = (0.0,) * 11
+    state = (0.0,) * 13
     with pytest.raises(ValueError, match="materially negative"):
-        _state_add_vector(state, (-1e-9,) + (0.0,) * 10, 1.0)
-    assert _state_add_vector(state, (-5e-11,) + (0.0,) * 10, 1.0) == state
+        _state_add_vector(state, (-1e-9,) + (0.0,) * 12, 1.0)
+    assert _state_add_vector(state, (-5e-11,) + (0.0,) * 12, 1.0) == state
 
 
 def test_boolean_state_and_parameter_inputs_are_rejected() -> None:
@@ -101,6 +105,136 @@ def test_public_derivative_rejects_nonfinite_arithmetic() -> None:
     parameters = KineticParameters(1e308, 0.0, 0.0, 0.0, 0.0)
     with pytest.raises(ValueError, match="kinetic derivative.*non-finite"):
         kinetic_derivative(state, parameters)
+
+
+def test_weight_average_molar_mass_uses_chain_mass_distribution() -> None:
+    parameters = KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0)
+    mass_a = parameters.molar_mass_a
+    mass_b = parameters.molar_mass_b
+    # Both populations have N=2, A=B=2 units, and DP second moment=8.
+    # Their chain-mass distributions differ: AA + BB versus AB + AB.
+    aa_and_bb = KineticState(
+        0.0,
+        0.0,
+        0.0,
+        live_chains=2.0,
+        live_a_units=2.0,
+        live_b_units=2.0,
+        live_second_moment=8.0,
+        live_mass_second_moment=(2.0 * mass_a) ** 2 + (2.0 * mass_b) ** 2,
+    )
+    ab_and_ab = KineticState(
+        0.0,
+        0.0,
+        0.0,
+        live_chains=2.0,
+        live_a_units=2.0,
+        live_b_units=2.0,
+        live_second_moment=8.0,
+        live_mass_second_moment=2.0 * (mass_a + mass_b) ** 2,
+    )
+
+    aa_bb_metrics = kinetic_metrics(aa_and_bb, aa_and_bb, parameters)
+    ab_ab_metrics = kinetic_metrics(ab_and_ab, ab_and_ab, parameters)
+    assert aa_bb_metrics["weight_average_molar_mass_g_mol"] == pytest.approx(
+        ((2.0 * mass_a) ** 2 + (2.0 * mass_b) ** 2) / (2.0 * mass_a + 2.0 * mass_b)
+    )
+    assert ab_ab_metrics["weight_average_molar_mass_g_mol"] == pytest.approx(mass_a + mass_b)
+    assert aa_bb_metrics["weight_average_molar_mass_g_mol"] != pytest.approx(
+        ab_ab_metrics["weight_average_molar_mass_g_mol"]
+    )
+
+
+def test_preexisting_chains_require_their_mass_moment() -> None:
+    state = KineticState(0.0, 0.0, 0.0, live_chains=1.0, live_a_units=1.0)
+    with pytest.raises(ValueError, match="live_mass_second_moment is required"):
+        simulate_kinetics(
+            state,
+            KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0),
+            duration_s=0.0,
+            step_s=1.0,
+        )
+
+
+@pytest.mark.parametrize("population", ["live", "dead"])
+def test_seeded_mass_second_moment_respects_the_cauchy_lower_bound(population: str) -> None:
+    parameters = KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0)
+    invalid_values = {
+        "monomer_a": 0.0,
+        "monomer_b": 0.0,
+        "dormant_sites": 0.0,
+        f"{population}_chains": 1.0,
+        f"{population}_a_units": 1.0,
+        f"{population}_mass_second_moment": 1.0,
+    }
+    invalid = KineticState(**invalid_values)
+    with pytest.raises(ValueError, match="below the minimum implied"):
+        simulate_kinetics(invalid, parameters, duration_s=0.0, step_s=1.0)
+
+    monodisperse_values = {
+        **invalid_values,
+        f"{population}_second_moment": 1.0,
+        f"{population}_mass_second_moment": parameters.molar_mass_a**2,
+    }
+    monodisperse = KineticState(**monodisperse_values)
+    assert kinetic_metrics(monodisperse, monodisperse, parameters)[
+        "weight_average_molar_mass_g_mol"
+    ] == pytest.approx(parameters.molar_mass_a)
+
+
+def test_nonempty_chain_without_repeat_units_is_rejected() -> None:
+    state = KineticState(
+        0.0,
+        0.0,
+        0.0,
+        live_chains=1.0,
+        live_mass_second_moment=0.0,
+    )
+    with pytest.raises(ValueError, match="polymer units are required"):
+        simulate_kinetics(
+            state,
+            KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0),
+            duration_s=0.0,
+            step_s=1.0,
+        )
+
+
+def test_live_mass_moment_derivative_tracks_propagation_and_chain_loss() -> None:
+    mass_a = 28.05
+    mass_b = 112.22
+    mass_moment = 40_000.0
+    state = KineticState(
+        monomer_a=1.0,
+        monomer_b=0.5,
+        dormant_sites=0.0,
+        live_chains=2.0,
+        live_a_units=2.0,
+        live_b_units=2.0,
+        live_mass_second_moment=mass_moment,
+    )
+    parameters = KineticParameters(0.0, 0.1, 0.2, 0.03, 0.02, mass_a, mass_b)
+    derivative = kinetic_derivative(state, parameters)
+    average_chain_mass = (2.0 * mass_a + 2.0 * mass_b) / 2.0
+    propagation_a = 0.1 * 1.0 * 2.0
+    propagation_b = 0.2 * 0.5 * 2.0
+    loss = (0.03 + 0.02) * 2.0
+    expected_live = (
+        propagation_a * (2.0 * mass_a * average_chain_mass + mass_a**2)
+        + propagation_b * (2.0 * mass_b * average_chain_mass + mass_b**2)
+        - loss * mass_moment / 2.0
+    )
+    assert derivative.live_mass_second_moment == pytest.approx(expected_live)
+    assert derivative.dead_mass_second_moment == pytest.approx(loss * mass_moment / 2.0)
+
+
+def test_live_mass_moment_derivative_tracks_initiation() -> None:
+    parameters = KineticParameters(0.5, 0.0, 0.0, 0.0, 0.0)
+    state = KineticState(1.0, 0.0, 0.2)
+    derivative = kinetic_derivative(state, parameters)
+    initiation_rate = parameters.k_init * state.dormant_sites * state.monomer_a
+    assert derivative.live_mass_second_moment == pytest.approx(
+        initiation_rate * parameters.molar_mass_a**2
+    )
 
 
 def test_large_noop_monomer_inventory_has_finite_conservation_metrics() -> None:

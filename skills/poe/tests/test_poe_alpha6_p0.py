@@ -109,6 +109,83 @@ def test_all_poe_schemas_are_valid():
         Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
 
 
+def test_kinetics_case_schema_requires_mass_moments_for_seeded_chains():
+    schema = load("schemas/kinetics_case.schema.json")
+    validator = Draft202012Validator(schema)
+    case = {
+        "case_id": "mass-moment-contract",
+        "unit_contract": "concentration=mol/L; time=s; molar_mass=g/mol",
+        "initial_state": {"monomer_a": 1.0, "monomer_b": 0.5, "dormant_sites": 0.0},
+        "parameters": {
+            "k_init": 0.0,
+            "k_prop_a": 0.0,
+            "k_prop_b": 0.0,
+            "k_transfer": 0.0,
+            "k_deactivation": 0.0,
+        },
+        "duration_s": 1.0,
+        "step_s": 0.1,
+        "parameter_sources": ["synthetic fixture"],
+        "applicability_domain": "synthetic contract test",
+        "approval": "NOT_EVALUATED",
+    }
+    assert validator.is_valid(case)
+
+    seeded_without_moment = dict(case)
+    seeded_without_moment["initial_state"] = {
+        **case["initial_state"],
+        "live_chains": 1.0,
+        "live_a_units": 1.0,
+        "live_second_moment": 1.0,
+    }
+    assert not validator.is_valid(seeded_without_moment)
+
+    seeded_with_moment = dict(seeded_without_moment)
+    seeded_with_moment["initial_state"] = {
+        **seeded_without_moment["initial_state"],
+        "live_mass_second_moment": 28.05**2,
+    }
+    assert validator.is_valid(seeded_with_moment)
+
+    impossible_moment = dict(seeded_without_moment)
+    impossible_moment["initial_state"] = {
+        **seeded_without_moment["initial_state"],
+        "live_mass_second_moment": 1.0,
+    }
+    # JSON Schema checks structure; the parameter-dependent Cauchy bound is a
+    # second runtime check because it depends on both molar masses and state.
+    assert validator.is_valid(impossible_moment)
+    with pytest.raises(ValueError, match="below the minimum implied"):
+        simulate_kinetics(
+            KineticState(**impossible_moment["initial_state"]),
+            KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0),
+            duration_s=0.0,
+            step_s=1.0,
+        )
+
+    unattached_moment = dict(case)
+    unattached_moment["initial_state"] = {
+        **case["initial_state"],
+        "live_mass_second_moment": 1.0,
+    }
+    assert not validator.is_valid(unattached_moment)
+
+    dead_without_moment = dict(case)
+    dead_without_moment["initial_state"] = {
+        **case["initial_state"],
+        "dead_chains": 1.0,
+        "dead_b_units": 1.0,
+    }
+    assert not validator.is_valid(dead_without_moment)
+
+    dead_with_moment = dict(dead_without_moment)
+    dead_with_moment["initial_state"] = {
+        **dead_without_moment["initial_state"],
+        "dead_mass_second_moment": 112.22**2,
+    }
+    assert validator.is_valid(dead_with_moment)
+
+
 def test_registry_covers_all_139_assets_and_isolates_pollution():
     registry = load_asset_registry(POE / "data/source_asset_registry.json")
     result = validate_asset_registry(registry)
@@ -142,7 +219,10 @@ def test_zero_rate_known_solution_is_exactly_stationary():
     derivative = kinetic_derivative(state, params)
     assert all(value == 0 for value in derivative.__dict__.values())
     result = simulate_kinetics(state, params, duration_s=10.0, step_s=1.0)
-    assert result["final"] == state.__dict__
+    expected_final = dict(state.__dict__)
+    expected_final["live_mass_second_moment"] = 0.0
+    expected_final["dead_mass_second_moment"] = 0.0
+    assert result["final"] == expected_final
     assert result["metrics"]["mass_balance_residual_mol_L"] == 0.0
 
 
