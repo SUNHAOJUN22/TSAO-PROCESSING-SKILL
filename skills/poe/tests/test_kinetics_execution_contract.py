@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import asdict
 
@@ -9,6 +10,7 @@ from skills.poe.kinetics import (
     KineticParameters,
     KineticState,
     _state_add_vector,
+    kinetic_derivative,
     simulate_kinetics,
     simulate_kinetics_terminal,
 )
@@ -73,6 +75,45 @@ def test_existing_negative_state_tolerance_is_not_relaxed() -> None:
     with pytest.raises(ValueError, match="materially negative"):
         _state_add_vector(state, (-1e-9,) + (0.0,) * 10, 1.0)
     assert _state_add_vector(state, (-5e-11,) + (0.0,) * 10, 1.0) == state
+
+
+def test_boolean_state_and_parameter_inputs_are_rejected() -> None:
+    with pytest.raises(ValueError, match="monomer_a must be finite"):
+        KineticState(True, 0.0, 0.0).validate()
+    with pytest.raises(ValueError, match="k_init must be finite"):
+        KineticParameters(True, 0.0, 0.0, 0.0, 0.0).validate()
+
+
+@pytest.mark.parametrize("solver", SOLVERS)
+@pytest.mark.parametrize("duration,step", [(True, 0.1), (1.0, True)])
+def test_boolean_time_inputs_are_rejected(solver, duration, step) -> None:
+    with pytest.raises(ValueError, match="must be a finite real number"):
+        solver(
+            KineticState(1.0, 0.0, 0.01),
+            KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0),
+            duration,
+            step,
+        )
+
+
+def test_public_derivative_rejects_nonfinite_arithmetic() -> None:
+    state = KineticState(0.0, 0.0, 1e308)
+    parameters = KineticParameters(1e308, 0.0, 0.0, 0.0, 0.0)
+    with pytest.raises(ValueError, match="kinetic derivative.*non-finite"):
+        kinetic_derivative(state, parameters)
+
+
+def test_large_noop_monomer_inventory_has_finite_conservation_metrics() -> None:
+    initial = KineticState(1e308, 1e308, 0.0)
+    result = simulate_kinetics(
+        initial,
+        KineticParameters(0.0, 0.0, 0.0, 0.0, 0.0),
+        duration_s=0.0,
+        step_s=0.1,
+    )
+    assert result["metrics"]["monomer_consumed_mol_L"] == 0.0
+    assert result["metrics"]["mass_balance_residual_mol_L"] == 0.0
+    json.dumps(result, allow_nan=False)
 
 
 def test_full_and_terminal_preserve_each_monomer_inventory() -> None:

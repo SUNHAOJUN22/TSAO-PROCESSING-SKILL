@@ -6,6 +6,7 @@ import pytest
 
 from skills.poe.estimation import (
     assess_identifiability,
+    finite_difference_jacobian,
     first_order_conversion,
     fit_first_order_rate,
 )
@@ -28,6 +29,19 @@ def test_zero_time_has_no_information() -> None:
 
 def test_small_conversion_does_not_cancel_to_zero() -> None:
     assert first_order_conversion([1e-20], 1.0)[0] == pytest.approx(1e-20, rel=1e-14, abs=0)
+
+
+def test_boolean_values_are_not_accepted_as_scientific_numbers() -> None:
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        first_order_conversion([True], 1.0)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        first_order_conversion([1.0], True)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        fit_first_order_rate([1.0, 2.0], [0.2, 0.4], lower_s=True)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        finite_difference_jacobian(lambda x: [x[0]], [True])
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        assess_identifiability([[True]])
 
 
 @pytest.mark.parametrize("matrix", [[[0.0, 0.0]], [[1.0, 2.0], [2.0, 4.0]]])

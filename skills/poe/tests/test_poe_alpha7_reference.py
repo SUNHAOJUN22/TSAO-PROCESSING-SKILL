@@ -77,6 +77,19 @@ def test_fopdt_metrics_transition_and_recycle_memory() -> None:
     assert recycle_memory_time(10.0, 0.0)["status"] == "HOLD"
 
 
+def test_boolean_values_are_rejected_in_dynamic_inputs() -> None:
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        fopdt_response([True], gain=1.0, time_constant_s=1.0)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        fopdt_response([0.0], gain=True, time_constant_s=1.0)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        response_metrics([0.0], [0.0], target=True)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        recycle_memory_time(True, 1.0)
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        grade_transition_assessment([0.0], [0.0], target=1.0, max_settling_s=True)
+
+
 def test_property_transport_and_heat_removal_references() -> None:
     perfect = regression_error_metrics([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
     assert perfect == {"mae": 0.0, "rmse": 0.0, "mape_fraction": 0.0, "r2": 1.0}

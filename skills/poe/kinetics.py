@@ -4,6 +4,8 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from tsao.numeric_contract import finite_product, finite_sum
+
 
 @dataclass(frozen=True)
 class KineticParameters:
@@ -18,7 +20,11 @@ class KineticParameters:
     def validate(self) -> None:
         for name in _PARAMETER_FIELDS:
             value = getattr(self, name)
-            if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+            ):
                 raise ValueError(f"{name} must be finite")
             if value < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -43,7 +49,11 @@ class KineticState:
     def validate(self) -> None:
         for name in _STATE_FIELDS:
             value = getattr(self, name)
-            if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+            ):
                 raise ValueError(f"{name} must be finite")
             if value < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -158,7 +168,11 @@ def kinetic_derivative(state: KineticState, params: KineticParameters) -> Kineti
     """
     state.validate()
     params.validate()
-    return _kinetic_derivative_validated(state, params)
+    derivative = _kinetic_derivative_validated(state, params)
+    for name, value in zip(_STATE_FIELDS, _state_vector(derivative), strict=True):
+        if not math.isfinite(value):
+            raise ValueError(f"kinetic derivative for {name} is non-finite")
+    return derivative
 
 
 def _state_add_vector(state: StateVector, derivative: StateVector, factor: float) -> StateVector:
@@ -188,6 +202,9 @@ def _rk4_combined_vector(
 
 
 def _validated_time_inputs(duration_s: float, step_s: float) -> tuple[float, float]:
+    for name, value in (("duration_s", duration_s), ("step_s", step_s)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{name} must be a finite real number")
     duration = float(duration_s)
     step = float(step_s)
     if not math.isfinite(duration) or duration < 0:
@@ -272,6 +289,8 @@ def simulate_kinetics_terminal(
 def kinetic_metrics(
     initial: KineticState, final: KineticState, params: KineticParameters
 ) -> dict[str, float]:
+    # Preserve the established arithmetic path and its locked reference output
+    # whenever it is representable; use checked summation only for overflow cases.
     initial_total_a = initial.live_a_units + initial.dead_a_units
     initial_total_b = initial.live_b_units + initial.dead_b_units
     initial_polymer_units = initial_total_a + initial_total_b
@@ -290,11 +309,65 @@ def kinetic_metrics(
     )
     mn = avg_monomer_mass * polymer_units / chain_count if chain_count > 0 else 0.0
     mw = avg_monomer_mass * second_moment / polymer_units if polymer_units > 0 else 0.0
-    return {
+    legacy_result = {
         "polymer_units_mol_L": polymer_units,
         "monomer_consumed_mol_L": consumed,
         "mass_balance_residual_mol_L": balance_residual,
         "number_average_molar_mass_g_mol": mn,
         "weight_average_molar_mass_g_mol": mw,
         "comonomer_mole_fraction": total_b / polymer_units if polymer_units > 0 else 0.0,
+    }
+    if all(math.isfinite(value) for value in legacy_result.values()):
+        return legacy_result
+
+    initial.validate()
+    final.validate()
+    params.validate()
+    initial_total_a = finite_sum((initial.live_a_units, initial.dead_a_units), label="initial A units")
+    initial_total_b = finite_sum((initial.live_b_units, initial.dead_b_units), label="initial B units")
+    initial_polymer_units = finite_sum((initial_total_a, initial_total_b), label="initial polymer units")
+    total_a = finite_sum((final.live_a_units, final.dead_a_units), label="final A units")
+    total_b = finite_sum((final.live_b_units, final.dead_b_units), label="final B units")
+    polymer_units = finite_sum((total_a, total_b), label="final polymer units")
+    polymer_increment = finite_sum((polymer_units, -initial_polymer_units), label="polymer increment")
+    consumed_a = finite_sum((initial.monomer_a, -final.monomer_a), label="A monomer consumption")
+    consumed_b = finite_sum((initial.monomer_b, -final.monomer_b), label="B monomer consumption")
+    consumed = finite_sum((consumed_a, consumed_b), label="total monomer consumption")
+    balance_residual = finite_sum((consumed, -polymer_increment), label="mass balance residual")
+    chain_count = finite_sum((final.live_chains, final.dead_chains), label="chain count")
+    second_moment = finite_sum(
+        (final.live_second_moment, final.dead_second_moment), label="second moment"
+    )
+    avg_monomer_mass = (
+        finite_sum(
+            (
+                finite_product(total_a / polymer_units, params.molar_mass_a, label="A monomer mass"),
+                finite_product(total_b / polymer_units, params.molar_mass_b, label="B monomer mass"),
+            ),
+            label="average monomer mass",
+        )
+        if polymer_units > 0
+        else 0.0
+    )
+    mn = (
+        finite_product(avg_monomer_mass, polymer_units, divisor=chain_count, label="number-average molar mass")
+        if chain_count > 0
+        else 0.0
+    )
+    mw = (
+        finite_product(avg_monomer_mass, second_moment, divisor=polymer_units, label="weight-average molar mass")
+        if polymer_units > 0
+        else 0.0
+    )
+    return {
+        "polymer_units_mol_L": polymer_units,
+        "monomer_consumed_mol_L": consumed,
+        "mass_balance_residual_mol_L": balance_residual,
+        "number_average_molar_mass_g_mol": mn,
+        "weight_average_molar_mass_g_mol": mw,
+        "comonomer_mole_fraction": (
+            finite_product(total_b, divisor=polymer_units, label="comonomer mole fraction")
+            if polymer_units > 0
+            else 0.0
+        ),
     }

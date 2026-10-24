@@ -2,16 +2,35 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from numbers import Real
 from typing import Any
 
 import numpy as np
 
 
+def _finite_scalar(value: object, label: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{label} must be a finite real number; Boolean is rejected")
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError(f"{label} must be finite") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"{label} must be finite")
+    return number
+
+
 def _finite_vector(values: Sequence[float], label: str) -> np.ndarray:
-    array = np.asarray(values, dtype=float)
-    if array.ndim != 1 or array.size == 0 or not np.isfinite(array).all():
+    try:
+        raw_values = tuple(values)
+    except TypeError as exc:
+        raise ValueError(f"{label} must be a non-empty finite one-dimensional sequence") from exc
+    if not raw_values:
         raise ValueError(f"{label} must be a non-empty finite one-dimensional sequence")
-    return array
+    return np.asarray(
+        [_finite_scalar(value, f"{label}[{index}]") for index, value in enumerate(raw_values)],
+        dtype=float,
+    )
 
 
 def fopdt_response(
@@ -26,20 +45,21 @@ def fopdt_response(
     times = _finite_vector(times_s, "times_s")
     if np.any(times < 0) or np.any(np.diff(times) < 0):
         raise ValueError("times_s must be non-negative and non-decreasing")
-    for label, value in {
+    parameters = {
         "gain": gain,
         "time_constant_s": time_constant_s,
         "dead_time_s": dead_time_s,
         "input_step": input_step,
         "initial_output": initial_output,
-    }.items():
-        if not math.isfinite(value):
-            raise ValueError(f"{label} must be finite")
-    if time_constant_s <= 0 or dead_time_s < 0:
+    }
+    checked = {label: _finite_scalar(value, label) for label, value in parameters.items()}
+    if checked["time_constant_s"] <= 0 or checked["dead_time_s"] < 0:
         raise ValueError("time_constant_s must be positive and dead_time_s non-negative")
-    effective = np.maximum(0.0, times - dead_time_s)
-    response = initial_output + gain * input_step * (1.0 - np.exp(-effective / time_constant_s))
-    response[times < dead_time_s] = initial_output
+    effective = np.maximum(0.0, times - checked["dead_time_s"])
+    response = checked["initial_output"] + checked["gain"] * checked["input_step"] * (
+        1.0 - np.exp(-effective / checked["time_constant_s"])
+    )
+    response[times < checked["dead_time_s"]] = checked["initial_output"]
     return response
 
 
@@ -50,10 +70,9 @@ def response_metrics(
     values = _finite_vector(response, "response")
     if times.shape != values.shape or np.any(np.diff(times) < 0):
         raise ValueError("times_s and response must have equal, non-decreasing samples")
-    if not math.isfinite(target):
-        raise ValueError("target must be finite")
+    target_value = _finite_scalar(target, "target")
     initial = float(values[0])
-    change = target - initial
+    change = target_value - initial
     if abs(change) < 1e-15:
         raise ValueError("target must differ from initial response")
     normalized = (values - initial) / change
@@ -66,14 +85,14 @@ def response_metrics(
     t90 = first_cross(0.9)
     rise = None if t10 is None or t90 is None else t90 - t10
     band = 0.02 * abs(change)
-    violations = np.flatnonzero(np.abs(values - target) > band)
+    violations = np.flatnonzero(np.abs(values - target_value) > band)
     if not violations.size:
         settling = float(times[0])
     else:
         candidate = int(violations[-1]) + 1
         settling = float(times[candidate]) if candidate < values.size else None
     overshoot = max(0.0, float(np.max(normalized) - 1.0))
-    iae = float(np.trapezoid(np.abs(values - target), times))
+    iae = float(np.trapezoid(np.abs(values - target_value), times))
     return {
         "rise_time_s": rise,
         "settling_time_s": settling,
@@ -85,8 +104,8 @@ def response_metrics(
 
 
 def recycle_memory_time(volume_m3: float, purge_flow_m3_s: float) -> dict[str, Any]:
-    volume = float(volume_m3)
-    purge = float(purge_flow_m3_s)
+    volume = _finite_scalar(volume_m3, "volume_m3")
+    purge = _finite_scalar(purge_flow_m3_s, "purge_flow_m3_s")
     if not math.isfinite(volume) or volume <= 0:
         raise ValueError("volume_m3 must be finite and positive")
     if not math.isfinite(purge) or purge < 0:
@@ -108,9 +127,10 @@ def recycle_memory_time(volume_m3: float, purge_flow_m3_s: float) -> dict[str, A
 def grade_transition_assessment(
     times_s: Sequence[float], response: Sequence[float], *, target: float, max_settling_s: float
 ) -> dict[str, Any]:
-    if not math.isfinite(max_settling_s) or max_settling_s <= 0:
+    maximum_settling = _finite_scalar(max_settling_s, "max_settling_s")
+    if maximum_settling <= 0:
         raise ValueError("max_settling_s must be finite and positive")
     metrics = response_metrics(times_s, response, target=target)
     settling = metrics["settling_time_s"]
-    status = "PASS" if settling is not None and settling <= max_settling_s else "HOLD"
-    return {**metrics, "status": status, "max_settling_s": max_settling_s}
+    status = "PASS" if settling is not None and settling <= maximum_settling else "HOLD"
+    return {**metrics, "status": status, "max_settling_s": maximum_settling}
