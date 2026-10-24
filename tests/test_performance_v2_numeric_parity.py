@@ -60,6 +60,18 @@ def test_finite_difference_jacobian_matches_analytic_derivatives() -> None:
     np.testing.assert_allclose(numeric, analytic, rtol=2e-8, atol=2e-8)
 
 
+def test_finite_difference_jacobian_supports_reused_model_output_buffer() -> None:
+    observations = np.linspace(0.0, 4.0, 32)
+    shared_output = np.empty_like(observations)
+
+    def model(values: np.ndarray) -> np.ndarray:
+        shared_output[:] = values[0] * observations
+        return shared_output
+
+    numeric = finite_difference_jacobian(model, [2.0])
+    np.testing.assert_allclose(numeric[:, 0], observations, rtol=1e-9, atol=1e-9)
+
+
 def test_doctor_semantic_contract_preserves_approval_boundaries() -> None:
     result = diagnose(__import__("pathlib").Path(__file__).resolve().parents[1], profile="core")
     assert result["pass"] is True

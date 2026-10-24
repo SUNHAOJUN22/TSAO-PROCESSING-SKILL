@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+import numpy as np
 import pytest
 
 from skills.poe.estimation import (
@@ -42,6 +43,8 @@ def test_boolean_values_are_not_accepted_as_scientific_numbers() -> None:
         finite_difference_jacobian(lambda x: [x[0]], [True])
     with pytest.raises(ValueError, match="Boolean is rejected"):
         assess_identifiability([[True]])
+    with pytest.raises(ValueError, match="Boolean is rejected"):
+        assess_identifiability(np.array([[True, False]]))
 
 
 @pytest.mark.parametrize("matrix", [[[0.0, 0.0]], [[1.0, 2.0], [2.0, 4.0]]])

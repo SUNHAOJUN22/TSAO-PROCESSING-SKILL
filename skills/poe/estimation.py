@@ -164,13 +164,10 @@ def finite_difference_jacobian(
         raise ValueError("relative_step must be finite and positive")
     baseline = _finite_vector(model(params.copy()), "model output")
     jacobian = np.empty((baseline.size, params.size), dtype=float)
-    lower_outputs = np.empty((params.size, baseline.size), dtype=float)
-    denominators = np.empty(params.size, dtype=float)
 
-    # Snapshot each model result before the next call because a caller may
-    # legally reuse one mutable output buffer. The final centered difference is
-    # evaluated in two vectorized ufuncs, avoiding one error-state context and
-    # two arithmetic temporary arrays per parameter column.
+    # Copy the upper result into the private Jacobian before asking the model
+    # for the lower result. This preserves correctness when the model reuses a
+    # mutable output buffer, without retaining a second output matrix.
     for index, value in enumerate(params):
         step = relative_step_value * max(1.0, abs(float(value)))
         denominator = 2.0 * step
@@ -187,18 +184,17 @@ def finite_difference_jacobian(
         minus = params.copy()
         plus[index] = upper_value
         minus[index] = lower_value
-        upper = _finite_vector(model(plus), "model output").copy()
-        lower = _finite_vector(model(minus), "model output")
-        if upper.shape != baseline.shape or lower.shape != baseline.shape:
+        upper = _finite_vector(model(plus), "model output")
+        if upper.shape != baseline.shape:
             raise ValueError("model output shape changed during finite differences")
-        jacobian[:, index] = upper
-        lower_outputs[index] = lower
-        denominators[index] = denominator
-
-    transposed = jacobian.T
-    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
-        np.subtract(transposed, lower_outputs, out=transposed)
-        np.divide(transposed, denominators[:, None], out=transposed)
+        column = jacobian[:, index]
+        np.copyto(column, upper)
+        lower = _finite_vector(model(minus), "model output")
+        if lower.shape != baseline.shape:
+            raise ValueError("model output shape changed during finite differences")
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            np.subtract(column, lower, out=column)
+            np.divide(column, denominator, out=column)
     if not np.isfinite(jacobian).all():
         raise ValueError("finite-difference derivative exceeds the finite range")
     return jacobian
@@ -207,13 +203,27 @@ def finite_difference_jacobian(
 def assess_identifiability(
     jacobian: Sequence[Sequence[float]], *, condition_limit: float = 1e8
 ) -> dict[str, Any]:
-    try:
-        rows = tuple(_finite_vector(row, f"jacobian[{index}]") for index, row in enumerate(jacobian))
-    except TypeError as exc:
-        raise ValueError("jacobian must be a non-empty finite matrix") from exc
-    if not rows or any(row.shape != rows[0].shape for row in rows):
-        raise ValueError("jacobian must be a non-empty finite matrix")
-    matrix = np.vstack(rows)
+    error = "jacobian must be a non-empty finite matrix"
+    if isinstance(jacobian, np.ndarray) and jacobian.dtype.kind in "iuf":
+        if jacobian.ndim != 2 or jacobian.size == 0:
+            raise ValueError(error)
+        try:
+            matrix = np.asarray(jacobian, dtype=float)
+        except (OverflowError, TypeError, ValueError) as exc:
+            raise ValueError(error) from exc
+        if not np.isfinite(matrix).all():
+            raise ValueError(error)
+    else:
+        try:
+            rows = tuple(
+                _finite_vector(row, f"jacobian[{index}]")
+                for index, row in enumerate(jacobian)
+            )
+        except TypeError as exc:
+            raise ValueError(error) from exc
+        if not rows or any(row.shape != rows[0].shape for row in rows):
+            raise ValueError(error)
+        matrix = np.vstack(rows)
     limit = _finite_scalar(condition_limit, "condition_limit")
     if limit <= 1:
         raise ValueError("condition_limit must be finite and greater than one")
