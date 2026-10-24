@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +18,7 @@ from skills.epdm.kinetics import (
 from skills.epdm.process import SemibatchFeed, SemibatchInventory, semibatch_material_energy_step
 from skills.poe.dynamics import response_metrics
 from skills.poe.kinetics import KineticParameters, KineticState, simulate_kinetics
+from tsao import provenance
 from tsao.doctor import diagnose
 from tsao.provenance import build_manifest, verify_manifest
 
@@ -164,16 +166,24 @@ def test_manifest_build_and_verify_read_each_source_once(
         path.write_text(f"row={index}\r\n", encoding="utf-8")
         sources.append(path)
     target = tmp_path / "reports/SOURCE_CORE_MANIFEST.tsv"
-    original = Path.open
+    original = provenance.os.open
+    expected_inodes = {(path.stat().st_dev, path.stat().st_ino) for path in sources}
     reads: dict[Path, int] = {}
 
-    def counted(path: Path, *args, **kwargs):
-        resolved = path.resolve()
-        if resolved in {item.resolve() for item in sources}:
-            reads[resolved] = reads.get(resolved, 0) + 1
-        return original(path, *args, **kwargs)
+    def counted(path, *args, **kwargs):
+        descriptor = original(path, *args, **kwargs)
+        metadata = os.fstat(descriptor)
+        identity = (metadata.st_dev, metadata.st_ino)
+        if identity in expected_inodes:
+            matching_path = next(
+                item.resolve()
+                for item in sources
+                if (item.stat().st_dev, item.stat().st_ino) == identity
+            )
+            reads[matching_path] = reads.get(matching_path, 0) + 1
+        return descriptor
 
-    monkeypatch.setattr(Path, "open", counted)
+    monkeypatch.setattr(provenance.os, "open", counted)
     assert build_manifest(tmp_path, target) == len(sources)
     assert set(reads.values()) == {1}
     reads.clear()

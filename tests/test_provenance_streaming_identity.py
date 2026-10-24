@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import tracemalloc
-from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -81,24 +80,35 @@ def test_identity_reads_one_file_handle_in_bounded_chunks(tmp_path, monkeypatch)
     payload = b"\xff\r\n" + b"x" * (3 * provenance._IDENTITY_CHUNK_BYTES)
     path = tmp_path / "stream.dat"
     path.write_bytes(payload)
-    original = Path.open
+    original_open = provenance.os.open
+    original_fdopen = provenance.os.fdopen
     opens = []
     reads = []
 
-    @contextmanager
-    def bounded_open(candidate, *args, **kwargs):
+    class BoundedReader:
+        def __init__(self, stream):
+            self.stream = stream
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return self.stream.__exit__(*args)
+
+        def read(self, size=-1):
+            assert 0 < size <= provenance._IDENTITY_CHUNK_BYTES
+            reads.append(size)
+            return self.stream.read(size)
+
+    def tracked_open(candidate, *args, **kwargs):
         opens.append(candidate)
-        with original(candidate, *args, **kwargs) as stream:
+        return original_open(candidate, *args, **kwargs)
 
-            class Reader:
-                def read(self, size=-1):
-                    assert 0 < size <= provenance._IDENTITY_CHUNK_BYTES
-                    reads.append(size)
-                    return stream.read(size)
+    def tracked_fdopen(descriptor, *args, **kwargs):
+        return BoundedReader(original_fdopen(descriptor, *args, **kwargs))
 
-            yield Reader()
-
-    monkeypatch.setattr(Path, "open", bounded_open)
+    monkeypatch.setattr(provenance.os, "open", tracked_open)
+    monkeypatch.setattr(provenance.os, "fdopen", tracked_fdopen)
     assert provenance.canonical_identity(path) == (
         hashlib.sha256(payload).hexdigest(),
         len(payload),
