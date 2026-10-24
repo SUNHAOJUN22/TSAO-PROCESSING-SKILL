@@ -4,6 +4,7 @@ import math
 
 import numpy as np
 
+from scripts.benchmark_performance import _poe_dynamic_10k_case
 from skills.poe.dynamics import fopdt_response, response_metrics
 from skills.poe.estimation import finite_difference_jacobian
 from tsao.doctor import diagnose
@@ -36,6 +37,19 @@ def test_dynamic_10000_point_response_matches_analytical_formula() -> None:
     np.testing.assert_allclose(
         metrics["integral_absolute_error"], expected_iae, rtol=2e-15, atol=2e-15
     )
+
+
+def test_dynamic_benchmark_entry_preserves_named_10000_point_workload() -> None:
+    case = _poe_dynamic_10k_case()
+    times = np.linspace(0.0, 200.0, 10_000)
+    effective = np.maximum(0.0, times - 3.0)
+    expected_response = 2.0 * (1.0 - np.exp(-effective / 12.0))
+    expected_response[times < 3.0] = 0.0
+
+    response = case["response"]
+    assert response.shape == (10_000,)
+    np.testing.assert_allclose(response, expected_response, rtol=0.0, atol=0.0)
+    assert case["metrics"] == response_metrics(times, expected_response, target=2.0)
 
 
 def test_finite_difference_jacobian_matches_analytic_derivatives() -> None:
