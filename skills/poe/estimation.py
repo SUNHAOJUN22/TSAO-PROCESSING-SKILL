@@ -61,6 +61,17 @@ def _finite_vector(values: Sequence[float], label: str) -> np.ndarray:
     return array
 
 
+def _finite_model_output(values: Sequence[float], label: str) -> np.ndarray:
+    # Model callbacks commonly return exact float64 arrays. Keep the same
+    # shape/finiteness contract without routing this hot path through the
+    # general sequence and ndarray-subclass normalization logic.
+    if type(values) is np.ndarray and values.dtype == np.dtype(float):
+        if values.ndim != 1 or values.size == 0 or not np.isfinite(values).all():
+            raise ValueError(f"{label} must be a non-empty finite one-dimensional sequence")
+        return values
+    return _finite_vector(values, label)
+
+
 def _first_order_conversion_validated(times: np.ndarray, rate_constant: float) -> np.ndarray:
     return -np.expm1(-rate_constant * times)
 
@@ -172,7 +183,7 @@ def finite_difference_jacobian(
     relative_step_value = _finite_scalar(relative_step, "relative_step")
     if relative_step_value <= 0:
         raise ValueError("relative_step must be finite and positive")
-    baseline = _finite_vector(model(params.copy()), "model output")
+    baseline = _finite_model_output(model(params.copy()), "model output")
     # A model may reuse and resize its output buffer during later callbacks.
     # Freeze the dimension contract before any such mutation can affect it.
     baseline_shape = baseline.shape
@@ -186,8 +197,8 @@ def finite_difference_jacobian(
     denominators = np.empty(params.size, dtype=float)
 
     # Snapshot callback results because models may reuse mutable output buffers.
-    # Retaining lower outputs lets derivative arithmetic run once after every
-    # callback, outside the callbacks' NumPy error-policy context.
+    # Retain lower outputs so derivative arithmetic can be vectorized after all
+    # callbacks, outside their NumPy error-policy context.
     for index, value in enumerate(params):
         scalar = float(value)
         step = relative_step_value * max(1.0, abs(scalar))
@@ -208,19 +219,16 @@ def finite_difference_jacobian(
         minus = params.copy()
         plus[index] = upper_value
         minus[index] = lower_value
-        upper = _finite_vector(model(plus), "model output")
+        upper = _finite_model_output(model(plus), "model output")
         if upper.shape != baseline_shape:
             raise ValueError("model output shape changed during finite differences")
         column = jacobian[:, index]
         np.copyto(column, upper)
-        lower = _finite_vector(model(minus), "model output")
+        lower = _finite_model_output(model(minus), "model output")
         if lower.shape != baseline_shape:
             raise ValueError("model output shape changed during finite differences")
         np.copyto(lower_values[:, index], lower)
         denominators[index] = denominator
-    # Apply derivative arithmetic after callbacks so they observe the caller's
-    # NumPy error policy. One vectorized block also avoids a context switch per
-    # parameter while retaining the existing fail-closed finite-result check.
     with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
         np.subtract(jacobian, lower_values, out=jacobian)
         np.divide(jacobian, denominators, out=jacobian)
