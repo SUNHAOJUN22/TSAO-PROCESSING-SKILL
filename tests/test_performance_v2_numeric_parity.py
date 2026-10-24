@@ -4,6 +4,7 @@ import math
 from decimal import Decimal, localcontext
 
 import numpy as np
+import pytest
 
 from scripts.benchmark_performance import _poe_dynamic_10k_case
 from skills.poe.dynamics import fopdt_response, response_metrics
@@ -87,6 +88,12 @@ def test_fopdt_response_is_constant_when_dead_time_exceeds_sample_horizon() -> N
         initial_output=7.0,
     )
     np.testing.assert_array_equal(response, np.full(times.shape, 7.0))
+
+
+def test_fopdt_response_rejects_negative_or_descending_times() -> None:
+    for times in ([-1.0, 0.0], [0.0, 2.0, 1.0]):
+        with pytest.raises(ValueError, match="times_s must be non-negative and non-decreasing"):
+            fopdt_response(times, gain=1.0, time_constant_s=1.0)
 
 
 def test_dynamic_benchmark_entry_preserves_named_10000_point_workload() -> None:

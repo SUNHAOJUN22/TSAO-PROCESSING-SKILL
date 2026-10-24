@@ -66,7 +66,7 @@ def fopdt_response(
     initial_output: float = 0.0,
 ) -> np.ndarray:
     times = _finite_vector(times_s, "times_s")
-    if np.any(times < 0) or np.any(np.diff(times) < 0):
+    if times[0] < 0 or np.any(times[1:] < times[:-1]):
         raise ValueError("times_s must be non-negative and non-decreasing")
     parameters = {
         "gain": gain,
