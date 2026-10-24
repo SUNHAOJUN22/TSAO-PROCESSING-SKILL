@@ -173,7 +173,10 @@ def finite_difference_jacobian(
     if relative_step_value <= 0:
         raise ValueError("relative_step must be finite and positive")
     baseline = _finite_vector(model(params.copy()), "model output")
-    jacobian = np.empty((baseline.size, params.size), dtype=float)
+    # A model may reuse and resize its output buffer during later callbacks.
+    # Freeze the dimension contract before any such mutation can affect it.
+    baseline_shape = baseline.shape
+    jacobian = np.empty((baseline_shape[0], params.size), dtype=float)
     limits = np.finfo(float)
     safe_perturbations = (
         limits.eps <= relative_step_value <= 1.0
@@ -206,12 +209,12 @@ def finite_difference_jacobian(
         plus[index] = upper_value
         minus[index] = lower_value
         upper = _finite_vector(model(plus), "model output")
-        if upper.shape != baseline.shape:
+        if upper.shape != baseline_shape:
             raise ValueError("model output shape changed during finite differences")
         column = jacobian[:, index]
         np.copyto(column, upper)
         lower = _finite_vector(model(minus), "model output")
-        if lower.shape != baseline.shape:
+        if lower.shape != baseline_shape:
             raise ValueError("model output shape changed during finite differences")
         np.copyto(lower_values[:, index], lower)
         denominators[index] = denominator
