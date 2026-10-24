@@ -21,16 +21,34 @@ def _finite_scalar(value: object, label: str) -> float:
 
 
 def _finite_vector(values: Sequence[float], label: str) -> np.ndarray:
-    try:
-        raw_values = tuple(values)
-    except TypeError as exc:
-        raise ValueError(f"{label} must be a non-empty finite one-dimensional sequence") from exc
-    if not raw_values:
-        raise ValueError(f"{label} must be a non-empty finite one-dimensional sequence")
-    return np.asarray(
-        [_finite_scalar(value, f"{label}[{index}]") for index, value in enumerate(raw_values)],
-        dtype=float,
-    )
+    error = f"{label} must be a non-empty finite one-dimensional sequence"
+    if isinstance(values, np.ndarray):
+        if values.ndim != 1 or values.size == 0:
+            raise ValueError(error)
+        if values.dtype.kind == "b":
+            _finite_scalar(values[0], f"{label}[0]")
+        if values.dtype.kind not in "iuf":
+            raise ValueError(error)
+        array = np.asarray(values, dtype=float)
+    else:
+        try:
+            raw_values = tuple(values)
+        except TypeError as exc:
+            raise ValueError(error) from exc
+        if not raw_values:
+            raise ValueError(error)
+        for index, value in enumerate(raw_values):
+            if isinstance(value, bool):
+                _finite_scalar(value, f"{label}[{index}]")
+            if not isinstance(value, Real):
+                raise ValueError(error)
+        try:
+            array = np.asarray(raw_values, dtype=float)
+        except (OverflowError, TypeError, ValueError) as exc:
+            raise ValueError(error) from exc
+    if array.ndim != 1 or array.size == 0 or not np.isfinite(array).all():
+        raise ValueError(error)
+    return array
 
 
 def _first_order_conversion_validated(times: np.ndarray, rate_constant: float) -> np.ndarray:
