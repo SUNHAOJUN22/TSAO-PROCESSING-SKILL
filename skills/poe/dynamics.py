@@ -96,26 +96,35 @@ def response_metrics(
     target_value = _finite_scalar(target, "target")
     initial = float(values[0])
     change = target_value - initial
+    if not math.isfinite(change):
+        raise ValueError("target change exceeds the finite range")
     if abs(change) < 1e-15:
         raise ValueError("target must differ from initial response")
     normalized = (values - initial) / change
 
     def first_cross(level: float) -> float | None:
-        indices = np.flatnonzero(normalized >= level)
-        return float(times[indices[0]]) if indices.size else None
+        crossed = normalized >= level
+        index = int(np.argmax(crossed))
+        return float(times[index]) if crossed[index] else None
 
     t10 = first_cross(0.1)
     t90 = first_cross(0.9)
     rise = None if t10 is None or t90 is None else t90 - t10
     band = 0.02 * abs(change)
-    violations = np.flatnonzero(np.abs(values - target_value) > band)
-    if not violations.size:
+    absolute_error = np.abs(values - target_value)
+    violations = absolute_error > band
+    last_violation = violations.size - 1 - int(np.argmax(violations[::-1]))
+    if not violations[last_violation]:
         settling = float(times[0])
     else:
-        candidate = int(violations[-1]) + 1
+        candidate = last_violation + 1
         settling = float(times[candidate]) if candidate < values.size else None
     overshoot = max(0.0, float(np.max(normalized) - 1.0))
-    iae = float(_trapezoid(np.abs(values - target_value), times))
+    iae = float(_trapezoid(absolute_error, times))
+    if any(
+        value is not None and not math.isfinite(value) for value in (rise, settling, overshoot, iae)
+    ):
+        raise ValueError("response metrics exceed the finite range")
     return {
         "rise_time_s": rise,
         "settling_time_s": settling,
