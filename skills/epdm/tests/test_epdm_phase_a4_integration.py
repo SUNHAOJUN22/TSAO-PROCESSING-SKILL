@@ -538,6 +538,44 @@ def test_stiffness_rejection_limit_is_explicit_hold():
     assert result.reason_code == "A15_STIFFNESS_SUSPECTED_HOLD"
 
 
+@pytest.mark.parametrize("rejection_limit", [1, 2, 5])
+def test_negative_intermediate_stages_consume_the_rejection_budget(rejection_limit):
+    state, network, package = _system()
+    package = _single_activation(package, network, rate=1000.0)
+    vector = state.pack({"N_SITE_POTENTIAL:SITE-A": 1.0}, fill_missing=0.0)
+    request = replace(
+        _request(
+            state,
+            network,
+            package,
+            end=1.0,
+            initial_step_s=1.0,
+            minimum_step_s=1.0e-12,
+            maximum_step_s=1.0,
+        ),
+        maximum_consecutive_rejections=rejection_limit,
+    )
+    result = integrate_adaptive(
+        request,
+        network,
+        state,
+        package,
+        vector,
+        temperature_k=323.15,
+        volume_m3=1.0,
+    )
+    # The first DP stage is y + h*k*y*(-1/5). For each tested halving
+    # h >= 1/16, so the potential-site amount remains negative at that stage.
+    # No accepted step, physical time or accepted state may be fabricated.
+    assert result.decision == GateDecision.HOLD
+    assert result.reason_code == "A15_STIFFNESS_SUSPECTED_HOLD"
+    assert result.rejected_steps == result.attempted_steps == rejection_limit
+    assert result.accepted_steps == 0
+    assert result.times_s == (0.0,)
+    assert result.final_state == tuple(vector)
+    assert result.scientific_technical_approval == "NOT_EVALUATED"
+
+
 def test_nonfinite_stage_and_trajectory_conservation_defenses(monkeypatch):
     import skills.epdm.numerical_integration as module
     from skills.epdm.executable_rhs import RHSResult

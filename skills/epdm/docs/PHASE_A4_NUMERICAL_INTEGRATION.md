@@ -12,6 +12,7 @@ The integrator:
 - propagates Phase A3 HOLD/FAIL decisions without inventing default parameters;
 - rejects and reduces steps that create negative intermediate or candidate states, clamping only round-off values within the declared tolerance;
 - reports suspected stiffness, minimum-step exhaustion and maximum-step-count exhaustion as machine-readable HOLD states;
+- applies `maximum_consecutive_rejections` to every rejected attempt, including negative intermediate stages; an accepted step resets this counter;
 - records accepted/rejected attempts, monotonic times, embedded error estimates and explicit external-flow integrals;
 - verifies named site inventories, total polymer-unit inventory and the Phase A3 E/P/D static conservation ledgers.
 

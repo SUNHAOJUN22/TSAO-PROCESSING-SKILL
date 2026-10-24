@@ -173,35 +173,37 @@ def finite_difference_jacobian(
     # Copy the upper result into the private Jacobian before asking the model
     # for the lower result. This preserves correctness when the model reuses a
     # mutable output buffer, without retaining a second output matrix.
-    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
-        for index, value in enumerate(params):
-            scalar = float(value)
-            step = relative_step_value * max(1.0, abs(scalar))
-            denominator = 2.0 * step
-            if safe_perturbations:
-                upper_value = scalar + step
-                lower_value = scalar - step
-            else:
-                if not math.isfinite(step) or not math.isfinite(denominator):
-                    raise ValueError("finite-difference step exceeds the finite range")
-                upper_value = scalar + step
-                lower_value = scalar - step
-                if not math.isfinite(upper_value) or not math.isfinite(lower_value):
-                    raise ValueError("finite-difference perturbation exceeds the finite range")
-                if upper_value == scalar or lower_value == scalar:
-                    raise ValueError("finite-difference step is too small to perturb the parameter")
-            plus = params.copy()
-            minus = params.copy()
-            plus[index] = upper_value
-            minus[index] = lower_value
-            upper = _finite_vector(model(plus), "model output")
-            if upper.shape != baseline.shape:
-                raise ValueError("model output shape changed during finite differences")
-            column = jacobian[:, index]
-            np.copyto(column, upper)
-            lower = _finite_vector(model(minus), "model output")
-            if lower.shape != baseline.shape:
-                raise ValueError("model output shape changed during finite differences")
+    for index, value in enumerate(params):
+        scalar = float(value)
+        step = relative_step_value * max(1.0, abs(scalar))
+        denominator = 2.0 * step
+        if safe_perturbations:
+            upper_value = scalar + step
+            lower_value = scalar - step
+        else:
+            if not math.isfinite(step) or not math.isfinite(denominator):
+                raise ValueError("finite-difference step exceeds the finite range")
+            upper_value = scalar + step
+            lower_value = scalar - step
+            if not math.isfinite(upper_value) or not math.isfinite(lower_value):
+                raise ValueError("finite-difference perturbation exceeds the finite range")
+            if upper_value == scalar or lower_value == scalar:
+                raise ValueError("finite-difference step is too small to perturb the parameter")
+        plus = params.copy()
+        minus = params.copy()
+        plus[index] = upper_value
+        minus[index] = lower_value
+        upper = _finite_vector(model(plus), "model output")
+        if upper.shape != baseline.shape:
+            raise ValueError("model output shape changed during finite differences")
+        column = jacobian[:, index]
+        np.copyto(column, upper)
+        lower = _finite_vector(model(minus), "model output")
+        if lower.shape != baseline.shape:
+            raise ValueError("model output shape changed during finite differences")
+        # Only our derivative arithmetic is converted to a checked ValueError.
+        # Model callbacks must inherit the caller's NumPy error policy unchanged.
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
             np.subtract(column, lower, out=column)
             np.divide(column, denominator, out=column)
     if not np.isfinite(jacobian).all():
@@ -225,8 +227,7 @@ def assess_identifiability(
     else:
         try:
             rows = tuple(
-                _finite_vector(row, f"jacobian[{index}]")
-                for index, row in enumerate(jacobian)
+                _finite_vector(row, f"jacobian[{index}]") for index, row in enumerate(jacobian)
             )
         except TypeError as exc:
             raise ValueError(error) from exc
@@ -250,12 +251,7 @@ def assess_identifiability(
         singular = np.asarray([], dtype=float)
 
     needs_scaled_retry = singular.size != min(matrix.shape) or not np.isfinite(singular).all()
-    if (
-        not needs_scaled_retry
-        and singular.size
-        and singular[-1] == 0.0
-        and np.any(matrix != 0.0)
-    ):
+    if not needs_scaled_retry and singular.size and singular[-1] == 0.0 and np.any(matrix != 0.0):
         needs_scaled_retry = True
 
     if needs_scaled_retry:

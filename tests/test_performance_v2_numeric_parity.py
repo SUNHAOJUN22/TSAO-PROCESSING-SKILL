@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from skills.poe.dynamics import fopdt_response, response_metrics
@@ -23,7 +25,14 @@ def test_dynamic_10000_point_response_matches_analytical_formula() -> None:
     assert metrics["rise_time_s"] is not None
     assert metrics["settling_time_s"] is not None
     assert metrics["overshoot_fraction"] == 0.0
-    expected_iae = float(np.trapezoid(np.abs(expected - 2.0), times))
+    # Independent scalar composite-trapezoid oracle also runs on NumPy 1.26.
+    errors = np.abs(expected - 2.0)
+    expected_iae = math.fsum(
+        (float(right_t) - float(left_t)) * (float(left_y) + float(right_y)) / 2.0
+        for left_t, right_t, left_y, right_y in zip(
+            times[:-1], times[1:], errors[:-1], errors[1:], strict=True
+        )
+    )
     np.testing.assert_allclose(
         metrics["integral_absolute_error"], expected_iae, rtol=2e-15, atol=2e-15
     )

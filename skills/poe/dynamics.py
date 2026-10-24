@@ -7,6 +7,11 @@ from typing import Any
 
 import numpy as np
 
+# NumPy 1.26 is part of the public dependency contract; ``trapezoid`` was
+# introduced in 2.0 and the equivalent ``trapz`` was removed in 2.4. Resolve
+# lazily so the unavailable name is never evaluated on either supported line.
+_trapezoid = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+
 
 def _finite_scalar(value: object, label: str) -> float:
     if isinstance(value, bool) or not isinstance(value, Real):
@@ -110,7 +115,7 @@ def response_metrics(
         candidate = int(violations[-1]) + 1
         settling = float(times[candidate]) if candidate < values.size else None
     overshoot = max(0.0, float(np.max(normalized) - 1.0))
-    iae = float(np.trapezoid(np.abs(values - target_value), times))
+    iae = float(_trapezoid(np.abs(values - target_value), times))
     return {
         "rise_time_s": rise,
         "settling_time_s": settling,

@@ -520,6 +520,27 @@ def integrate_adaptive(
                 max_static[str(key)] = max(max_static.get(str(key), 0.0), float(value))
         return "PASS", np.asarray(result.rhs, dtype=float), result.reason_code, ""
 
+    def rejection_limit_result() -> IntegrationResult | None:
+        # Both a negative intermediate stage and a failed embedded-error test
+        # reject one attempted step. They must consume the same request budget.
+        if consecutive_rejections < request.maximum_consecutive_rejections:
+            return None
+        return _empty_result(
+            request,
+            GateDecision.HOLD,
+            "A15_STIFFNESS_SUSPECTED_HOLD",
+            state=state,
+            times=times,
+            accepted=accepted,
+            rejected=rejected,
+            attempted=attempted,
+            min_step=min_used,
+            max_step=max_used,
+            max_error=max_error,
+            max_conservation=max_conservation,
+            holds=("consecutive step rejections exceeded the configured limit",),
+        )
+
     while time < end:
         if attempted >= request.maximum_steps:
             return _empty_result(
@@ -574,6 +595,8 @@ def integrate_adaptive(
                 )
             rejected += 1
             consecutive_rejections += 1
+            if limit_result := rejection_limit_result():
+                return limit_result
             if step <= request.minimum_step_s * (1.0 + 1.0e-12):
                 return _empty_result(
                     request,
@@ -656,22 +679,8 @@ def integrate_adaptive(
 
         rejected += 1
         consecutive_rejections += 1
-        if consecutive_rejections >= request.maximum_consecutive_rejections:
-            return _empty_result(
-                request,
-                GateDecision.HOLD,
-                "A15_STIFFNESS_SUSPECTED_HOLD",
-                state=state,
-                times=times,
-                accepted=accepted,
-                rejected=rejected,
-                attempted=attempted,
-                min_step=min_used,
-                max_step=max_used,
-                max_error=max_error,
-                max_conservation=max_conservation,
-                holds=("consecutive step rejections exceeded the configured limit",),
-            )
+        if limit_result := rejection_limit_result():
+            return limit_result
         if step <= request.minimum_step_s * (1.0 + 1.0e-12):
             reason = "A15_NONNEGATIVE_STEP_HOLD" if negative else "A15_MINIMUM_STEP_HOLD"
             return _empty_result(
