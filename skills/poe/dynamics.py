@@ -84,11 +84,9 @@ def fopdt_response(
     # were a usable model response.
     with np.errstate(over="ignore", invalid="ignore", under="ignore", divide="ignore"):
         dimensionless_time = effective / checked["time_constant_s"]
-        # Keep the established expression for compatibility; recover the
-        # positive response when subtraction cancellation erases it entirely.
-        response_fraction = 1.0 - np.exp(-dimensionless_time)
-        small = (dimensionless_time > 0.0) & (response_fraction == 0.0)
-        response_fraction[small] = -np.expm1(-dimensionless_time[small])
+        # Subtraction can lose relative accuracy before the result becomes
+        # zero, so use the stable form for the complete non-negative domain.
+        response_fraction = -np.expm1(-dimensionless_time)
         response = (
             checked["initial_output"] + checked["gain"] * checked["input_step"] * response_fraction
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from decimal import Decimal, localcontext
 
 import numpy as np
 
@@ -8,6 +9,17 @@ from scripts.benchmark_performance import _poe_dynamic_10k_case
 from skills.poe.dynamics import fopdt_response, response_metrics
 from skills.poe.estimation import finite_difference_jacobian
 from tsao.doctor import diagnose
+
+
+def _decimal_dynamic_reference(times: np.ndarray) -> np.ndarray:
+    """Evaluate the reference model independently from its exact binary64 inputs."""
+    with localcontext() as context:
+        context.prec = 80
+        response = []
+        for time in times:
+            effective = max(Decimal(0), Decimal.from_float(float(time)) - Decimal(3))
+            response.append(float(Decimal(2) * (1 - (-effective / Decimal(12)).exp())))
+    return np.array(response)
 
 
 def test_dynamic_10000_point_response_matches_analytical_formula() -> None:
@@ -18,10 +30,8 @@ def test_dynamic_10000_point_response_matches_analytical_formula() -> None:
         time_constant_s=12.0,
         dead_time_s=3.0,
     )
-    effective = np.maximum(0.0, times - 3.0)
-    expected = 2.0 * (1.0 - np.exp(-effective / 12.0))
-    expected[times < 3.0] = 0.0
-    np.testing.assert_allclose(response, expected, rtol=0.0, atol=0.0)
+    expected = _decimal_dynamic_reference(times)
+    np.testing.assert_allclose(response, expected, rtol=2e-15, atol=0.0)
     metrics = response_metrics(times, response, target=2.0)
     assert metrics["rise_time_s"] is not None
     assert metrics["settling_time_s"] is not None
@@ -42,14 +52,12 @@ def test_dynamic_10000_point_response_matches_analytical_formula() -> None:
 def test_dynamic_benchmark_entry_preserves_named_10000_point_workload() -> None:
     case = _poe_dynamic_10k_case()
     times = np.linspace(0.0, 200.0, 10_000)
-    effective = np.maximum(0.0, times - 3.0)
-    expected_response = 2.0 * (1.0 - np.exp(-effective / 12.0))
-    expected_response[times < 3.0] = 0.0
+    expected_response = _decimal_dynamic_reference(times)
 
     response = case["response"]
     assert response.shape == (10_000,)
-    np.testing.assert_allclose(response, expected_response, rtol=0.0, atol=0.0)
-    assert case["metrics"] == response_metrics(times, expected_response, target=2.0)
+    np.testing.assert_allclose(response, expected_response, rtol=2e-15, atol=0.0)
+    assert case["metrics"] == response_metrics(times, response, target=2.0)
 
 
 def test_finite_difference_jacobian_matches_analytic_derivatives() -> None:
