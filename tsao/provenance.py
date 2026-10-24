@@ -5,7 +5,7 @@ import csv
 import hashlib
 import os
 import stat
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, BinaryIO
@@ -49,12 +49,12 @@ _MANIFEST_FIELDS = (
 )
 
 
-def _safe_manifest_relative(value: str) -> Path:
-    """Return a validated repository-relative path without filesystem access.
+def _safe_manifest_parts(value: str) -> tuple[str, ...]:
+    """Return validated repository-relative components without filesystem access.
 
     The manifest format is POSIX-style on every platform.  Avoid constructing a
-    ``PurePosixPath`` for each record because verification can process thousands
-    of paths and this helper sits directly on that hot path.
+    ``Path`` for each record because verification can process thousands of paths
+    and this helper sits directly on that hot path.
     """
     if not value or "\\" in value or value.startswith("/"):
         raise ValueError(f"unsafe manifest path: {value}")
@@ -64,7 +64,12 @@ def _safe_manifest_relative(value: str) -> Path:
     parts = tuple(part for part in value.split("/") if part not in {"", "."})
     if ".." in parts or (parts and (parts[0].endswith(":") or parts[0][1:2] == ":")):
         raise ValueError(f"unsafe manifest path: {value}")
-    return Path(*parts)
+    return parts
+
+
+def _safe_manifest_relative(value: str) -> Path:
+    """Return a validated repository-relative path without filesystem access."""
+    return Path(*_safe_manifest_parts(value))
 
 
 def _canonical_data(data: bytes) -> bytes:
@@ -154,10 +159,12 @@ def _open_regular_file(path: Path) -> BinaryIO:
 
 
 @contextmanager
-def _open_root_relative_file(root: Path, relative: str) -> Iterator[BinaryIO]:
+def _open_root_relative_file(
+    root: Path, relative: str, *, root_is_resolved: bool = False
+) -> Iterator[BinaryIO]:
     """Open a manifest path below root, rejecting symlinks at every component."""
-    root = Path(root).resolve(strict=True)
-    parts = _safe_manifest_relative(relative).parts
+    root = Path(root) if root_is_resolved else Path(root).resolve(strict=True)
+    parts = _safe_manifest_parts(relative)
     if not parts:
         raise ValueError(f"manifest path is not a file: {relative}")
 
@@ -221,6 +228,75 @@ def _canonical_path_identity(path: Path) -> tuple[str, int]:
 def _canonical_relative_identity(root: Path, relative: str) -> tuple[str, int]:
     with _open_root_relative_file(root, relative) as source:
         return _canonical_stream_identity(source)
+
+
+@contextmanager
+def _root_relative_identity_reader(root: Path) -> Iterator[Callable[[str], tuple[str, int]]]:
+    """Hash many files below one pinned root without reopening each directory.
+
+    Source walks and manifest rows are normally grouped by parent directory. Keep
+    only the current directory chain open, replacing it with no-follow directory
+    opens when the parent changes. This preserves root-relative traversal while
+    avoiding a root resolve/open and a full parent walk for every small file.
+    """
+    root = Path(root).resolve(strict=True)
+    if not (
+        os.name == "posix"
+        and os.open in os.supports_dir_fd
+        and hasattr(os, "O_DIRECTORY")
+        and hasattr(os, "O_NOFOLLOW")
+    ):
+        def identify_fallback(relative: str) -> tuple[str, int]:
+            with _open_root_relative_file(root, relative, root_is_resolved=True) as source:
+                return _canonical_stream_identity(source)
+
+        yield identify_fallback
+        return
+
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    file_flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
+    root_fd = os.open(root, directory_flags)
+    directory_fds = [root_fd]
+    directory_parts: list[str] = []
+
+    def identify(relative: str) -> tuple[str, int]:
+        parts = _safe_manifest_parts(relative)
+        if not parts:
+            raise ValueError(f"manifest path is not a file: {relative}")
+
+        parent_parts = parts[:-1]
+        common = 0
+        while (
+            common < len(directory_parts)
+            and common < len(parent_parts)
+            and directory_parts[common] == parent_parts[common]
+        ):
+            common += 1
+        while len(directory_parts) > common:
+            directory_parts.pop()
+            os.close(directory_fds.pop())
+        for part in parent_parts[common:]:
+            next_fd = os.open(part, directory_flags, dir_fd=directory_fds[-1])
+            directory_parts.append(part)
+            directory_fds.append(next_fd)
+
+        file_fd = os.open(parts[-1], file_flags, dir_fd=directory_fds[-1])
+        try:
+            if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+                raise ValueError(f"manifest path is not a regular file: {relative}")
+            with os.fdopen(file_fd, "rb") as source:
+                file_fd = -1
+                return _canonical_stream_identity(source)
+        finally:
+            if file_fd >= 0:
+                os.close(file_fd)
+
+    try:
+        yield identify
+    finally:
+        while len(directory_fds) > 1:
+            os.close(directory_fds.pop())
+        os.close(root_fd)
 
 
 def sha256_file(path: Path) -> str:
@@ -310,21 +386,22 @@ def build_manifest(root: Path, target: Path, *, allowed_paths: set[str] | None =
     root = Path(root)
     target = Path(target)
     rows: list[dict[str, Any]] = []
-    for _path, relative in iter_source_files(root):
-        if allowed_paths is not None and relative not in allowed_paths:
-            continue
-        specialist, artifact_class, license_scope = classify_path(relative)
-        digest, size = _canonical_relative_identity(root, relative)
-        rows.append(
-            {
-                "path": relative,
-                "sha256": digest,
-                "bytes": size,
-                "specialist": specialist,
-                "artifact_class": artifact_class,
-                "license_scope": license_scope,
-            }
-        )
+    with _root_relative_identity_reader(root) as identify:
+        for _path, relative in _iter_source_paths(root):
+            if allowed_paths is not None and relative not in allowed_paths:
+                continue
+            specialist, artifact_class, license_scope = classify_path(relative)
+            digest, size = identify(relative)
+            rows.append(
+                {
+                    "path": relative,
+                    "sha256": digest,
+                    "bytes": size,
+                    "specialist": specialist,
+                    "artifact_class": artifact_class,
+                    "license_scope": license_scope,
+                }
+            )
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(
@@ -368,7 +445,7 @@ def _read_manifest_records(
                 issues.append(f"{label} row {row_number}: path must be non-empty and unique")
                 continue
             try:
-                _safe_manifest_relative(relative)
+                _safe_manifest_parts(relative)
                 size = int(row.get("bytes") or "")
             except ValueError as exc:
                 issues.append(f"{label} row {row_number}: {exc}")
@@ -407,25 +484,24 @@ def verify_manifest(root: Path, manifest: Path) -> list[str]:
         issues.append("source manifest contains no file records")
         return sorted(set(issues))
 
-    # Every key in ``records`` already passed _safe_manifest_relative while the
+    # Every key in ``records`` already passed _safe_manifest_parts while the
     # manifest (and any overlays) were parsed. Re-validating each key here used
     # to double the path-normalization work in large-manifest verification.
-    for relative, row in records.items():
-        # Reuse this normalized Path, including its cached filesystem string,
-        # for both the metadata check and the single content read below.
-        expected_size = int(row["bytes"])
-        try:
-            digest, size = _canonical_relative_identity(root, relative)
-        except (FileNotFoundError, NotADirectoryError):
-            issues.append(f"manifest lists missing file: {relative}")
-            continue
-        except (OSError, ValueError) as exc:
-            issues.append(f"manifest lists unsafe or non-regular file: {relative}: {exc}")
-            continue
-        if size != expected_size:
-            issues.append(f"manifest size mismatch: {relative}")
-        if digest != row["sha256"].strip():
-            issues.append(f"manifest hash mismatch: {relative}")
+    with _root_relative_identity_reader(root) as identify:
+        for relative, row in records.items():
+            expected_size = int(row["bytes"])
+            try:
+                digest, size = identify(relative)
+            except (FileNotFoundError, NotADirectoryError):
+                issues.append(f"manifest lists missing file: {relative}")
+                continue
+            except (OSError, ValueError) as exc:
+                issues.append(f"manifest lists unsafe or non-regular file: {relative}: {exc}")
+                continue
+            if size != expected_size:
+                issues.append(f"manifest size mismatch: {relative}")
+            if digest != row["sha256"].strip():
+                issues.append(f"manifest hash mismatch: {relative}")
 
     actual = {relative for _, relative in _iter_source_paths(root)}
     seen = set(records)
