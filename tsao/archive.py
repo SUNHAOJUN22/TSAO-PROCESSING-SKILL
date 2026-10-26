@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import stat
+import tempfile
 import zipfile
 from collections import Counter
 from pathlib import Path, PurePosixPath
@@ -12,6 +13,7 @@ _FORBIDDEN_FILE_SUFFIXES = {".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"}
 
 
 def deterministic_zip(root: Path, output: Path) -> str:
+    """Atomically publish a deterministic ZIP and return this build's SHA-256."""
     root = Path(root)
     output = Path(output)
     if not root.exists() or not root.is_dir():
@@ -44,9 +46,10 @@ def deterministic_zip(root: Path, output: Path) -> str:
         raise ValueError("case-insensitive archive path collision")
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output.with_name(output.name + ".tmp")
-    temporary.unlink(missing_ok=True)
-    try:
+    # Keep each writer private on the destination filesystem. Let ZipFile create
+    # the file normally so publication preserves ordinary file/umask semantics.
+    with tempfile.TemporaryDirectory(dir=output.parent, prefix=f".{output.name}.") as staging:
+        temporary = Path(staging) / "archive.tmp"
         with zipfile.ZipFile(
             temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
         ) as archive:
@@ -62,11 +65,11 @@ def deterministic_zip(root: Path, output: Path) -> str:
                 info.external_attr = (stat.S_IFREG | 0o644) << 16
                 info.compress_type = zipfile.ZIP_DEFLATED
                 archive.writestr(info, path.read_bytes())
+        # Another writer may replace the destination immediately after publication.
+        # Bind this receipt to our own closed archive before making it visible.
+        digest = sha256_file(temporary)
         temporary.replace(output)
-    except Exception:
-        temporary.unlink(missing_ok=True)
-        raise
-    return sha256_file(output)
+        return digest
 
 
 def validate_zip_archive(
@@ -124,9 +127,12 @@ def validate_zip_archive(
                         issues.append(f"excessive compression ratio: {member.filename}")
             if total_size > max_uncompressed_bytes:
                 issues.append("archive uncompressed size exceeds limit")
-            bad_member = archive.testzip()
-            if bad_member:
-                issues.append(f"archive CRC failure: {bad_member}")
+            # testzip reads and decompresses every member. Rejected metadata must
+            # stop here so resource limits and safety checks actually bound work.
+            if not issues:
+                bad_member = archive.testzip()
+                if bad_member:
+                    issues.append(f"archive CRC failure: {bad_member}")
     except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
         issues.append(f"invalid archive: {exc}")
     return sorted(set(issues))
