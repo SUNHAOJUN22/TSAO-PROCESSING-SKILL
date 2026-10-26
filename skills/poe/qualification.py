@@ -1,13 +1,24 @@
 from __future__ import annotations
 
+import json
 import math
 import re
+from functools import cache
+from pathlib import Path
 from typing import Any
+
+from jsonschema import Draft202012Validator
 
 from tsao.numeric_contract import finite_product, finite_sum
 
 _ALLOWED_PROPERTY_METHODS = {"PC-SAFT", "SRK", "REFPROP", "STEAMNBS", "CUSTOM"}
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+@cache
+def _property_method_validator() -> Draft202012Validator:
+    path = Path(__file__).with_name("schemas") / "property_method.schema.json"
+    return Draft202012Validator(json.loads(path.read_text(encoding="utf-8")))
 
 
 def _finite_number(value: object) -> bool:
@@ -49,25 +60,29 @@ def qualify_property_method(
             "holds": [],
             "scientific_approval": "NOT_EVALUATED",
         }
+    # Use the packaged public contract at every entry point, including direct
+    # process-case calls that have not passed through a JSON Schema validator.
+    # Absent required evidence remains HOLD; a present malformed value is FAIL.
+    validator = _property_method_validator()
+    for field in validator.schema["required"]:
+        if field not in record:
+            holds.append(f"missing property qualification field: {field}")
+    for defect in validator.iter_errors(record):
+        if defect.validator == "required" and not defect.path:
+            continue
+        path = ".".join(str(part) for part in defect.path) or "record"
+        errors.append(f"property contract {path}: {defect.message}")
+    if errors:
+        return {
+            "status": "FAIL",
+            "pass": False,
+            "errors": sorted(set(errors)),
+            "holds": sorted(set(holds)),
+            "scientific_approval": "NOT_EVALUATED",
+        }
     method = str(record.get("method", "")).upper()
     if method not in _ALLOWED_PROPERTY_METHODS:
         errors.append(f"unsupported property method: {method or '<missing>'}")
-    required = (
-        "selection_basis",
-        "components",
-        "parameter_sources",
-        "temperature_K",
-        "pressure_Pa",
-        "composition_domain",
-        "polymer_mass_fraction",
-        "benchmarks",
-        "error_metrics",
-        "unit_system",
-        "extrapolation_status",
-    )
-    for field in required:
-        if field not in record:
-            holds.append(f"missing property qualification field: {field}")
     if record.get("unit_system") not in (None, "SI"):
         errors.append("property method unit_system must be SI")
     components = record.get("components")

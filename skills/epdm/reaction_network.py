@@ -128,6 +128,8 @@ class ReactionChannel:
     rate_law_id: str | None = None
 
     def __post_init__(self) -> None:
+        for name in ("reactant_state_ids", "modifier_state_ids", "stoichiometry", "moment_rules"):
+            object.__setattr__(self, name, tuple(getattr(self, name)))
         for label, value in (
             ("reaction_id", self.reaction_id),
             ("site_family_id", self.site_family_id),
@@ -168,6 +170,64 @@ class ReactionChannel:
         }
 
 
+def validated_stoichiometric_matrix(
+    state_ids: Sequence[str],
+    stoichiometries: Sequence[Sequence[tuple[str, object]]],
+    matrix: Sequence[Sequence[object]],
+) -> tuple[tuple[float, ...], ...]:
+    """Bind every execution coefficient to its declared reaction and state.
+
+    A matching shape, a fresh digest, or conserved column sums cannot establish
+    this identity: a balanced but doubled column changes the kinetic model.
+    Coefficients describe the same data, so equality is exact, not a tolerance.
+    """
+    if any(not isinstance(item, str) or not _IDENTIFIER.fullmatch(item) for item in state_ids):
+        raise ContractValidationError("stoichiometric state IDs are invalid")
+    if len(set(state_ids)) != len(state_ids):
+        raise ContractValidationError("stoichiometric state IDs must be unique")
+    if len(matrix) != len(state_ids):
+        raise ContractValidationError("stoichiometric matrix row count mismatch")
+    if any(not isinstance(row, (list, tuple)) or len(row) != len(stoichiometries) for row in matrix):
+        raise ContractValidationError("stoichiometric matrix column count mismatch")
+    state_index = {state_id: row for row, state_id in enumerate(state_ids)}
+    expected = [[0.0] * len(stoichiometries) for _ in state_ids]
+    for column, terms in enumerate(stoichiometries):
+        seen: set[str] = set()
+        for state_id, coefficient in terms:
+            if state_id not in state_index or state_id in seen:
+                raise ContractValidationError("stoichiometry contains unknown or duplicate state IDs")
+            seen.add(state_id)
+            if isinstance(coefficient, bool) or not isinstance(coefficient, (int, float)):
+                raise ContractValidationError("stoichiometric coefficient must be numeric")
+            try:
+                value = float(coefficient)
+            except OverflowError as exc:
+                raise ContractValidationError("stoichiometric coefficient must be finite") from exc
+            if not math.isfinite(value) or value == 0:
+                raise ContractValidationError("stoichiometric coefficient must be finite and non-zero")
+            expected[state_index[state_id]][column] = value
+    owned: list[tuple[float, ...]] = []
+    for row_index, row in enumerate(matrix):
+        owned_row: list[float] = []
+        for column, coefficient in enumerate(row):
+            if isinstance(coefficient, bool) or not isinstance(coefficient, (int, float)):
+                raise ContractValidationError("stoichiometric matrix coefficient must be numeric")
+            try:
+                value = float(coefficient)
+            except OverflowError as exc:
+                raise ContractValidationError("stoichiometric matrix coefficient must be finite") from exc
+            if not math.isfinite(value):
+                raise ContractValidationError("stoichiometric matrix coefficient must be finite")
+            if value != expected[row_index][column]:
+                raise ContractValidationError(
+                    f"stoichiometric matrix differs from declared stoichiometry at "
+                    f"state {state_ids[row_index]}, reaction column {column}"
+                )
+            owned_row.append(value)
+        owned.append(tuple(owned_row))
+    return tuple(owned)
+
+
 @dataclass(frozen=True, slots=True)
 class ReactionNetworkAudit:
     decision: GateDecision
@@ -204,6 +264,8 @@ class ReactionNetworkDefinition:
     _channel_index: Mapping[str, int] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        for name in ("site_family_ids", "terminal_ids", "channels", "state_ids"):
+            object.__setattr__(self, name, tuple(getattr(self, name)))
         if not _IDENTIFIER.fullmatch(self.network_id):
             raise ContractValidationError("network_id is invalid")
         if not self.version.strip():
@@ -219,12 +281,13 @@ class ReactionNetworkDefinition:
         channel_index = {channel.reaction_id: index for index, channel in enumerate(self.channels)}
         if len(channel_index) != len(self.channels):
             raise ContractValidationError("reaction IDs must be unique")
-        if len(self.state_ids) != len(set(self.state_ids)):
-            raise ContractValidationError("state_ids must be unique")
-        if len(self.stoichiometric_matrix) != len(self.state_ids):
-            raise ContractValidationError("stoichiometric matrix row count mismatch")
-        if any(len(row) != len(self.channels) for row in self.stoichiometric_matrix):
-            raise ContractValidationError("stoichiometric matrix column count mismatch")
+        matrix = validated_stoichiometric_matrix(
+            self.state_ids,
+            tuple(tuple((term.state_id, term.coefficient) for term in channel.stoichiometry)
+                  for channel in self.channels),
+            self.stoichiometric_matrix,
+        )
+        object.__setattr__(self, "stoichiometric_matrix", matrix)
         object.__setattr__(self, "_channel_index", MappingProxyType(channel_index))
 
     @property
@@ -738,12 +801,12 @@ def audit_reaction_network(
         if variable.conserved_inventory_id is not None
     }
     max_site_residual = 0.0
-    for channel in network.channels:
+    for column, channel in enumerate(network.channels):
         residuals: Counter[str] = Counter()
-        for term in channel.stoichiometry:
-            inventory_id = inventory_by_state.get(term.state_id)
+        for row, state_id in enumerate(network.state_ids):
+            inventory_id = inventory_by_state.get(state_id)
             if inventory_id is not None:
-                residuals[inventory_id] += term.coefficient
+                residuals[inventory_id] += network.stoichiometric_matrix[row][column]
         for inventory_id, residual in residuals.items():
             max_site_residual = max(max_site_residual, abs(float(residual)))
             if residual != 0:

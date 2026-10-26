@@ -199,6 +199,8 @@ def _record_is_controlled(
         token in confidentiality for token in ("CONTROLLED", "INTERNAL", "RESTRICTED")
     ):
         reasons.append("CONTROLLED_CONFIDENTIALITY")
+    elif confidentiality != "PUBLIC":
+        reasons.append("UNRECOGNIZED_CONFIDENTIALITY")
 
     if not isinstance(evidence_class, str):
         reasons.append("MISSING_EVIDENCE_CLASS")
@@ -206,6 +208,8 @@ def _record_is_controlled(
         token in evidence_class for token in ("CONTROLLED", "INTERNAL")
     ):
         reasons.append("CONTROLLED_EVIDENCE_CLASS")
+    elif evidence_class != "SYNTHETIC_PUBLIC_FIXTURE":
+        reasons.append("UNRECOGNIZED_EVIDENCE_CLASS")
 
     if not isinstance(license_scope, str):
         reasons.append("MISSING_LICENSE_SCOPE")
@@ -213,6 +217,8 @@ def _record_is_controlled(
         token in license_scope for token in ("CONTROLLED", "INTERNAL", "RESTRICTED")
     ):
         reasons.append("CONTROLLED_LICENSE_SCOPE")
+    elif license_scope != "PUBLIC_SYNTHETIC":
+        reasons.append("UNRECOGNIZED_LICENSE_SCOPE")
 
     if public_eligible is not True:
         reasons.append("NOT_PUBLIC_FIXTURE_ELIGIBLE")

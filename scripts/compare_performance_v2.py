@@ -10,6 +10,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.poe_fit_parity import WORKLOAD, compare_fit_results  # noqa: E402
+from scripts.poe_kinetics_benchmark_contract import (  # noqa: E402
+    historical_model_change,
+    identity_error,
+)
 
 COMMON_MINIMUM_RATIO = {
     "epdm_three_level_64_site_families": 0.90,
@@ -222,6 +226,7 @@ def _common_comparisons(
         digest_match = before.get("result_sha256") == after.get("result_sha256")
         parity_policy = PARITY_POLICIES.get(name, "exact structured SHA-256")
         semantic_parity = name in PARITY_POLICIES
+        model_error = identity_error(name, before, after)
         fit_evidence = compare_fit_results(before, after) if name == WORKLOAD else None
         if fit_evidence is not None:
             parity_policy = "SHA-256-bound result witness and analytical first-order fit"
@@ -234,7 +239,16 @@ def _common_comparisons(
         reason: str | None = None
         passed: bool | None = True
 
-        if historical and unit_error is not None:
+        if historical and historical_model_change(name, before, after):
+            status = "NOT_APPLICABLE"
+            passed = None
+            reason = (
+                "verified legacy 11-state POE model predates the two mass second moments "
+                "needed for correct Mw; numerical output and workload differ; "
+                "the pinned 13-state same-run comparison remains mandatory"
+            )
+            not_applicable.append(f"{name}: {reason}")
+        elif historical and unit_error is not None:
             status = "NOT_APPLICABLE"
             passed = None
             reason = f"legacy baseline lacks comparable {work_unit} work-unit metadata"
@@ -248,6 +262,8 @@ def _common_comparisons(
             )
             not_applicable.append(f"{name}: {reason}")
         else:
+            if model_error is not None:
+                errors.append(f"{name}: {model_error}")
             if unit_error is not None:
                 errors.append(unit_error)
             parity_pass = (
@@ -256,7 +272,7 @@ def _common_comparisons(
                 else semantic_parity or digest_match
             )
             timing_pass = unit_error is None and timing_ratio >= minimum
-            passed = parity_pass and timing_pass
+            passed = parity_pass and timing_pass and model_error is None
             status = "PASS" if passed else "FAIL"
             if not parity_pass:
                 detail = fit_evidence.get("error") if fit_evidence is not None else "digest changed"
@@ -285,6 +301,7 @@ def _common_comparisons(
                 "result_digest_match": digest_match,
                 **({"numerical_result_evidence": fit_evidence} if fit_evidence is not None else {}),
                 "parity_policy": parity_policy,
+                "model_identity_error": model_error,
                 "parity_verified_by_tests": semantic_parity,
                 "historical_status": status,
                 "not_applicable_reason": reason,

@@ -24,6 +24,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.poe_kinetics_benchmark_contract import (  # noqa: E402
+    STATE_FIELDS,
+    workload_identity,
+)
+from scripts.poe_kinetics_benchmark_contract import (  # noqa: E402
+    WORKLOADS as POE_KINETICS_WORKLOADS,
+)
 from scripts.verify_wheel_contents import verify as verify_wheel  # noqa: E402
 from skills.epdm.core import (  # noqa: E402
     EpdmActivationEnergies,
@@ -166,6 +173,11 @@ def _measure(case: BenchmarkCase, *, repeats: int) -> dict[str, object]:
     for _ in range(case.warmups):
         case.function()
     result = case.function()
+    if case.name in POE_KINETICS_WORKLOADS:
+        if tuple(KineticState.__dataclass_fields__) != STATE_FIELDS:
+            raise ValueError("POE benchmark state layout differs from its scientific model contract")
+        if not isinstance(result, dict) or set(result.get("final", {})) != set(STATE_FIELDS):
+            raise ValueError("POE benchmark did not return all 13 scientific model states")
     witness = (
         json.loads(json.dumps(result, allow_nan=False))
         if case.name == "poe_one_parameter_fit_401_points"
@@ -177,6 +189,8 @@ def _measure(case: BenchmarkCase, *, repeats: int) -> dict[str, object]:
     ]
     return {
         "name": case.name,
+        **({"workload_identity": workload_identity(case.name)}
+           if case.name in POE_KINETICS_WORKLOADS else {}),
         **({"result_witness": witness} if witness is not None else {}),
         "number_per_repeat": case.number,
         "repeats": active_repeats,

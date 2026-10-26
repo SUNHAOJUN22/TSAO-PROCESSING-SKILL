@@ -10,6 +10,7 @@ permissions:
 
 env:
   PERFORMANCE_BASELINE_COMMIT: "8719e59140202aae53cdfb80239b80dedad6767a"
+  POE_MASS_MOMENT_BASELINE_COMMIT: "a06644431231e5c72362839ac6b37362a48e6218"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PIP_NO_INPUT: "1"
 
@@ -171,6 +172,7 @@ jobs:
         shell: bash
         run: |
           baseline_root="$RUNNER_TEMP/alpha14-performance-baseline"
+          poe_baseline_root="$RUNNER_TEMP/poe-mass-moment-performance-baseline"
           baseline_report="$RUNNER_TEMP/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json"
           baseline_commit="${PERFORMANCE_BASELINE_COMMIT}"
           git cat-file -e "${baseline_commit}^{commit}"
@@ -178,6 +180,9 @@ jobs:
           cleanup_baseline_worktree() {
             if git worktree list --porcelain | grep -Fqx "worktree $baseline_root"; then
               git worktree remove --force "$baseline_root"
+            fi
+            if git worktree list --porcelain | grep -Fqx "worktree $poe_baseline_root"; then
+              git worktree remove --force "$poe_baseline_root"
             fi
           }
           trap cleanup_baseline_worktree EXIT
@@ -198,6 +203,13 @@ jobs:
           python scripts/annotate_performance_work_units.py \
             --report reports/runtime/PERFORMANCE_RESULTS_V2.json \
             --worktree .
+          git cat-file -e "${POE_MASS_MOMENT_BASELINE_COMMIT}^{commit}"
+          git merge-base --is-ancestor "$POE_MASS_MOMENT_BASELINE_COMMIT" HEAD
+          git worktree add --detach "$poe_baseline_root" "$POE_MASS_MOMENT_BASELINE_COMMIT"
+          python scripts/rebase_poe_performance.py \
+            --report "$baseline_report" \
+            --worktree "$poe_baseline_root" \
+            --repeats 7
           python scripts/compare_performance_v2.py \
             --baseline "$baseline_report" \
             --current reports/runtime/PERFORMANCE_RESULTS_V2.json \
@@ -214,11 +226,12 @@ jobs:
           data = json.loads(path.read_text(encoding="utf-8"))
           data["qualification_role"] = "BLOCKING_HISTORICAL_TREND"
           data["historical_comparator_exit_code"] = 0
-          data["qualification_baseline"] = "ALPHA14_SAME_RUN_SAME_PYTHON"
+          data["qualification_baseline"] = "ALPHA14_WITH_PINNED_13_STATE_POE_SAME_RUN"
           path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
           cp "$baseline_report" reports/runtime/PERFORMANCE_BASELINE_ALPHA14_SAME_RUN.json
           git worktree remove --force "$baseline_root"
+          git worktree remove --force "$poe_baseline_root"
           trap - EXIT
           python scripts/update_performance_readme.py --comparison reports/PERFORMANCE_COMPARISON_ALPHA11.json --check
       - name: CLI smoke

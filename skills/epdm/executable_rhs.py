@@ -591,11 +591,11 @@ def _static_conservation_residuals(
     }
     for inventory_id in sorted(set(inventory_by_state.values())):
         maximum = 0.0
-        for channel in network.channels:
+        for column in range(len(network.channels)):
             residual = sum(
-                term.coefficient
-                for term in channel.stoichiometry
-                if inventory_by_state.get(term.state_id) == inventory_id
+                network.stoichiometric_matrix[row][column]
+                for row, state_id in enumerate(network.state_ids)
+                if inventory_by_state.get(state_id) == inventory_id
             )
             maximum = max(maximum, abs(float(residual)))
         residuals[inventory_id] = maximum
@@ -603,10 +603,9 @@ def _static_conservation_residuals(
     for monomer in network.terminal_ids:
         monomer_state = f"N_{monomer}"
         maximum = 0.0
-        for channel in network.channels:
-            residual = sum(
-                term.coefficient for term in channel.stoichiometry if term.state_id == monomer_state
-            )
+        monomer_row = network.state_ids.index(monomer_state)
+        for column, channel in enumerate(network.channels):
+            residual = network.stoichiometric_matrix[monomer_row][column]
             generated = sum(
                 1.0
                 for rule in channel.moment_rules

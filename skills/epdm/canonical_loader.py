@@ -661,6 +661,20 @@ def load_canonical_project(
         issue = structural[0]
         raise _error("schema_validation", issue.path, issue.message)
     try:
+        for index, generated in enumerate(candidate.get("generated_state_definitions", [])):
+            path = f"$.generated_state_definitions[{index}]"
+            try:
+                _validation.validate_serialized_state_layout(generated)
+            except ContractValidationError as exc:
+                raise _error("state_layout_identity", path, str(exc)) from exc
+        for index, network in enumerate(candidate.get("reaction_networks", [])):
+            path = f"$.reaction_networks[{index}]"
+            try:
+                _validation.validate_serialized_reaction_matrix(network)
+            except ContractValidationError as exc:
+                raise _error("reaction_network_identity", path, str(exc)) from exc
+            if network.get("digest_sha256") != _validation._canonical_digest(network):
+                raise _error("reaction_network_identity", path, "reaction-network digest mismatch")
         return _build_snapshot(candidate, migration)
     except CanonicalProjectLoadError:
         raise

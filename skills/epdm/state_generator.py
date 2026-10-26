@@ -32,6 +32,26 @@ _SITE_INVENTORY_BASES = {
 }
 
 
+def validated_state_index(
+    state_ids: Sequence[object], indices: Sequence[object]
+) -> Mapping[str, int]:
+    """Bind public indices to the same positions used by vectors and matrices."""
+    if not state_ids or len(state_ids) != len(indices):
+        raise ContractValidationError("generated states and indices must have equal non-zero size")
+    index_by_id: dict[str, int] = {}
+    for position, (state_id, index) in enumerate(zip(state_ids, indices, strict=True)):
+        if not isinstance(state_id, str) or not _IDENTIFIER.fullmatch(state_id):
+            raise ContractValidationError("generated state IDs must be valid identifiers")
+        if state_id in index_by_id:
+            raise ContractValidationError("generated state IDs must be unique")
+        if isinstance(index, bool) or not isinstance(index, int) or index != position:
+            raise ContractValidationError(
+                "generated state indices must equal their integer vector positions"
+            )
+        index_by_id[state_id] = position
+    return MappingProxyType(index_by_id)
+
+
 @dataclass(frozen=True, slots=True)
 class GeneratedStateVariable:
     state_id: str
@@ -75,12 +95,17 @@ class GeneratedStateDefinition:
     _index_by_id: Mapping[str, int] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        index_by_id = {variable.state_id: variable.index for variable in self.variables}
-        if len(index_by_id) != len(self.variables):
-            raise ContractValidationError("generated state IDs must be unique")
-        if sorted(index_by_id.values()) != list(range(len(self.variables))):
-            raise ContractValidationError("generated state indices must be contiguous")
-        object.__setattr__(self, "_index_by_id", MappingProxyType(index_by_id))
+        # A frozen dataclass does not own lists supplied by its caller. Snapshot
+        # all layout sequences before computing the cached public index map.
+        object.__setattr__(self, "variables", tuple(self.variables))
+        object.__setattr__(self, "site_family_ids", tuple(self.site_family_ids))
+        object.__setattr__(self, "terminal_ids", tuple(self.terminal_ids))
+        if any(not isinstance(variable, GeneratedStateVariable) for variable in self.variables):
+            raise ContractValidationError("generated variables must be typed state variables")
+        index_by_id = validated_state_index(
+            self.state_ids, tuple(variable.index for variable in self.variables)
+        )
+        object.__setattr__(self, "_index_by_id", index_by_id)
 
     @property
     def size(self) -> int:

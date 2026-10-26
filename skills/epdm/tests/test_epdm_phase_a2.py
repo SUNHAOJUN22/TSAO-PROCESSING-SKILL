@@ -203,7 +203,9 @@ def test_site_conservation_audit_detects_tampered_channel():
         ),
     )
     channels = (tampered,) + network.channels[1:]
-    broken = replace(network, channels=channels)
+    matrix = [list(row) for row in network.stoichiometric_matrix]
+    matrix[state.index_of("N_SITE_VACANT:SITE-A")][0] = 2.0
+    broken = replace(network, channels=channels, stoichiometric_matrix=matrix)
     audit = audit_reaction_network(broken, state)
     assert audit.decision == GateDecision.FAIL
     assert any("SITE_TOTAL:SITE-A" in error for error in audit.errors)

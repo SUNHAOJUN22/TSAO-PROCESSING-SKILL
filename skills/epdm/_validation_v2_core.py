@@ -12,7 +12,9 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
-from .contracts import SI_UNIT_DIMENSIONS, GateDecision, GateReasonCode
+from .contracts import SI_UNIT_DIMENSIONS, ContractValidationError, GateDecision, GateReasonCode
+from .reaction_network import validated_stoichiometric_matrix
+from .state_generator import validated_state_index
 
 SCHEMA_VERSION = "2.0.0"
 SEMANTIC_VALIDATOR_VERSION = "2.0.0-phase-a2"
@@ -423,6 +425,47 @@ def _canonical_digest(payload: Mapping[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def validate_serialized_reaction_matrix(network: Mapping[str, Any]) -> None:
+    """Apply the typed execution identity contract before JSON publication."""
+    state_ids = network.get("state_ids")
+    channels = network.get("channels")
+    matrix = network.get("stoichiometric_matrix")
+    if not all(isinstance(value, list) for value in (state_ids, channels, matrix)):
+        raise ContractValidationError("stoichiometric matrix, states and channels must be arrays")
+    if network.get("matrix_shape") != [len(state_ids), len(channels)]:
+        raise ContractValidationError("stoichiometric matrix shape differs from states and reactions")
+    stoichiometries: list[list[tuple[str, object]]] = []
+    reaction_ids: set[str] = set()
+    for channel in channels:
+        if not isinstance(channel, Mapping) or not isinstance(channel.get("reaction_id"), str):
+            raise ContractValidationError("stoichiometric reaction identity is invalid")
+        reaction_id = channel["reaction_id"]
+        if reaction_id in reaction_ids:
+            raise ContractValidationError("stoichiometric reaction IDs must be unique")
+        reaction_ids.add(reaction_id)
+        terms = channel.get("stoichiometry")
+        if not isinstance(terms, list):
+            raise ContractValidationError("stoichiometry must be an array")
+        if any(not isinstance(term, Mapping) or not isinstance(term.get("state_id"), str)
+               for term in terms):
+            raise ContractValidationError("stoichiometric state identity is invalid")
+        stoichiometries.append([(term["state_id"], term.get("coefficient")) for term in terms])
+    validated_stoichiometric_matrix(state_ids, stoichiometries, matrix)
+
+
+def validate_serialized_state_layout(generated: Mapping[str, Any]) -> None:
+    """Apply the typed vector-position contract before JSON publication."""
+    variables = generated.get("variables")
+    if not isinstance(variables, list) or any(
+        not isinstance(variable, Mapping) for variable in variables
+    ):
+        raise ContractValidationError("generated state variables must be an array of objects")
+    validated_state_index(
+        [variable.get("state_id") for variable in variables],
+        [variable.get("index") for variable in variables],
+    )
+
+
 def _validate_a2_structures(
     *,
     generated_definitions: Mapping[str, dict[str, Any]],
@@ -440,32 +483,15 @@ def _validate_a2_structures(
             "state-definition",
             issues,
         )
-        variables = generated.get("variables", [])
-        state_ids: list[str] = []
-        indices: list[int] = []
-        if isinstance(variables, list):
-            for variable in variables:
-                if isinstance(variable, dict):
-                    if isinstance(variable.get("state_id"), str):
-                        state_ids.append(variable["state_id"])
-                    if isinstance(variable.get("index"), int):
-                        indices.append(variable["index"])
-        if len(state_ids) != len(set(state_ids)):
+        try:
+            validate_serialized_state_layout(generated)
+        except ContractValidationError as exc:
             issues.append(
                 ValidationIssue(
                     "ERROR",
                     GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
                     f"$.generated_state_definitions[{generated_id}].variables",
-                    "generated state IDs must be unique",
-                )
-            )
-        if sorted(indices) != list(range(len(indices))):
-            issues.append(
-                ValidationIssue(
-                    "ERROR",
-                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
-                    f"$.generated_state_definitions[{generated_id}].variables",
-                    "generated state indices must be contiguous",
+                    str(exc),
                 )
             )
         if generated.get("digest_sha256") != _canonical_digest(generated):
@@ -542,26 +568,15 @@ def _validate_a2_structures(
 
         state_ids = network.get("state_ids", [])
         channels = network.get("channels", [])
-        matrix = network.get("stoichiometric_matrix", [])
-        shape = network.get("matrix_shape")
-        if shape != [len(state_ids), len(channels)]:
-            issues.append(
-                ValidationIssue(
-                    "ERROR",
-                    GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
-                    f"$.reaction_networks[{network_id}].matrix_shape",
-                    "matrix_shape does not match state and reaction counts",
-                )
-            )
-        if len(matrix) != len(state_ids) or any(
-            not isinstance(row, list) or len(row) != len(channels) for row in matrix
-        ):
+        try:
+            validate_serialized_reaction_matrix(network)
+        except ContractValidationError as exc:
             issues.append(
                 ValidationIssue(
                     "ERROR",
                     GateReasonCode.SEMANTIC_REFERENCE_UNRESOLVED,
                     f"$.reaction_networks[{network_id}].stoichiometric_matrix",
-                    "stoichiometric matrix dimensions are inconsistent",
+                    str(exc),
                 )
             )
         if network.get("digest_sha256") != _canonical_digest(network):

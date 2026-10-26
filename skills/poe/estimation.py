@@ -8,6 +8,8 @@ from typing import Any
 
 import numpy as np
 
+_FLOAT_DTYPE = np.dtype(float)
+
 
 def _finite_scalar(value: object, label: str) -> float:
     if isinstance(value, bool) or not isinstance(value, Real):
@@ -66,7 +68,7 @@ def _finite_model_output(values: Sequence[float], label: str) -> np.ndarray:
     # Model callbacks commonly return exact float64 arrays. Keep the same
     # shape/finiteness contract without routing this hot path through the
     # general sequence and ndarray-subclass normalization logic.
-    if type(values) is np.ndarray and values.dtype == np.dtype(float):
+    if type(values) is np.ndarray and values.dtype == _FLOAT_DTYPE:
         if values.ndim != 1 or values.size == 0 or not np.isfinite(values).all():
             raise ValueError(f"{label} must be a non-empty finite one-dimensional sequence")
         return values
@@ -113,7 +115,9 @@ def _first_order_objective_interval_lower_bound(
             return 0.0
         distance_lower_bound = max(
             0.0,
-            math.nextafter(math.fsum(float(value) for value in distance_terms) - objective_pad, -math.inf),
+            math.nextafter(
+                math.fsum(float(value) for value in distance_terms) - objective_pad, -math.inf
+            ),
         )
 
         midpoint = lower + (upper - lower) / 2.0
@@ -159,21 +163,20 @@ def _first_order_objective_interval_lower_bound(
         if not all(math.isfinite(value) for value in (midpoint_objective, linear_term, curvature)):
             return distance_lower_bound
 
-        midpoint_error = math.fsum(
-            float(weight)
-            * (2.0 * abs(float(residual)) * prediction_pad + prediction_pad**2)
-            for weight, residual in zip(normalized_weights, midpoint_residual, strict=True)
-        ) + objective_pad
+        midpoint_error = (
+            math.fsum(
+                float(weight) * (2.0 * abs(float(residual)) * prediction_pad + prediction_pad**2)
+                for weight, residual in zip(normalized_weights, midpoint_residual, strict=True)
+            )
+            + objective_pad
+        )
         midpoint_lower_bound = max(0.0, midpoint_objective - midpoint_error)
         linear_error = 64.0 * epsilon * (linear_magnitude + linear_scale)
         linear_upper = math.nextafter(abs(linear_term) + linear_error, math.inf)
         curvature_upper = math.nextafter(curvature * (1.0 + 64.0 * epsilon), math.inf)
         with np.errstate(over="ignore", under="ignore", invalid="ignore"):
             taylor_lower_bound = (
-                midpoint_lower_bound
-                - linear_upper
-                - curvature_upper
-                - objective_pad
+                midpoint_lower_bound - linear_upper - curvature_upper - objective_pad
             )
         if not math.isfinite(taylor_lower_bound):
             return distance_lower_bound
@@ -273,9 +276,7 @@ def fit_first_order_rate(
         if not math.isfinite(value):
             raise ValueError("weighted fit objective exceeds the finite range")
         normalized_value = (
-            value
-            if weights is None
-            else float(np.sum(normalized_weights * residual * residual))
+            value if weights is None else float(np.sum(normalized_weights * residual * residual))
         )
         if not math.isfinite(normalized_value):
             raise ValueError("normalized fit objective exceeds the finite range")
@@ -440,16 +441,15 @@ def finite_difference_jacobian(
     Omitting ``parameter_scales`` preserves the historical unit-scale step.
     Otherwise, each finite positive characteristic scale sets the floor for
     that parameter's relative step. Callers must keep both perturbations in the
-    model's valid domain.
+    model's valid domain. The returned observation-by-parameter matrix owns
+    column-contiguous storage; callbacks may reuse their output buffers.
     """
     params = _finite_vector(parameters, "parameters")
     relative_step_value = _finite_scalar(relative_step, "relative_step")
     if relative_step_value <= 0:
         raise ValueError("relative_step must be finite and positive")
     scales = (
-        None
-        if parameter_scales is None
-        else _finite_vector(parameter_scales, "parameter_scales")
+        None if parameter_scales is None else _finite_vector(parameter_scales, "parameter_scales")
     )
     if scales is not None and (scales.shape != params.shape or np.any(scales <= 0)):
         raise ValueError("parameter_scales must match parameters and be positive")
@@ -457,7 +457,9 @@ def finite_difference_jacobian(
     # A model may reuse and resize its output buffer during later callbacks.
     # Freeze the dimension contract before any such mutation can affect it.
     baseline_shape = baseline.shape
-    jacobian = np.empty((baseline_shape[0], params.size), dtype=float)
+    # Each callback fills one column. Keep those snapshots contiguous, also
+    # matching the column-oriented layout consumed by the downstream SVD.
+    jacobian = np.empty((baseline_shape[0], params.size), dtype=float, order="F")
     limits = np.finfo(float)
     safe_perturbations = (
         scales is None
@@ -473,9 +475,7 @@ def finite_difference_jacobian(
     for index, value in enumerate(params):
         scalar = float(value)
         reference_scale = (
-            max(1.0, abs(scalar))
-            if scales is None
-            else max(abs(scalar), float(scales[index]))
+            max(1.0, abs(scalar)) if scales is None else max(abs(scalar), float(scales[index]))
         )
         step = relative_step_value * reference_scale
         denominator = 2.0 * step
@@ -498,12 +498,11 @@ def finite_difference_jacobian(
         upper = _finite_model_output(model(plus), "model output")
         if upper.shape != baseline_shape:
             raise ValueError("model output shape changed during finite differences")
-        column = jacobian[:, index]
-        np.copyto(column, upper)
+        jacobian[:, index] = upper
         lower = _finite_model_output(model(minus), "model output")
         if lower.shape != baseline_shape:
             raise ValueError("model output shape changed during finite differences")
-        np.copyto(lower_values[:, index], lower)
+        lower_values[:, index] = lower
         denominators[index] = denominator
     with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
         np.subtract(jacobian, lower_values, out=jacobian)
@@ -564,8 +563,10 @@ def assess_identifiability(
             with np.errstate(over="ignore", invalid="ignore", under="ignore"):
                 singular = np.linalg.svd(matrix / scale, compute_uv=False)
 
-    if not np.isfinite(singular).all():
-        raise ValueError("jacobian singular values exceed the finite range")
+        # The first result was checked when deciding whether to retry. Validate
+        # the replacement here without scanning an unchanged result twice.
+        if not np.isfinite(singular).all():
+            raise ValueError("jacobian singular values exceed the finite range")
 
     tolerance = max(matrix.shape) * np.finfo(float).eps * singular[0]
     rank = int(np.sum(singular > tolerance))
