@@ -85,6 +85,12 @@ class IntegrationRequest:
                 raise ContractValidationError(f"{label} must be numeric")
             if not math.isfinite(float(value)):
                 raise ContractValidationError(f"{label} must be finite")
+        for label, value in (
+            ("time_start_s", self.time_start_s),
+            ("time_end_s", self.time_end_s),
+        ):
+            if isinstance(value, int) and float(value) != value:
+                raise ContractValidationError(f"{label} must be exactly representable as a float")
         if self.time_start_s < 0 or self.time_end_s <= self.time_start_s:
             raise ContractValidationError("integration time interval is invalid")
         if self.minimum_step_s <= 0 or self.initial_step_s <= 0 or self.maximum_step_s <= 0:
@@ -558,7 +564,40 @@ def integrate_adaptive(
                 max_conservation=max_conservation,
                 holds=("maximum_steps reached before time_end_s",),
             )
-        step = min(step, end - time)
+        remaining = end - time
+        proposed_step = min(step, remaining)
+        next_time = min(end, time + proposed_step)
+        # Integrate over exactly the interval recorded in times_s. At large
+        # time origins, time + h may round to a different elapsed interval
+        # (for example, 1e16 + 3 advances by 4). Round down when necessary so
+        # the representable interval cannot exceed the controller's proposal.
+        if next_time - time > proposed_step:
+            next_time = math.nextafter(next_time, time)
+        step = next_time - time
+        below_minimum = (
+            step < request.minimum_step_s
+            and remaining >= request.minimum_step_s
+            and not math.isclose(step, request.minimum_step_s, rel_tol=1.0e-12)
+        )
+        if step <= 0.0 or below_minimum:
+            return _empty_result(
+                request,
+                GateDecision.HOLD,
+                "A15_TIME_RESOLUTION_HOLD",
+                state=state,
+                times=times,
+                accepted=accepted,
+                rejected=rejected,
+                attempted=attempted,
+                min_step=min_used,
+                max_step=max_used,
+                max_error=max_error,
+                max_conservation=max_conservation,
+                holds=(
+                    "step bounds cannot advance the floating-point time coordinate; "
+                    "use a relative time origin or revise the permitted step bounds",
+                ),
+            )
         attempted += 1
         stages: list[np.ndarray] = []
         stage_failure: tuple[str, str, str] | None = None
@@ -657,16 +696,7 @@ def integrate_adaptive(
         negative = float(np.min(fifth)) < -request.nonnegative_tolerance
         if error_norm <= 1.0 and not negative:
             fifth[(fifth < 0) & (fifth >= -request.nonnegative_tolerance)] = 0.0
-            time = min(end, time + step)
-            if time <= times[-1]:
-                return _empty_result(
-                    request,
-                    GateDecision.FAIL,
-                    "A15_NONMONOTONIC_TIME_FAIL",
-                    state=state,
-                    times=times,
-                    errors=("accepted integration time did not increase",),
-                )
+            time = next_time
             state = fifth
             times.append(time)
             accepted += 1

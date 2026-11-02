@@ -7,6 +7,12 @@ from .kinetics import EpdmKineticParameters
 
 
 def _finite(value: object, label: str) -> float:
+    # Internal states already contain binary floats. Keep full coercion for
+    # other inputs, including float subclasses with an overridden __float__.
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError(f"{label} must be finite")
+        return value
     if isinstance(value, bool):
         raise ValueError(f"{label} must be numeric")
     try:
@@ -260,7 +266,12 @@ def _semibatch_step_kernel(
     ethylene_demand = ethylene_rate * volume * duration
     propylene_demand = propylene_rate * volume * duration
     diene_demand = diene_rate * volume * duration
-    if not math.isfinite(max(ethylene_demand, propylene_demand, diene_demand)):
+    # A later NaN can be hidden by max; check each demand before limiting it.
+    if not (
+        math.isfinite(ethylene_demand)
+        and math.isfinite(propylene_demand)
+        and math.isfinite(diene_demand)
+    ):
         _raise_nonfinite_semibatch(
             (
                 ("ethylene consumption demand", ethylene_demand),
@@ -268,9 +279,14 @@ def _semibatch_step_kernel(
                 ("diene consumption demand", diene_demand),
             )
         )
-    ethylene_consumed = min(ethylene_available, ethylene_demand)
-    propylene_consumed = min(propylene_available, propylene_demand)
-    diene_consumed = min(diene_available, diene_demand)
+    # Preserve min(available, demand), including its first-argument zero tie.
+    ethylene_consumed = (
+        ethylene_demand if ethylene_demand < ethylene_available else ethylene_available
+    )
+    propylene_consumed = (
+        propylene_demand if propylene_demand < propylene_available else propylene_available
+    )
+    diene_consumed = diene_demand if diene_demand < diene_available else diene_available
     ethylene_remaining = ethylene_available - ethylene_consumed
     propylene_remaining = propylene_available - propylene_consumed
     diene_remaining = diene_available - diene_consumed
@@ -378,16 +394,21 @@ def _compile_semibatch_trajectory_context(
     deactivation_rate = (
         parameters.k_deactivation_s + parameters.k_poison_L_mol_s * poison
     ) * active_site
-    if not math.isfinite(
-        max(
-            ethylene_feed,
-            propylene_feed,
-            diene_feed,
-            volume_feed,
-            heat_removed,
-            feed_total,
-            transfer_rate,
-            deactivation_rate,
+    # A zero active-site concentration can turn overflow in deactivation into
+    # a late NaN; checking a maximum alone would miss that failed arithmetic.
+    if not all(
+        map(
+            math.isfinite,
+            (
+                ethylene_feed,
+                propylene_feed,
+                diene_feed,
+                volume_feed,
+                heat_removed,
+                feed_total,
+                transfer_rate,
+                deactivation_rate,
+            ),
         )
     ):
         _raise_nonfinite_semibatch(
@@ -464,7 +485,11 @@ def _semibatch_trajectory_step_kernel(
     ethylene_demand = ethylene_rate * volume * duration
     propylene_demand = propylene_rate * volume * duration
     diene_demand = diene_rate * volume * duration
-    if not math.isfinite(max(ethylene_demand, propylene_demand, diene_demand)):
+    if not (
+        math.isfinite(ethylene_demand)
+        and math.isfinite(propylene_demand)
+        and math.isfinite(diene_demand)
+    ):
         _raise_nonfinite_semibatch(
             (
                 ("ethylene consumption demand", ethylene_demand),
@@ -472,9 +497,13 @@ def _semibatch_trajectory_step_kernel(
                 ("diene consumption demand", diene_demand),
             )
         )
-    ethylene_consumed = min(ethylene_available, ethylene_demand)
-    propylene_consumed = min(propylene_available, propylene_demand)
-    diene_consumed = min(diene_available, diene_demand)
+    ethylene_consumed = (
+        ethylene_demand if ethylene_demand < ethylene_available else ethylene_available
+    )
+    propylene_consumed = (
+        propylene_demand if propylene_demand < propylene_available else propylene_available
+    )
+    diene_consumed = diene_demand if diene_demand < diene_available else diene_available
     ethylene_remaining = ethylene_available - ethylene_consumed
     propylene_remaining = propylene_available - propylene_consumed
     diene_remaining = diene_available - diene_consumed

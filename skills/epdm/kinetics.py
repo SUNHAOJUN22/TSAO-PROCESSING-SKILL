@@ -8,6 +8,12 @@ _PROPAGATION_NAMES = ("ethylene", "propylene", "diene")
 
 
 def _finite(value: object, label: str) -> float:
+    # Internal states already contain binary floats. Keep full coercion for
+    # other inputs, including float subclasses with an overridden __float__.
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError(f"{label} must be finite")
+        return value
     if isinstance(value, bool):
         raise ValueError(f"{label} must be numeric")
     try:

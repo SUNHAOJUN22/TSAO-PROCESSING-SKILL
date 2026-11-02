@@ -278,13 +278,16 @@ def kinetic_derivative(state: KineticState, params: KineticParameters) -> Kineti
 
 def _state_add_vector(state: StateVector, derivative: StateVector, factor: float) -> StateVector:
     values: list[float] = []
-    for index, name in enumerate(_STATE_FIELDS):
+    infinity = math.inf
+    for index in range(len(_STATE_FIELDS)):
         value = state[index] + factor * derivative[index]
-        # Reject failed arithmetic before positivity clipping: max(0.0, NaN)
-        # would otherwise silently turn a failed stage into an all-zero state.
-        if not math.isfinite(value):
-            raise ValueError(f"integration produced non-finite {name}: {value}")
-        if value < -1e-10:
+        # The valid interval excludes both infinities and NaN (whose ordered
+        # comparisons are false), while retaining the exact negative tolerance.
+        # Classify failures before clipping, in the original component order.
+        if not -1e-10 <= value < infinity:
+            name = _STATE_FIELDS[index]
+            if not math.isfinite(value):
+                raise ValueError(f"integration produced non-finite {name}: {value}")
             raise ValueError(f"integration produced materially negative {name}: {value}")
         values.append(value if value > 0.0 else 0.0)
     return tuple(values)  # type: ignore[return-value]

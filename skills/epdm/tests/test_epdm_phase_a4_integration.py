@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import replace
 from pathlib import Path
 
@@ -171,6 +172,115 @@ def test_single_channel_matches_first_order_analytic_solution():
     assert result.final_state[state.index_of("N_SITE_VACANT:SITE-A")] == pytest.approx(
         2.0 - expected, rel=2.0e-7, abs=2.0e-9
     )
+
+
+@pytest.mark.parametrize("start", [1.0e16, 10**16])
+def test_large_time_origin_uses_recorded_elapsed_time_for_analytic_activation(start):
+    state, network, package = _system()
+    package = _single_activation(package, network, rate=0.01)
+    vector = state.pack({"N_SITE_POTENTIAL:SITE-A": 1.0}, fill_missing=0.0)
+    request = _request(
+        state, network, package, start=start, end=start + 4,
+        initial_step_s=3.0, maximum_step_s=3.0,
+    )
+    result = integrate_adaptive(
+        request, network, state, package, vector, temperature_k=323.15, volume_m3=1.0,
+    )
+    assert result.decision == GateDecision.PASS
+    elapsed = request.time_end_s - request.time_start_s
+    assert result.final_state[state.index_of("N_SITE_POTENTIAL:SITE-A")] == pytest.approx(
+        math.exp(-0.01 * elapsed), rel=2.0e-9,
+    )
+    recorded_steps = np.diff(result.times_s)
+    assert np.all(recorded_steps <= request.maximum_step_s)
+    assert result.minimum_step_used_s == min(recorded_steps)
+    assert result.maximum_step_used_s == max(recorded_steps)
+    assert result.times_s[-1] == request.time_end_s
+    assert result.maximum_conservation_residual < 1.0e-12
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [(10**16, 10**16 + 1), (10**16 + 1, 10**16 + 4)],
+)
+def test_integer_time_coordinates_cannot_silently_lose_precision(start, end):
+    state, network, package = _system()
+    with pytest.raises(ContractValidationError, match="exactly representable"):
+        _request(state, network, package, start=start, end=end)
+
+
+@pytest.mark.parametrize(
+    ("initial_step", "minimum_step", "maximum_step"),
+    [(0.5, 0.1, 0.5), (3.0, 3.0, 3.0)],
+)
+def test_unrepresentable_step_bounds_hold_without_attempting_rhs(
+    initial_step, minimum_step, maximum_step, monkeypatch,
+):
+    import skills.epdm.numerical_integration as module
+
+    state, network, package = _system()
+    package = _disabled(package)
+    vector = state.zeros()
+    request = _request(
+        state, network, package, start=1.0e16, end=1.0e16 + 4.0,
+        initial_step_s=initial_step, minimum_step_s=minimum_step,
+        maximum_step_s=maximum_step,
+    )
+
+    def unexpected_rhs(*args, **kwargs):
+        pytest.fail("a step outside the representable time bounds must not evaluate RHS")
+
+    monkeypatch.setattr(module, "execute_structural_rhs", unexpected_rhs)
+    result = integrate_adaptive(
+        request, network, state, package, vector, temperature_k=323.15, volume_m3=1.0,
+    )
+    assert result.decision == GateDecision.HOLD
+    assert result.reason_code == "A15_TIME_RESOLUTION_HOLD"
+    assert result.times_s == (request.time_start_s,)
+    assert result.final_state == tuple(vector)
+    assert result.accepted_steps == result.rejected_steps == result.attempted_steps == 0
+    assert not validate_schema_instance(result.as_dict(), "integration-result-a15.schema.json")
+
+
+def test_rejected_step_below_clock_resolution_preserves_rejection_evidence():
+    state, network, package = _system()
+    package = _single_activation(package, network, rate=0.1)
+    vector = state.pack({"N_SITE_POTENTIAL:SITE-A": 1.0}, fill_missing=0.0)
+    request = _request(
+        state, network, package, start=1.0e16, end=1.0e16 + 4.0,
+        initial_step_s=2.0, maximum_step_s=2.0,
+        relative_tolerance=1.0e-14, absolute_tolerance=1.0e-16,
+    )
+    result = integrate_adaptive(
+        request, network, state, package, vector, temperature_k=323.15, volume_m3=1.0,
+    )
+    assert result.decision == GateDecision.HOLD
+    assert result.reason_code == "A15_TIME_RESOLUTION_HOLD"
+    assert result.accepted_steps == 0
+    assert result.rejected_steps == result.attempted_steps == 1
+    assert result.times_s == (request.time_start_s,)
+    assert result.final_state == tuple(vector)
+    assert result.maximum_error_norm > 1.0
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "step"),
+    [(0.3, 0.6, 0.1), (1.0e16, 1.0e16 + 2.0, 3.0)],
+)
+def test_time_roundoff_and_short_final_interval_keep_existing_step_contract(start, end, step):
+    state, network, package = _system()
+    package = _disabled(package)
+    vector = state.zeros()
+    request = _request(
+        state, network, package, start=start, end=end,
+        initial_step_s=step, minimum_step_s=step, maximum_step_s=step,
+    )
+    result = integrate_adaptive(
+        request, network, state, package, vector, temperature_k=323.15, volume_m3=1.0,
+    )
+    assert result.decision == GateDecision.PASS
+    assert result.final_state == tuple(vector)
+    assert result.times_s[-1] == end
 
 
 def test_tighter_tolerance_converges_and_records_rejections():
