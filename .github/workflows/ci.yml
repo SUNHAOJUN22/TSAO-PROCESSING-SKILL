@@ -19,6 +19,71 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  remove-reviewed-merged-branch:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Remove only the reviewed and merged Dependabot reference
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_REPOSITORY: SUNHAOJUN22/TSAO-PROCESSING-SKILL
+        shell: python
+        run: |
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          repository = os.environ['GITHUB_REPOSITORY']
+          assert repository == os.environ['EXPECTED_REPOSITORY']
+          branch = 'dependabot/github_actions/actions/setup-python-7.1.0'
+          expected_head = 'ee1043e1bf41a4b99e98515df2412d01e06889ec'
+          base = 'https://api.github.com/repos/' + repository
+
+          def request(path, method='GET'):
+              req = urllib.request.Request(base + path, method=method, headers={
+                  'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'User-Agent': 'tsao-reviewed-branch-cleanup',
+              })
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  body = response.read()
+                  return json.loads(body) if body else None
+
+          pull = request('/pulls/93')
+          assert pull['merged'] is True and pull['state'] == 'closed'
+          assert pull['head']['ref'] == branch
+          assert pull['head']['sha'] == expected_head
+          assert pull['base']['ref'] == 'main'
+          assert pull['head']['repo']['full_name'] == repository
+          main = request('/git/ref/heads/main')['object']['sha']
+          comparison = request('/compare/' + expected_head + '...' + main)
+          assert comparison['merge_base_commit']['sha'] == expected_head
+          assert comparison['status'] in ('ahead', 'identical')
+          ref = '/git/refs/heads/' + urllib.parse.quote(branch, safe='/')
+          try:
+              current = request(ref)
+          except urllib.error.HTTPError as error:
+              if error.code != 404:
+                  raise
+              print('Reviewed branch already absent; no deletion needed.')
+          else:
+              assert current['ref'] == 'refs/heads/' + branch
+              assert current['object']['sha'] == expected_head
+              request(ref, method='DELETE')
+              try:
+                  request(ref)
+              except urllib.error.HTTPError as error:
+                  assert error.code == 404
+              else:
+                  raise RuntimeError('Deleted reference remains present')
+              print('Removed reviewed merged branch; its commit remains reachable from main.')
   qualification:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
