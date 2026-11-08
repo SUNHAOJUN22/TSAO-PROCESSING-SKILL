@@ -19,6 +19,28 @@ The illustration expresses the project vision. Its curves and molecules are conc
 | POE reference kinetics | [`kinetics.py`](skills/poe/kinetics.py), [`estimation.py`](skills/poe/estimation.py) | RK4 trajectories and bounded one-parameter reference fitting; not industrial parameter release |
 | Reproducibility and packaging | [`provenance.py`](tsao/provenance.py), [`skillpacks.py`](tsao/skillpacks.py) | Canonical source identities, four-Skill inventory and distribution containment |
 
+### EPDM input-to-evidence flow (conceptual, editable)
+
+```mermaid
+flowchart LR
+  A["Feed records and assays"] --> B["Temperature, phase pressure or activity"]
+  B --> C["Valid-range VLE / solubility model"]
+  C --> D["Liquid E / P / ENB concentrations"]
+  D --> E["Time-dependent kinetics and balances"]
+  E --> F["Numerical residuals and provenance"]
+  F --> G{"Independent evidence gate"}
+  G -->|"HOLD / missing validity"| B
+  G -->|"Scope-specific review"| H["Reviewable process decision"]
+  classDef phase fill:#0E7490,color:#fff,stroke:#67E8F9;
+  classDef kinetic fill:#7C3AED,color:#fff,stroke:#C4B5FD;
+  classDef gate fill:#9A3412,color:#fff,stroke:#FDBA74;
+  class B,C,D phase;
+  class E,F kinetic;
+  class G gate;
+```
+
+This is an **editable method diagram**, not experimental evidence or a validated industrial prediction. Ethylene/propylene/ENB feed fractions must not be substituted for liquid concentrations or copolymer incorporation ratios. Use the component-appropriate phase-equilibrium model, its documented temperature range, and relevant partial pressures, fugacities or liquid activities; do not presume one Henry-law form applies to every monomer. A semibatch or batch run requires time-resolved states or clearly identified initial/final conditions. Missing thermodynamic correlations or measurement evidence remain **HOLD**, not inferred values.
+
 ### Current qualification and distribution boundary
 
 `artifact_software_qualification=PASS` qualifies the tested source checkout and software contracts. Scientific, engineering, HSE, customer and industrial approvals require their own evidence. A matching hash proves file identity, not the truth of a measurement or the identity/authority of an approver.

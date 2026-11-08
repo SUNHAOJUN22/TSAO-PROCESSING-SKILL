@@ -19,6 +19,28 @@ TSAO 是基于 Python 3.11+ 的工艺开发工具集，提供带单位的物料�
 | POE 参考动力学 | [`kinetics.py`](skills/poe/kinetics.py)、[`estimation.py`](skills/poe/estimation.py) | RK4 轨迹、单速率常数有界拟合；不是工业参数发布 |
 | 来源与交付 | [`provenance.py`](tsao/provenance.py)、[`skillpacks.py`](tsao/skillpacks.py) | 规范化源码身份、四技能清单及发行边界检查 |
 
+### EPDM 从投料到可审核结果的物理证据链
+
+```mermaid
+flowchart LR
+  A["投料记录与检测"] --> B["温度、分压及活度条件"]
+  B --> C["适用温域内的相平衡/溶解模型"]
+  C --> D["液相乙烯/丙烯/ENB浓度"]
+  D --> E["时变动力学与物料能量守恒"]
+  E --> F["数值残差与来源证据"]
+  F --> G{"独立证据门槛"}
+  G -->|"证据不足 HOLD"| B
+  G -->|"限定范围复核"| H["可复核工艺结论"]
+  classDef phase fill:#0E7490,color:#fff,stroke:#67E8F9;
+  classDef kinetic fill:#7C3AED,color:#fff,stroke:#C4B5FD;
+  classDef gate fill:#9A3412,color:#fff,stroke:#FDBA74;
+  class B,C,D phase;
+  class E,F kinetic;
+  class G gate;
+```
+
+以上是**可编辑的方法学示意**，不是实验数据或工业性能保证。乙烯、丙烯、ENB 的投料比例不能直接代替液相浓度，更不能当成聚合物中的掺入比例。应根据各组分适用的气液相平衡或溶解度模型、实验温度、分压/逸度或液相活度确定液相状态，明确关联式的温度适用范围；不得将同一种亨利定律形式无条件套用全部单体。间歇、半连续实验需采用时变状态，或分别标明初始与终止工况。缺少适用关联式与实测依据时保留 **HOLD**，不推算虚假的浓度。
+
 ### 软件验收与分发边界
 
 `artifact_software_qualification=PASS` 只说明受测源码及软件合同满足对应检查。科学、工程、HSE、客户及工业应用批准各有独立证据要求。SHA-256 相符说明文件身份一致，不能自行证明测量真实或审核人的身份与权限。
