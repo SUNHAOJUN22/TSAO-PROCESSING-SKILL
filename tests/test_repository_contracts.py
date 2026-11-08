@@ -244,7 +244,19 @@ def test_github_actions_are_pinned_read_only_and_cover_poe_delivery() -> None:
     assert "fail-fast: false" in workflow
     assert "timeout-minutes:" in workflow
     assert "permissions:\n  contents: read" in workflow
-    assert "contents: write" not in workflow
+    # Global read-only credentials; permit one tightly scoped cleanup job.
+    assert workflow.count("contents: write") == 1
+    cleanup = workflow.split("\n  remove-reviewed-merged-branch:\n", 1)[1].split(
+        "\n  qualification:\n", 1
+    )[0]
+    assert "    permissions:\n      contents: write\n      pull-requests: read\n" in cleanup
+    assert "branch = 'dependabot/github_actions/actions/setup-python-7.1.0'" in cleanup
+    assert "expected_head = 'ee1043e1bf41a4b99e98515df2412d01e06889ec'" in cleanup
+    assert "assert pull['merged'] is True" in cleanup
+    assert "assert pull['head']['sha'] == expected_head" in cleanup
+    assert "assert comparison['merge_base_commit']['sha'] == expected_head" in cleanup
+    assert "assert current['object']['sha'] == expected_head" in cleanup
+    assert "request(ref, method='DELETE')" in cleanup
     assert "\n  issues:" not in workflow
     assert "refresh-source-manifest:" not in workflow
     assert "build_source_asset_manifest.py" not in workflow
