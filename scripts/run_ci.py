@@ -301,7 +301,11 @@ def run(
             returncode = 125
         log.flush()
         log.seek(0)
-        output = log.read()[-20000:]
+        captured = log.read()
+        if returncode != 0 and len(captured) > 60000:
+            output = captured[:16000] + "\n[... middle of failed command log omitted ...]\n" + captured[-40000:]
+        else:
+            output = captured if returncode != 0 else captured[-20000:]
     return {
         "command": command,
         "returncode": returncode,
