@@ -8,6 +8,12 @@ TSAO is a Python 3.11+ toolkit for chemical process development, dimensioned bal
 
 The illustration expresses the project vision. Its curves and molecules are conceptual, not measurements, calibrated predictions, or proof of industrial performance. The equations below identify their actual implementation and assumptions.
 
+## Four-stage EPDM scientific architecture
+
+![Editable TSAO process architecture](docs/assets/atlas-v2/architecture-en.svg)
+
+Original technical concept diagram. Monomer feed is not dissolved concentration, and reference equations are not validated industrial predictions. The applicable temperature, phase model and source records must be checked independently.
+
 ## What the code delivers
 
 | Capability | Entry point | Result and limitation |
