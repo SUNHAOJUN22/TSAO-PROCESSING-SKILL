@@ -157,8 +157,12 @@ def active_site_fraction(total_metal_mol: float, active_site_mol: float) -> floa
 
 
 def _arrhenius_scaled(rate: float, activation: float, inverse_temperature_delta: float) -> float:
+    # Zero activation has no temperature dependence, including when reciprocal
+    # temperatures themselves exceed the binary64 range.
+    if activation == 0.0:
+        return rate
     exponent = -(activation / GAS_CONSTANT_J_MOL_K) * inverse_temperature_delta
-    if exponent == math.inf or exponent == -math.inf:
+    if not math.isfinite(exponent):
         raise ValueError(
             "Arrhenius exponent became non-finite; reduce the input magnitude or check units"
         )
@@ -168,7 +172,7 @@ def _arrhenius_scaled(rate: float, activation: float, inverse_temperature_delta:
         raise ValueError(
             "Arrhenius scaling overflowed; check temperatures and energy units"
         ) from exc
-    if scaled == math.inf:
+    if not math.isfinite(scaled):
         raise ValueError(
             "Arrhenius-scaled rate became non-finite; reduce the input magnitude or check units"
         )
@@ -188,6 +192,8 @@ def arrhenius_rate_constant(
     reference_temperature = _positive_temperature(reference_temperature_K, "reference temperature")
     if rate < 0 or activation < 0:
         raise ValueError("reference rate and activation energy must be non-negative")
+    if temperature == reference_temperature:
+        return rate
     return _arrhenius_scaled(rate, activation, 1.0 / temperature - 1.0 / reference_temperature)
 
 
@@ -197,7 +203,22 @@ def _temperature_adjusted_validated(
     temperature: float,
     reference_temperature: float,
 ) -> EpdmKineticParameters:
+    if temperature == reference_temperature:
+        return parameters
     inverse_delta = 1.0 / temperature - 1.0 / reference_temperature
+    if not math.isfinite(inverse_delta):
+        if (
+            activation_energies.kp_e_J_mol == 0.0
+            and activation_energies.kp_p_J_mol == 0.0
+            and activation_energies.kp_d_J_mol == 0.0
+            and activation_energies.transfer_J_mol == 0.0
+            and activation_energies.deactivation_J_mol == 0.0
+            and activation_energies.poison_J_mol == 0.0
+        ):
+            return parameters
+        raise ValueError(
+            "Arrhenius exponent became non-finite; reduce the input magnitude or check units"
+        )
     exponents = (
         -(activation_energies.kp_e_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,
         -(activation_energies.kp_p_J_mol / GAS_CONSTANT_J_MOL_K) * inverse_delta,

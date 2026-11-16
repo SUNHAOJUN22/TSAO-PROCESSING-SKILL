@@ -13,6 +13,7 @@ import math
 import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
+from fractions import Fraction
 from typing import Any
 
 from tsao.numeric_contract import finite, finite_product, finite_sum
@@ -331,17 +332,18 @@ def _reaction_rates(
                 raise MaterialBalanceContractError(
                     f"reaction {reaction_id} mass-basis verification needs molecular weights for {missing}"
                 )
-            molar_mass_residual = finite_sum(
-                finite_product(coefficient, molecular_weights[component])
+            # Stoichiometric normalization is arbitrary: multiplying every
+            # coefficient by a common positive factor and dividing the extent
+            # by it describes the same reaction. A fixed absolute floor can
+            # therefore hide a mass-inconsistent reaction. Exact binary-rational
+            # products also avoid overflow before a balanced sum cancels.
+            mass_terms = [
+                Fraction(coefficient) * Fraction(molecular_weights[component])
                 for component, coefficient in coefficients.items()
-            )
-            scale = finite_sum(
-                abs(finite_product(coefficient, molecular_weights[component]))
-                for component, coefficient in coefficients.items()
-            )
-            if not math.isclose(
-                molar_mass_residual, 0.0, rel_tol=0.0, abs_tol=max(1e-10, scale * 1e-10)
-            ):
+            ]
+            molar_mass_residual = sum(mass_terms, Fraction())
+            scale = sum((abs(term) for term in mass_terms), Fraction())
+            if abs(molar_mass_residual) > Fraction(1e-10) * scale:
                 raise MaterialBalanceContractError(
                     f"reaction {reaction_id} stoichiometry is not mass-consistent with declared molecular weights"
                 )

@@ -1,0 +1,327 @@
+{
+  "schema": "tsao.local-code-audit/v1",
+  "audit_date": "2026-11-15",
+  "baseline_commit": "ed19bb1246efb631a4342640f83c90da47c690a3",
+  "python": "3.12.14",
+  "platform": "Linux",
+  "remote_branch_policy": "main only; verified by coordinator before review; no remote branch created",
+  "findings_fixed": [
+    {
+      "id": "PROCESS-1",
+      "path": "skills/epdm/kinetics.py",
+      "problem": "Finite positive temperatures could produce NaN Arrhenius rates at an equal reference temperature or zero activation energy. The parameter bundle also rejected a temperature-independent zero-activation model.",
+      "fix": "Preserve exact reference-temperature and zero-activation identities; reject nonfinite derived exponents/results with the existing domain-error contract."
+    },
+    {
+      "id": "PROCESS-2",
+      "path": "skills/poe/material_balance.py",
+      "problem": "An absolute mass-balance tolerance floor allowed inconsistent reaction stoichiometry at small normalization and rejected balanced stoichiometry after intermediate overflow.",
+      "fix": "Use exact binary-rational products and a scale-relative residual for the small stoichiometric check; retain finite rate conversion and material-balance gates."
+    }
+  ],
+  "baseline_reproduction": {
+    "initial_targeted_cases": 22,
+    "failed": 11,
+    "passed": 11,
+    "additional_zero_activation_bundle_failures": 2
+  },
+  "tests": {
+    "collected": 1380,
+    "passed": 1374,
+    "skipped": 6,
+    "failed": 0,
+    "skip_reason": "Windows process/Job Object cleanup requires Win32 APIs",
+    "new_regression_cases": 26
+  },
+  "coverage": {
+    "displayed_percent": 84,
+    "required_minimum_percent": 75,
+    "scope": "existing run_ci branch coverage configuration; source=skills.poe,skills.epdm,tsao.process_package,tsao.skillpacks; omit specialist scripts"
+  },
+  "ci_runner": {
+    "returncode": 1,
+    "status": "BLOCKED_PARALLEL_COMPILE_ONLY",
+    "checks": [
+      {
+        "command": [
+          "python",
+          "-m",
+          "compileall",
+          "-q",
+          "-j",
+          "0",
+          "tsao",
+          "scripts",
+          "skills"
+        ],
+        "returncode": 1,
+        "seconds": 0.114,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "coverage",
+          "erase"
+        ],
+        "returncode": 0,
+        "seconds": 0.118,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "coverage",
+          "run",
+          "--branch",
+          "--source=skills.poe,skills.epdm,tsao.process_package,tsao.skillpacks",
+          "--omit=skills/poe/scripts/*,skills/epdm/scripts/*",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "tests",
+          "skills/process-general/tests",
+          "skills/epdm/tests",
+          "skills/poe/tests",
+          "skills/polymer-general/tests"
+        ],
+        "returncode": 0,
+        "seconds": 44.389,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "coverage",
+          "report",
+          "--fail-under=75"
+        ],
+        "returncode": 0,
+        "seconds": 0.668,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-c",
+          "from pathlib import Path; Path('.coverage').unlink(missing_ok=True); Path('coverage.xml').unlink(missing_ok=True)"
+        ],
+        "returncode": 0,
+        "seconds": 0.032,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "scripts/audit_capabilities.py"
+        ],
+        "returncode": 0,
+        "seconds": 0.125,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "skills/epdm/scripts/audit_epdm.py"
+        ],
+        "returncode": 0,
+        "seconds": 0.473,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "skills/poe/scripts/audit_p0.py",
+          "--root",
+          "."
+        ],
+        "returncode": 0,
+        "seconds": 0.519,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "skills/poe/scripts/audit_p1.py",
+          "--root",
+          "."
+        ],
+        "returncode": 0,
+        "seconds": 0.43,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "tsao.cli",
+          "doctor",
+          "--root",
+          ".",
+          "--profile",
+          "core"
+        ],
+        "returncode": 0,
+        "seconds": 0.58,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "ruff",
+          "check",
+          "tsao",
+          "tests",
+          "scripts",
+          "skills/process-general",
+          "skills/epdm",
+          "skills/poe",
+          "skills/polymer-general"
+        ],
+        "returncode": 0,
+        "seconds": 0.124,
+        "timed_out": false
+      }
+    ],
+    "environment_block": "compileall -j 0 requires a forkserver AF_UNIX socket, denied by this sandbox (PermissionError: Operation not permitted). No code or gate was weakened."
+  },
+  "serial_compile": {
+    "command": [
+      "python",
+      "-m",
+      "compileall",
+      "-q",
+      "tsao",
+      "scripts",
+      "skills"
+    ],
+    "returncode": 0
+  },
+  "smoke_checks": [
+    {
+      "command": [
+        "-m",
+        "tsao.skillpacks",
+        "--root",
+        "."
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "-m",
+        "tsao.cli",
+        "package",
+        "template",
+        "--family",
+        "generic process"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "-m",
+        "tsao.cli",
+        "route",
+        "POE solution polymerization and solvent recovery"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "-m",
+        "tsao.cli",
+        "epdm",
+        "status"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "-m",
+        "tsao.cli",
+        "epdm",
+        "reference-demo"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "-m",
+        "tsao.cli",
+        "poe",
+        "reference-demo"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "scripts/verify_readme_visual_accessibility.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "scripts/sync_readme_visuals.py",
+        "--check"
+      ],
+      "returncode": 0
+    }
+  ],
+  "dependency_lock": {
+    "command": [
+      "python",
+      "scripts/verify_dependency_lock.py",
+      "requirements.lock",
+      "--pyproject",
+      "pyproject.toml"
+    ],
+    "returncode": 0,
+    "packages": 30
+  },
+  "epdm_software_acceptance": {
+    "command": [
+      "python",
+      "scripts/qualify_acceptance.py",
+      "--project",
+      "skills/epdm/fixtures/v2_phase_a1_reference_project.json",
+      "--output",
+      "reports/runtime/EPDM_SOFTWARE_ACCEPTANCE.json",
+      "--load-samples",
+      "7"
+    ],
+    "returncode": 0,
+    "pass": true,
+    "checks": {
+      "canonical_publication_repeatable": true,
+      "reaction_network_audit": true,
+      "full_rate_package_audit": true,
+      "adaptive_integration": true,
+      "analytic_reference": true,
+      "loader_median_time": true,
+      "loader_peak_memory": true,
+      "approval_boundary_closed": true
+    },
+    "parameter_basis": "SYNTHETIC_REFERENCE_NOT_PROJECT_CALIBRATION"
+  },
+  "tested_file_sha256": {
+    "skills/epdm/kinetics.py": "230d4384c5f0fc7b9a22343e320635393ffeda229a8e7a701f8a8c59b7a8f51e",
+    "skills/poe/material_balance.py": "7c757bc202ab99536c7be52b3782cb6273f17057a30e68579d681409f60b3851",
+    "skills/epdm/tests/test_arrhenius_reference_limits.py": "20b1ff49f8589946c27f0b62fd9fc59e37e3d751557097ea5b2d033a960c8ad5",
+    "skills/poe/tests/test_reaction_mass_scale_invariance.py": "561dde9fe2f1d3efba9fba501a29df2a65d2925322e599b6bd839e4ad5c2f24a"
+  },
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED",
+  "limitations": [
+    "Linux Python 3.12 local execution only; Windows and other Python versions remain for authoritative CI.",
+    "No Aspen or external scientific engine, industrial campaign, or real project calibration was executed.",
+    "Repository-wide performance comparison and live advisory queries were not rerun locally."
+  ]
+}
