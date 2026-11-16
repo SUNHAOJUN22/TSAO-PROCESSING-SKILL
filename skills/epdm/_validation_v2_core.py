@@ -390,6 +390,17 @@ def _validate_calibration_plans(
         for stage_index, stage in enumerate(stages):
             if not isinstance(stage, dict):
                 continue
+            independent = stage.get("stage_kind") == "INDEPENDENT_VALIDATION"
+            stage_path = f"$.calibration_plans[{plan_id}].stages[{stage_index}]"
+            if independent and stage.get("varied_parameter_ids"):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        GateReasonCode.DATA_LEAKAGE,
+                        f"{stage_path}.varied_parameter_ids",
+                        "independent validation must evaluate frozen parameters, not vary them",
+                    )
+                )
             for target_id in stage.get("target_ids", []):
                 _require_reference(
                     target_id,
@@ -398,6 +409,24 @@ def _validate_calibration_plans(
                     "target",
                     issues,
                 )
+                target = targets.get(target_id)
+                if target is None:
+                    continue
+                evaluation_role = target.get("use") in {"VALIDATION", "HOLDOUT"}
+                if independent != evaluation_role:
+                    message = (
+                        "independent validation requires VALIDATION or HOLDOUT targets"
+                        if independent
+                        else "calibration cannot consume VALIDATION or HOLDOUT targets"
+                    )
+                    issues.append(
+                        ValidationIssue(
+                            "ERROR",
+                            GateReasonCode.DATA_LEAKAGE,
+                            f"{stage_path}.target_ids",
+                            f"{message}: {target_id}",
+                        )
+                    )
             for parameter_id in stage.get("varied_parameter_ids", []):
                 _require_reference(
                     parameter_id,

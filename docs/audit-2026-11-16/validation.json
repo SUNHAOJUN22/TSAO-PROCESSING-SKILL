@@ -1,0 +1,525 @@
+{
+  "schema": "tsao.local-code-audit/v1",
+  "audit_date": "2026-11-16",
+  "baseline_commit": "9a157ed2f97cd1400ec7850246735a9121c86d80",
+  "python": "3.12.14",
+  "platform": "Linux",
+  "remote_branch_policy": "main only; verified by coordinator; no remote branch created",
+  "findings_fixed": [
+    {
+      "id": "PROCESS-ROLE-1",
+      "path": "skills/epdm/_validation_v2_core.py",
+      "problem": "Declared holdout/validation targets could be used in fitting stages; independent validation could vary parameters or reuse calibration targets.",
+      "fix": "Bind actual stage purpose to target role and require frozen independent validation."
+    },
+    {
+      "id": "PROCESS-METRIC-2",
+      "path": "skills/poe/properties.py",
+      "problem": "A common 1e16 reference origin changed the constant-prediction R-squared from 0 to approximately 0.409966.",
+      "fix": "Remove common target origin before normalization; retain overflow-safe wide-signed-range fallback."
+    }
+  ],
+  "baseline_reproduction": {
+    "failed": 12,
+    "passed": 5,
+    "calibration_role_failures": 4,
+    "reference_origin_failures": 8,
+    "source_was_unchanged": true
+  },
+  "new_regression_cases": 17,
+  "full_tests": {
+    "collected": 1397,
+    "passed": 1391,
+    "skipped": 6,
+    "failed": 0,
+    "skip_reason": "Windows process and Job Object cleanup requires Win32 APIs",
+    "count_evidence": "Successful configured pytest progress outcomes and independent --collect-only result."
+  },
+  "coverage": {
+    "displayed_percent": 84,
+    "required_minimum_percent": 75,
+    "statements": 7467,
+    "missing_statements": 917,
+    "branches": 3218,
+    "partial_branches": 698,
+    "scope": "Existing run_ci branch coverage configuration."
+  },
+  "ci_runner": {
+    "returncode": 1,
+    "status": "BLOCKED_PARALLEL_COMPILE_ONLY",
+    "checks": [
+      {
+        "command": [
+          "python",
+          "-m",
+          "compileall",
+          "-q",
+          "-j",
+          "0",
+          "tsao",
+          "scripts",
+          "skills"
+        ],
+        "returncode": 1,
+        "seconds": 0.11468314300145721,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "coverage",
+          "erase"
+        ],
+        "returncode": 0,
+        "seconds": 0.11427714199999173,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "coverage",
+          "run",
+          "--branch",
+          "--source=skills.poe,skills.epdm,tsao.process_package,tsao.skillpacks",
+          "--omit=skills/poe/scripts/*,skills/epdm/scripts/*",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "tests",
+          "skills/process-general/tests",
+          "skills/epdm/tests",
+          "skills/poe/tests",
+          "skills/polymer-general/tests"
+        ],
+        "returncode": 0,
+        "seconds": 41.093663097999524,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "coverage",
+          "report",
+          "--fail-under=75"
+        ],
+        "returncode": 0,
+        "seconds": 0.5157312930004991,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-c",
+          "from pathlib import Path; Path('.coverage').unlink(missing_ok=True); Path('coverage.xml').unlink(missing_ok=True)"
+        ],
+        "returncode": 0,
+        "seconds": 0.03260285699980159,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "scripts/audit_capabilities.py"
+        ],
+        "returncode": 0,
+        "seconds": 0.18050715700155706,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "skills/epdm/scripts/audit_epdm.py"
+        ],
+        "returncode": 0,
+        "seconds": 0.4800310869995883,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "skills/poe/scripts/audit_p0.py",
+          "--root",
+          "."
+        ],
+        "returncode": 0,
+        "seconds": 0.4700488389989914,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "skills/poe/scripts/audit_p1.py",
+          "--root",
+          "."
+        ],
+        "returncode": 0,
+        "seconds": 0.38090741699852515,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "tsao.cli",
+          "doctor",
+          "--root",
+          ".",
+          "--profile",
+          "core"
+        ],
+        "returncode": 0,
+        "seconds": 0.42976743599865586,
+        "timed_out": false
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "ruff",
+          "check",
+          "tsao",
+          "tests",
+          "scripts",
+          "skills/process-general",
+          "skills/epdm",
+          "skills/poe",
+          "skills/polymer-general"
+        ],
+        "returncode": 0,
+        "seconds": 0.17852887399931205,
+        "timed_out": false
+      }
+    ],
+    "environment_block": "compileall -j 0 requires an AF_UNIX forkserver socket denied by this environment. No code or gate was weakened; serial source compilation passed."
+  },
+  "supplementary_checks": [
+    {
+      "name": "serial-compile",
+      "command": [
+        "python",
+        "-m",
+        "compileall",
+        "-q",
+        "tsao",
+        "scripts",
+        "skills"
+      ],
+      "returncode": 0,
+      "seconds": 0.046
+    },
+    {
+      "name": "dependency-lock",
+      "command": [
+        "python",
+        "scripts/verify_dependency_lock.py",
+        "requirements.lock",
+        "--pyproject",
+        "pyproject.toml"
+      ],
+      "returncode": 0,
+      "seconds": 0.051
+    },
+    {
+      "name": "pip-check",
+      "command": [
+        "python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "returncode": 1,
+      "seconds": 0.021
+    },
+    {
+      "name": "collection",
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "--collect-only",
+        "-q",
+        "-o",
+        "addopts=",
+        "-p",
+        "no:cacheprovider",
+        "tests",
+        "skills/process-general/tests",
+        "skills/epdm/tests",
+        "skills/poe/tests",
+        "skills/polymer-general/tests"
+      ],
+      "returncode": 0,
+      "seconds": 0.698
+    },
+    {
+      "name": "software-acceptance",
+      "command": [
+        "python",
+        "scripts/qualify_acceptance.py",
+        "--project",
+        "skills/epdm/fixtures/v2_phase_a1_reference_project.json",
+        "--output",
+        "docs/audit-2026-11-16/software-acceptance.json",
+        "--load-samples",
+        "7"
+      ],
+      "returncode": 0,
+      "seconds": 0.612
+    },
+    {
+      "name": "skillpacks",
+      "command": [
+        "python",
+        "-m",
+        "tsao.skillpacks",
+        "--root",
+        "."
+      ],
+      "returncode": 0,
+      "seconds": 0.062
+    },
+    {
+      "name": "package-template",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "package",
+        "template",
+        "--family",
+        "continuous chemical process"
+      ],
+      "returncode": 0,
+      "seconds": 0.301
+    },
+    {
+      "name": "route",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "route",
+        "POE solution polymerization and solvent recovery"
+      ],
+      "returncode": 0,
+      "seconds": 0.236
+    },
+    {
+      "name": "epdm-status",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "epdm",
+        "status"
+      ],
+      "returncode": 0,
+      "seconds": 0.225
+    },
+    {
+      "name": "epdm-reference",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "epdm",
+        "reference-demo"
+      ],
+      "returncode": 0,
+      "seconds": 0.267
+    },
+    {
+      "name": "epdm-model-suite",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "epdm",
+        "model-suite",
+        "--temperature-k",
+        "323.15",
+        "--residence-s",
+        "300"
+      ],
+      "returncode": 0,
+      "seconds": 0.232
+    },
+    {
+      "name": "poe-status",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "poe",
+        "status",
+        "--root",
+        "."
+      ],
+      "returncode": 0,
+      "seconds": 0.204
+    },
+    {
+      "name": "poe-reference",
+      "command": [
+        "python",
+        "-m",
+        "tsao.cli",
+        "poe",
+        "reference-demo"
+      ],
+      "returncode": 0,
+      "seconds": 0.196
+    },
+    {
+      "name": "readme-performance",
+      "command": [
+        "python",
+        "scripts/update_performance_readme.py",
+        "--comparison",
+        "reports/PERFORMANCE_COMPARISON_ALPHA11.json",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0.028
+    }
+  ],
+  "dependency_graph": {
+    "command": [
+      "uv",
+      "pip",
+      "check",
+      "--python",
+      ".venv/bin/python"
+    ],
+    "returncode": 0,
+    "note": "The cached uv venv has no pip module; python -m pip check reported that absence, so uv checked the actual isolated environment instead."
+  },
+  "dependency_lock": {
+    "packages": 30,
+    "returncode": 0
+  },
+  "readme_fixed_point": [
+    {
+      "name": "generate_readme_assets.py",
+      "command": [
+        "python",
+        "scripts/generate_readme_assets.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "generate_extended_readme_assets.py",
+      "command": [
+        "python",
+        "scripts/generate_extended_readme_assets.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "generate_decision_readme_assets.py",
+      "command": [
+        "python",
+        "scripts/generate_decision_readme_assets.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "generate_performance_readme_assets.py",
+      "command": [
+        "python",
+        "scripts/generate_performance_readme_assets.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "generate_uiux_readme_assets.py",
+      "command": [
+        "python",
+        "scripts/generate_uiux_readme_assets.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "harden_readme_svg_accessibility.py",
+      "command": [
+        "python",
+        "scripts/harden_readme_svg_accessibility.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "verify_readme_visual_accessibility.py",
+      "command": [
+        "python",
+        "scripts/verify_readme_visual_accessibility.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "sync-readme",
+      "command": [
+        "python",
+        "scripts/sync_readme_visuals.py",
+        "--check"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "readme-fixed-point",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "docs/assets/readme",
+        "README.md",
+        "README.zh-CN.md"
+      ],
+      "returncode": 0
+    }
+  ],
+  "controlled_distribution": {
+    "status": "EXPECTED_BLOCK",
+    "scope": "Direct existing public-source/public-wheel policy gate; full suite also covers distribution containment. No public release artifact emitted."
+  },
+  "epdm_software_acceptance": {
+    "returncode": 0,
+    "pass": true,
+    "checks": {
+      "canonical_publication_repeatable": true,
+      "reaction_network_audit": true,
+      "full_rate_package_audit": true,
+      "adaptive_integration": true,
+      "analytic_reference": true,
+      "loader_median_time": true,
+      "loader_peak_memory": true,
+      "approval_boundary_closed": true
+    },
+    "load_samples": 7,
+    "parameter_basis": "SYNTHETIC_REFERENCE_NOT_PROJECT_CALIBRATION"
+  },
+  "invariant_references": [
+    "https://scikit-learn.org/stable/modules/model_evaluation.html#r2-score-the-coefficient-of-determination",
+    "https://scikit-learn.org/stable/common_pitfalls.html#data-leakage"
+  ],
+  "file_sha256": {
+    "skills/epdm/_validation_v2_core.py": "f1c4694cdc8bb63a29c4d35df8697da1326e7c8d2fe2537bc8861928ad83c570",
+    "skills/poe/properties.py": "016b6a31d1e166f2dbd5dbee0aa02390e67a1cd3c5b63a4a83cce03cd2826876",
+    "skills/epdm/tests/test_calibration_data_roles.py": "1420417b1bdffe0eafb10797891d74e73cd4201b0f1eb481beb26fefc6851241",
+    "tests/test_regression_reference_invariance.py": "c294486ca2de4154a32fd5653802b8f60195d015f047d7cf96a67563da490054"
+  },
+  "scientific_technical_approval": "NOT_EVALUATED",
+  "engineering_design_approval": "NOT_EVALUATED",
+  "industrial_performance_guarantee": "NOT_EVALUATED",
+  "limitations": [
+    "Linux Python 3.12 local execution; Windows and wider Python matrix remain for exact-head CI.",
+    "No remote engine, paid job, industrial campaign or actual project calibration executed.",
+    "Historical runtime-performance comparison was not rerun locally; exact-head CI retains that gate."
+  ],
+  "command_record_note": "The software-acceptance output path is normalized to a portable location; the executed local report was written outside the repository."
+}

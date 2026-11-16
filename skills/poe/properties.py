@@ -48,11 +48,20 @@ def regression_error_metrics(
     # shared contract also represents an all-zero denominator set as None.
     mape = mean_absolute_percentage_error(actual, estimate)
 
-    actual_scale = max(map(abs, actual), default=0.0)
+    # Center before scaling: an arbitrary common physical reference must not
+    # erase the target spread and inflate R-squared. Only opposite extreme
+    # values need scaled subtraction to avoid an overflowing difference.
+    shifted_actual = [value - actual[0] for value in actual]
+    shifted_finite = all(math.isfinite(value) for value in shifted_actual)
+    actual_scale = max(map(abs, shifted_actual if shifted_finite else actual), default=0.0)
     if actual_scale == 0.0:
         r2 = 1.0 if residual_scale == 0.0 else 0.0
     else:
-        normalized_actual = [value / actual_scale for value in actual]
+        normalized_actual = (
+            [value / actual_scale for value in shifted_actual]
+            if shifted_finite
+            else [value / actual_scale - actual[0] / actual_scale for value in actual]
+        )
         normalized_mean = math.fsum(normalized_actual) / len(normalized_actual)
         centered = [value - normalized_mean for value in normalized_actual]
         centered_sum = math.fsum(value * value for value in centered)
