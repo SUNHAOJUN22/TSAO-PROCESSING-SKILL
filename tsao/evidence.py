@@ -26,7 +26,7 @@ class EvidenceItem:
             or not nonempty(self.applicability)
             or self.contradiction_status not in _VALID_CONTRADICTION_STATES
             or self.contradiction_status in {"OPEN", "SUPERSEDED", "RETRACTED"}
-            or not self.decision_eligible
+            or self.decision_eligible is not True
         ):
             return False
         if self.review_due_on:

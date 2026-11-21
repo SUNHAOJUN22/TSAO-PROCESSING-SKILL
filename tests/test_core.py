@@ -125,6 +125,16 @@ def test_evidence_invalid_date_or_state_fails_closed() -> None:
     assert EvidenceItem("EV", "A", True, "scope", None, "RESOLVED").usable()
 
 
+@pytest.mark.parametrize("decision_eligible", ["false", "true", 1, [True], {"approved": True}])
+def test_evidence_requires_explicit_boolean_decision_eligibility(decision_eligible: object) -> None:
+    assert not EvidenceItem("EV", "A", decision_eligible, "scope").usable()
+
+
+def test_evidence_accepts_only_true_decision_eligibility() -> None:
+    assert EvidenceItem("EV", "A", True, "scope").usable()
+    assert not EvidenceItem("EV", "A", False, "scope").usable()
+
+
 def test_high_risk_model_requires_independent_review() -> None:
     model = ModelRecord("M-1", "MR5", "QUALIFIED", "PASS")
     assert not model.qualified()
