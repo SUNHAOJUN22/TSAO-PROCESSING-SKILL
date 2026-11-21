@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from tsao.numeric_contract import finite_product
+
 from .kinetics import EpdmKineticParameters
 
 
@@ -100,7 +102,7 @@ def heat_removal_margin(generation_kW: float, removal_capacity_kW: float) -> flo
     capacity = _finite(removal_capacity_kW, "heat removal capacity")
     if generation < 0 or capacity <= 0:
         raise ValueError("generation must be non-negative and capacity positive")
-    return (capacity - generation) / capacity
+    return finite_product(capacity - generation, divisor=capacity, label="heat-removal margin")
 
 
 def mixing_reynolds(
@@ -157,7 +159,11 @@ def grade_transition_offspec_fraction(residence_s: float, transition_s: float) -
     transition = _finite(transition_s, "transition time")
     if residence <= 0 or transition < 0:
         raise ValueError("residence time must be positive and transition time non-negative")
-    return min(1.0, transition / (transition + residence))
+    # Normalize before adding: two finite durations may have an infinite sum.
+    if transition >= residence:
+        return 1.0 / (1.0 + residence / transition)
+    ratio = finite_product(transition, divisor=residence, label="transition duration ratio")
+    return finite_product(ratio, divisor=1.0 + ratio, label="transition offspec fraction")
 
 
 def mooney_reference(mw_kg_mol: float, branch_index: float, oil_phr: float = 0.0) -> float:
@@ -193,7 +199,12 @@ def entropy_generation_heat_transfer_kW_K(
     cold = _finite(cold_temperature_K, "cold temperature")
     if duty < 0 or cold <= 0 or hot <= cold:
         raise ValueError("duty must be non-negative and hot temperature must exceed cold")
-    return duty * (1.0 / cold - 1.0 / hot)
+    # Subtract temperatures before taking ratios. Subtracting their reciprocals
+    # loses a resolved near-isothermal gap and can overflow at small temperatures.
+    relative_gap = (hot - cold) / hot
+    return finite_product(
+        duty, relative_gap, divisor=cold, label="heat-transfer entropy generation"
+    )
 
 
 def _raise_nonfinite_semibatch(
