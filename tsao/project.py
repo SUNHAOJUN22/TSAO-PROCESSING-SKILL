@@ -302,7 +302,19 @@ def audit_project(root: Path, mode: str = "initialization") -> list[str]:
     events, event_issues = _load_gate_events(root / "00_governance/gate_events.jsonl")
     issues.extend(event_issues)
     if mode in {"transition", "release"}:
-        issues.extend(validate_gate_events(events))
+        ledger_issues = validate_gate_events(events)
+        issues.extend(ledger_issues)
+        if not event_issues and not ledger_issues:
+            # The manifest is a snapshot of this history, not an independent
+            # authority to advance gates or hide a subsequent rollback.
+            last_status = {event["gate_id"]: GateStatus(event["new_status"]) for event in events}
+            for gate in gate_records:
+                recorded = last_status.get(gate.gate_id, GateStatus.NOT_EVALUATED)
+                if gate.status != recorded:
+                    issues.append(
+                        f"{gate.gate_id} manifest status {gate.status} does not match "
+                        f"gate event ledger status {recorded}"
+                    )
         if mode == "release" and not events:
             issues.append("release audit requires a non-empty gate event ledger")
 
