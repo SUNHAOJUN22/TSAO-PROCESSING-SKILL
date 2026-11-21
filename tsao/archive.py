@@ -4,12 +4,28 @@ import hashlib
 import stat
 import tempfile
 import zipfile
+import zlib
 from collections import Counter
 from pathlib import Path, PurePosixPath
 
 _FORBIDDEN_DIRECTORY_NAMES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
 _FORBIDDEN_FILE_NAMES = {".env", "id_rsa", "id_ed25519"}
 _FORBIDDEN_FILE_SUFFIXES = {".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"}
+
+
+def _safe_archive_path(raw_name: str) -> bool:
+    pure = PurePosixPath(raw_name)
+    first_part = pure.parts[0] if pure.parts else ""
+    canonical = pure.as_posix() + ("/" if raw_name.endswith("/") else "")
+    return bool(
+        pure.parts
+        and "\\" not in raw_name
+        and not pure.is_absolute()
+        and ".." not in pure.parts
+        and not first_part.endswith(":")
+        and first_part[1:2] != ":"
+        and raw_name == canonical
+    )
 
 
 def deterministic_zip(root: Path, output: Path) -> str:
@@ -21,6 +37,11 @@ def deterministic_zip(root: Path, output: Path) -> str:
     if root.is_symlink():
         raise ValueError("archive root must not be a symlink")
     root_resolved = root.resolve()
+    # Directory aliases such as '.' and 'child/..' must retain the real
+    # directory name instead of creating absolute or traversal member names.
+    root = root_resolved
+    if not _safe_archive_path(f"{root.name}/"):
+        raise ValueError(f"unsafe archive path: {root.name}/")
     output_resolved = output.resolve(strict=False)
     if output_resolved == root_resolved or output_resolved.is_relative_to(root_resolved):
         raise ValueError("archive output must be outside the source root")
@@ -41,6 +62,9 @@ def deterministic_zip(root: Path, output: Path) -> str:
             _validate_archive_file_name(relative)
             files.append(path)
             archive_names.append(f"{root.name}/{relative.as_posix()}")
+    for name in archive_names:
+        if not _safe_archive_path(name):
+            raise ValueError(f"unsafe archive path: {name}")
     folded_counts = Counter(item.casefold() for item in archive_names)
     if any(count > 1 for count in folded_counts.values()):
         raise ValueError("case-insensitive archive path collision")
@@ -97,16 +121,7 @@ def validate_zip_archive(
             for member in members:
                 raw_name = member.filename
                 pure = PurePosixPath(raw_name)
-                first_part = pure.parts[0] if pure.parts else ""
-                if (
-                    not raw_name
-                    or "\\" in raw_name
-                    or raw_name.startswith("/")
-                    or pure.is_absolute()
-                    or ".." in pure.parts
-                    or first_part.endswith(":")
-                    or "//" in raw_name
-                ):
+                if not _safe_archive_path(raw_name):
                     issues.append(f"unsafe archive path: {raw_name}")
                 if member.flag_bits & 0x1:
                     issues.append(f"encrypted archive member: {raw_name}")
@@ -133,7 +148,7 @@ def validate_zip_archive(
                 bad_member = archive.testzip()
                 if bad_member:
                     issues.append(f"archive CRC failure: {bad_member}")
-    except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
+    except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile, NotImplementedError, zlib.error) as exc:
         issues.append(f"invalid archive: {exc}")
     return sorted(set(issues))
 
