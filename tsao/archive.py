@@ -5,12 +5,27 @@ import stat
 import tempfile
 import zipfile
 import zlib
+from bisect import bisect_left
 from collections import Counter
 from pathlib import Path, PurePosixPath
 
 _FORBIDDEN_DIRECTORY_NAMES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
 _FORBIDDEN_FILE_NAMES = {".env", "id_rsa", "id_ed25519"}
 _FORBIDDEN_FILE_SUFFIXES = {".pyc", ".pyo", ".pem", ".p12", ".pfx", ".key"}
+
+
+def _archive_file_directory_conflicts(names: list[str]) -> list[str]:
+    """Reject file identities used as explicit or implicit directories."""
+    folded_names = sorted(name.casefold() for name in names)
+    issues: list[str] = []
+    for name in names:
+        if name.endswith("/"):
+            continue
+        prefix = name.casefold() + "/"
+        index = bisect_left(folded_names, prefix)
+        if index < len(folded_names) and folded_names[index].startswith(prefix):
+            issues.append(f"archive file/directory path conflict: {name}")
+    return issues
 
 
 def _safe_archive_path(raw_name: str) -> bool:
@@ -68,6 +83,9 @@ def deterministic_zip(root: Path, output: Path) -> str:
     folded_counts = Counter(item.casefold() for item in archive_names)
     if any(count > 1 for count in folded_counts.values()):
         raise ValueError("case-insensitive archive path collision")
+    topology_issues = _archive_file_directory_conflicts(archive_names)
+    if topology_issues:
+        raise ValueError("; ".join(topology_issues))
 
     output.parent.mkdir(parents=True, exist_ok=True)
     # Keep each writer private on the destination filesystem. Let ZipFile create
@@ -117,6 +135,7 @@ def validate_zip_archive(
                 issues.append("archive contains duplicate member names")
             if len({name.casefold() for name in names}) != len(names):
                 issues.append("archive contains case-insensitive path collisions")
+            issues.extend(_archive_file_directory_conflicts(names))
             total_size = 0
             for member in members:
                 raw_name = member.filename
