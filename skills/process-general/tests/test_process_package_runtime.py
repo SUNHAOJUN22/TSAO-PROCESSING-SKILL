@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+
+import pytest
+
+from tsao.cli import main
 from tsao.process_package import process_package_template, validate_process_package
 
 
@@ -90,6 +95,40 @@ def test_pass_requires_qualified_evidence_and_named_approver():
     data["evidence_ledger"][0]["status"] = "REPORTED"
     data["acceptance"][0].pop("approver")
     assert validate_process_package(data)["status"] == "FAIL"
+
+
+@pytest.mark.parametrize(
+    "approver",
+    [None, False, True, 0, 1, 1.5, "", " \t\n", [], ["A"], {}, {"name": "A"}],
+)
+def test_pass_requires_textual_named_approver(approver, tmp_path, capsys):
+    data = valid_package()
+    data["acceptance"][0]["approver"] = approver
+    source = tmp_path / "package.json"
+    source.write_text(json.dumps(data), encoding="utf-8")
+
+    assert main(["package", "audit", "--file", str(source)]) == 2
+    result = json.loads(capsys.readouterr().out)
+    assert result["pass"] is False
+    assert result["status"] == "FAIL"
+    assert "acceptance C1 PASS requires named approver" in result["errors"]
+    assert result["scientific_technical_approval"] == "NOT_EVALUATED"
+    assert result["engineering_design_approval"] == "NOT_EVALUATED"
+
+
+@pytest.mark.parametrize("approver", ["A", "张 三", " A "])
+def test_named_approver_preserves_text(approver, tmp_path, capsys):
+    data = valid_package()
+    data["acceptance"][0]["approver"] = approver
+    source = tmp_path / "package.json"
+    source.write_text(json.dumps(data), encoding="utf-8")
+
+    assert main(["package", "audit", "--file", str(source)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["pass"] is True
+    assert result["status"] == "PASS"
+    assert result["scientific_technical_approval"] == "NOT_EVALUATED"
+    assert result["engineering_design_approval"] == "NOT_EVALUATED"
 
 
 def test_open_hazard_and_missing_controls_hold():

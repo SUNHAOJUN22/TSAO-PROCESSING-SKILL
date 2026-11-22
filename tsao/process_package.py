@@ -573,7 +573,8 @@ def _validate_process_package(package: object) -> dict[str, Any]:
                     errors.append(
                         f"acceptance {identifier} PASS uses non-qualified evidence: {ref}"
                     )
-        if state == "PASS" and not criterion.get("approver"):
+        approver = criterion.get("approver")
+        if state == "PASS" and (not isinstance(approver, str) or not approver.strip()):
             errors.append(f"acceptance {identifier} PASS requires named approver")
         elif state != "PASS":
             holds.append(f"acceptance {identifier} is {state}")
