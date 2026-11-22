@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -94,12 +94,11 @@ class GateRecord:
     def transition(self, new_status: GateStatus) -> None:
         if new_status not in ALLOWED_TRANSITIONS[self.status]:
             raise ValueError(f"illegal transition {self.status}->{new_status}")
-        old_status = self.status
-        self.status = new_status
-        issues = self.validate()
+        # Validate a candidate before committing so exceptions cannot advance the gate.
+        issues = replace(self, status=new_status).validate()
         if issues:
-            self.status = old_status
             raise ValueError("invalid target Gate state: " + "; ".join(issues))
+        self.status = new_status
 
 
 def validate_gate_sequence(gates: list[GateRecord]) -> list[str]:
