@@ -10,7 +10,7 @@ import yaml
 
 from . import __version__
 from ._utils import atomic_write_text, nonempty, required_or_default_string
-from .capabilities import build_work_packages, initial_maturity_record
+from .capabilities import GATES, WORKSTREAMS, build_work_packages, initial_maturity_record
 from .gates import (
     ApprovalStatus,
     GateRecord,
@@ -212,8 +212,12 @@ def audit_project(root: Path, mode: str = "initialization") -> list[str]:
     if work_packages_path.is_file():
         try:
             packages = loads_strict(work_packages_path.read_text(encoding="utf-8"))
-            if not isinstance(packages, list) or len(packages) != 19 * 14:
-                issues.append("work package matrix must contain 266 records")
+            workstream_ids = {stream_id for stream_id, _, _ in WORKSTREAMS}
+            expected_pairs = {
+                (gate_id, stream_id) for gate_id in GATES for stream_id in workstream_ids
+            }
+            if not isinstance(packages, list) or len(packages) != len(expected_pairs):
+                issues.append(f"work package matrix must contain {len(expected_pairs)} records")
             elif mode == "initialization" and any(
                 item.get("approval_status") != "NOT_EVALUATED" for item in packages
             ):
@@ -225,6 +229,41 @@ def audit_project(root: Path, mode: str = "initialization") -> list[str]:
                         issues.append(f"work package {index} must be an object")
                     elif item.get("approval_status") not in valid_approvals:
                         issues.append(f"work package {index} has invalid approval_status")
+            if isinstance(packages, list):
+                package_ids: set[str] = set()
+                pairs: set[tuple[str, str]] = set()
+                for index, item in enumerate(packages):
+                    if not isinstance(item, dict):
+                        issues.append(f"work package {index} must be an object")
+                        continue
+                    package_id = item.get("work_package_id")
+                    if not nonempty(package_id):
+                        issues.append(f"work package {index} requires a non-empty work_package_id")
+                    elif package_id in package_ids:
+                        issues.append(f"work package {index} has duplicate work_package_id")
+                    else:
+                        package_ids.add(package_id)
+                    gate_id = item.get("gate_id")
+                    stream_id = item.get("workstream_id")
+                    valid_gate = isinstance(gate_id, str) and gate_id in GATES
+                    valid_stream = isinstance(stream_id, str) and stream_id in workstream_ids
+                    if not valid_gate:
+                        issues.append(f"work package {index} has invalid gate_id")
+                    if not valid_stream:
+                        issues.append(f"work package {index} has invalid workstream_id")
+                    if valid_gate and valid_stream:
+                        pair = (gate_id, stream_id)
+                        if pair in pairs:
+                            issues.append(
+                                f"work package {index} duplicates gate/workstream pair: "
+                                f"{gate_id}/{stream_id}"
+                            )
+                        pairs.add(pair)
+                missing = expected_pairs - pairs
+                if missing:
+                    issues.append(
+                        f"work package matrix is missing {len(missing)} gate/workstream pairs"
+                    )
         except (OSError, UnicodeError, ValueError, AttributeError) as exc:
             issues.append(f"invalid work package matrix: {exc}")
 
